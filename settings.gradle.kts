@@ -16,6 +16,7 @@
 pluginManagement {
     includeBuild("build-logic")
     includeBuild("gradle-plugin")
+    includeBuild("third_party/kotlin-stdlib-gen")
     repositories {
         gradlePluginPortal()
         mavenCentral()
@@ -31,6 +32,8 @@ dependencyResolutionManagement {
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "kotlua"
-include("lua-compiler")
-include("lua-ast")
-include("lua-stdlib")
+include(
+    ":lua-compiler",
+    ":lua-ast",
+    ":lua-stdlib",
+)
