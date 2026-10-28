@@ -15,10 +15,23 @@
  */
 package io.github.kotlua
 
+import com.diffplug.gradle.spotless.KotlinExtension
 import com.diffplug.gradle.spotless.SpotlessExtension
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.configure
+
+private val JETBRAINS_DERIVED_SOURCES =
+    listOf(
+        "**/cli/pipeline/**",
+        "**/ir/lower/serialization/ir/**",
+        "**/library/writer/**",
+        "**/library/metadata/**",
+        "**/ir/klib.kt",
+        "**/ir/loadLuaKlibs.kt",
+    )
+
+private val thirdPartyExcludes = listOf("**/thirdparty/**", "**/third_party/**")
 
 internal fun Project.configureSpotlessForJvm() {
     configureSpotlessCommon()
@@ -49,12 +62,22 @@ private fun Project.configureSpotlessCommon() {
     apply(plugin = "com.diffplug.spotless")
     extensions.configure<SpotlessExtension> {
         val licenseHeader = rootProject.file("spotless/copyright.txt")
+        val jetbrainsLicenseHeader = rootProject.file("spotless/copyright-jetbrains-derived.txt")
         val firstNonCommentLine = "(^(?![\\/ ]\\*).*$)"
 
         kotlin {
             target("src/**/*.kt")
+            targetExclude(JETBRAINS_DERIVED_SOURCES + thirdPartyExcludes)
             ktlint()
             licenseHeaderFile(licenseHeader, firstNonCommentLine)
+            endWithNewline()
+        }
+
+        format("jetbrainsDerived", KotlinExtension::class.java) {
+            targetExclude(thirdPartyExcludes)
+            target(JETBRAINS_DERIVED_SOURCES)
+            ktlint()
+            licenseHeaderFile(jetbrainsLicenseHeader, firstNonCommentLine)
             endWithNewline()
         }
 

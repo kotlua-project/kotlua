@@ -15,6 +15,7 @@
  */
 pluginManagement {
     includeBuild("build-logic")
+    includeBuild("gradle-plugin")
     repositories {
         gradlePluginPortal()
         mavenCentral()
@@ -30,5 +31,6 @@ dependencyResolutionManagement {
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 rootProject.name = "kotlua"
-include("compiler-plugin")
-include("gradle-plugin")
+include("lua-compiler")
+include("lua-ast")
+include("lua-stdlib")

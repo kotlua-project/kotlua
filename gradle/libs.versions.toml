@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.4.10"
+kotlin = "2.4.21"
 junit = "5.11.4"
 spotless = "8.10.3"
 detekt = "2.0.0-alpha.6"
@@ -10,6 +10,8 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-jupiter-api = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 spotless-gradle-plugin = { module = "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin", version.ref = "spotless" }
+kotlin-compiler-embeddable = { module = "org.jetbrains.kotlin:kotlin-compiler-embeddable", version.ref = "kotlin" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle-plugin = { module = "dev.detekt:dev.detekt.gradle.plugin", version.ref = "detekt" }
 
@@ -21,3 +23,5 @@ detekt = { id = "dev.detekt", version.ref = "detekt" }
 kotlua-kotlin = { id = "kotlua.kotlin-convention" }
 kotlua-root = { id = "kotlua.root" }
 kotlua-test-fixtures = { id = "kotlua.test-fixtures" }
+kotlua-spotless = { id = "kotlua.spotless" }
+kotlua-gradlePlugin = { id = "kotlua.gradlePlugin" }

@@ -56,6 +56,13 @@ gradlePlugin {
                     .pluginId
             implementationClass = "KotlinTestFixturesConventionPlugin"
         }
+        register("spotless") {
+            id =
+                libs.plugins.kotlua.spotless
+                    .get()
+                    .pluginId
+            implementationClass = "SpotlessConventionPlugin"
+        }
         register("root") {
             id =
                 libs.plugins.kotlua.root
