@@ -33,6 +33,8 @@ private val JETBRAINS_DERIVED_SOURCES =
 
 private val thirdPartyExcludes = listOf("**/thirdparty/**", "**/third_party/**")
 
+private val generatedExcludes = listOf("**/generated/**")
+
 internal fun Project.configureSpotlessForJvm() {
     configureSpotlessCommon()
 }
@@ -67,7 +69,7 @@ private fun Project.configureSpotlessCommon() {
 
         kotlin {
             target("src/**/*.kt")
-            targetExclude(JETBRAINS_DERIVED_SOURCES + thirdPartyExcludes)
+            targetExclude(JETBRAINS_DERIVED_SOURCES + thirdPartyExcludes + generatedExcludes)
             ktlint()
             licenseHeaderFile(licenseHeader, firstNonCommentLine)
             endWithNewline()

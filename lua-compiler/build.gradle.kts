@@ -18,5 +18,6 @@ plugins {
 }
 
 dependencies {
+    implementation(projects.luaAst)
     implementation(libs.kotlin.compiler.embeddable)
 }
