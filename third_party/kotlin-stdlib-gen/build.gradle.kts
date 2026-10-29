@@ -48,6 +48,13 @@ tasks {
         classpath = sourceSets.main.get().runtimeClasspath
         args = listOf("$mainProjectRootDir")
     }
+
+    register<JavaExec>("generateBuiltins") {
+        group = "application"
+        mainClass = "org.jetbrains.kotlin.generators.builtins.generateBuiltIns.GenerateBuiltInsKt"
+        classpath = sourceSets.main.get().runtimeClasspath
+        args = listOf("$mainProjectRootDir")
+    }
 }
 
 sourceSets {

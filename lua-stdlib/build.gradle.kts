@@ -46,7 +46,7 @@ val commonNonJvmMainDir = unpackedCommonSourcesDir.map { it.dir("commonNonJvmMai
 
 abstract class UnpackSourcesTask @Inject constructor(
     private val archiveOperations: ArchiveOperations,
-    private val fileSystemOperations: FileSystemOperations
+    private val fileSystemOperations: FileSystemOperations,
 ) : DefaultTask() {
 
     @get:InputFiles
@@ -79,6 +79,22 @@ val unpackCommonSources = tasks.register<UnpackSourcesTask>("unpackCommonSources
 val libsDir = layout.buildDirectory.dir("libs")
 val luaKlibFile = libsDir.map { it.file("kotlin-stdlib-lua.klib") }
 
+val commonCompilerArgs = listOf(
+    "-Xallow-kotlin-package",
+    "-Xstdlib-compilation",
+    "-Xreturn-value-checker=full",
+    "-Xexpect-actual-classes",
+    "-Xmulti-platform",
+    "-Xname-based-destructuring=complete",
+    "-opt-in=kotlin.ExperimentalMultiplatform",
+    "-opt-in=kotlin.contracts.ExperimentalContracts",
+    "-opt-in=kotlin.ExperimentalStdlibApi",
+    "-opt-in=kotlin.ExperimentalUnsignedTypes",
+    "-opt-in=kotlin.uuid.ExperimentalUuidApi",
+    "-opt-in=kotlin.time.ExperimentalTime",
+    "-opt-in=kotlin.io.encoding.ExperimentalEncodingApi",
+)
+
 val compileLuaStdlib = tasks.register<JavaExec>("compileLuaStdLib") {
     group = "build"
     description = "Compiles kotlin-stdlib-lua.klib"
@@ -93,20 +109,7 @@ val compileLuaStdlib = tasks.register<JavaExec>("compileLuaStdLib") {
     outputs.file(luaKlibFile)
 
     args(
-        listOf(
-            "-Xallow-kotlin-package",
-            "-Xstdlib-compilation",
-            "-Xreturn-value-checker=full",
-            "-Xexpect-actual-classes",
-            "-Xmulti-platform",
-            "-Xname-based-destructuring=complete",
-            "-opt-in=kotlin.ExperimentalMultiplatform",
-            "-opt-in=kotlin.contracts.ExperimentalContracts",
-            "-opt-in=kotlin.ExperimentalStdlibApi",
-            "-opt-in=kotlin.ExperimentalUnsignedTypes",
-            "-opt-in=kotlin.uuid.ExperimentalUuidApi",
-            "-opt-in=kotlin.time.ExperimentalTime",
-            "-opt-in=kotlin.io.encoding.ExperimentalEncodingApi",
+        commonCompilerArgs + listOf(
             "-ir-output-dir", libsDir.get().asFile.absolutePath,
             "-ir-output-name", "kotlin-stdlib-lua",
 
@@ -115,7 +118,34 @@ val compileLuaStdlib = tasks.register<JavaExec>("compileLuaStdLib") {
             file("src/lua").absolutePath,
             commonSourcesDir.get().asFile.absolutePath,
             commonNonJvmMainDir.get().asFile.absolutePath,
-        )
+        ),
+    )
+}
+
+// TODO
+val compileMinimalStdlib = tasks.register<JavaExec>("compileMinimalStdlib") {
+    group = "build"
+    description = "Compiles minimal kotlin-stdlib-lua.klib for tests"
+
+    mainClass.set("io.github.kotlua.cli.compiler.K2LuaCompiler")
+    classpath = compilerClasspath
+
+    inputs.dir(commonSourcesDir)
+    inputs.dir(commonNonJvmMainDir)
+    inputs.dir(file("src/lua"))
+    outputs.file(luaKlibFile)
+
+    args(
+        commonCompilerArgs + listOf(
+            "-ir-output-dir", libsDir.get().asFile.absolutePath,
+            "-ir-output-name", "kotlin-stdlib-lua",
+
+            "-Xcommon-sources=${commonSourcesDir.get().asFile.absolutePath}",
+
+            file("src/lua").absolutePath,
+            commonSourcesDir.get().asFile.absolutePath,
+            commonNonJvmMainDir.get().asFile.absolutePath,
+        ),
     )
 }
 

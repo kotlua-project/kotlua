@@ -14,7 +14,7 @@ This then runs the script which generates a significant part of stdlib sources f
 ### Notice
 This directory contains code derived from the official Kotlin repository:
 - **Upstream Repository**: https://github.com/JetBrains/kotlin
-- **Original Path**: `libraries/tools/kotlin-stdlib-gen`
+- **Original Paths**: `libraries/tools/kotlin-stdlib-gen`, `generators/builtins`
 - **Original Copyright**: Copyright 2010-2026 JetBrains s.r.o. and Kotlin Programming Language contributors.
 - **License**: Apache License 2.0 (see `license/LICENSE` in this directory)
 
