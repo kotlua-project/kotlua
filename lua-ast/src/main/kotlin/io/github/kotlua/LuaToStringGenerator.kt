@@ -181,6 +181,20 @@ class LuaToStringGenerator private constructor(
                 printLuaBlock(node.body)
                 println("end")
             }
+
+            is LuaStatement.LocalFunctionDeclaration -> {
+                print("local function ${node.name}(")
+                printLuaAnonymousFunctionParams(node.function)
+                println(')')
+                printLuaBlock(node.function.block)
+                println("end")
+            }
+
+            is LuaBlock -> {
+                println("do")
+                printLuaBlock(node)
+                println("end")
+            }
         }
     }
 
@@ -248,6 +262,18 @@ class LuaToStringGenerator private constructor(
         print(' ')
     }
 
+    private fun LuaTextOutput.printLuaAnonymousFunctionParams(node: LuaExpression.AnonymousFunction) {
+        for ((index, param) in node.parameters.withIndex()) {
+            print(param)
+            if (index != node.parameters.lastIndex || node.isVararg) {
+                print(", ")
+            }
+        }
+        if (node.isVararg) {
+            print("...")
+        }
+    }
+
     private fun LuaTextOutput.printLuaExpression(node: LuaExpression) {
         when (node) {
             is LuaExpression.UnaryOp -> {
@@ -267,15 +293,7 @@ class LuaToStringGenerator private constructor(
 
             is LuaExpression.AnonymousFunction -> {
                 print("function (")
-                for ((index, param) in node.parameters.withIndex()) {
-                    print(param)
-                    if (index != node.parameters.lastIndex || node.isVararg) {
-                        print(", ")
-                    }
-                }
-                if (node.isVararg) {
-                    print("...")
-                }
+                printLuaAnonymousFunctionParams(node)
                 println(')')
                 printLuaBlock(node.block)
                 print("end")

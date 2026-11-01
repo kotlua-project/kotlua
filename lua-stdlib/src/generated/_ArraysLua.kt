@@ -602,7 +602,9 @@ public actual fun CharArray?.contentToString(): String {
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun <T> Array<out T>.copyInto(destination: Array<T>, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): Array<T> {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun <T> Array<out T>.copyInto(destination: Array<T>, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): Array<T> {
     TODO("Body is not provided")
 }
 
@@ -624,7 +626,9 @@ public actual fun <T> Array<out T>.copyInto(destination: Array<T>, destinationOf
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun ByteArray.copyInto(destination: ByteArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ByteArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun ByteArray.copyInto(destination: ByteArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ByteArray {
     TODO("Body is not provided")
 }
 
@@ -646,7 +650,9 @@ public actual fun ByteArray.copyInto(destination: ByteArray, destinationOffset: 
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun ShortArray.copyInto(destination: ShortArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ShortArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun ShortArray.copyInto(destination: ShortArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ShortArray {
     TODO("Body is not provided")
 }
 
@@ -668,7 +674,9 @@ public actual fun ShortArray.copyInto(destination: ShortArray, destinationOffset
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun IntArray.copyInto(destination: IntArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): IntArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun IntArray.copyInto(destination: IntArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): IntArray {
     TODO("Body is not provided")
 }
 
@@ -690,7 +698,9 @@ public actual fun IntArray.copyInto(destination: IntArray, destinationOffset: In
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun LongArray.copyInto(destination: LongArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): LongArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun LongArray.copyInto(destination: LongArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): LongArray {
     TODO("Body is not provided")
 }
 
@@ -712,7 +722,9 @@ public actual fun LongArray.copyInto(destination: LongArray, destinationOffset: 
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun FloatArray.copyInto(destination: FloatArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): FloatArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun FloatArray.copyInto(destination: FloatArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): FloatArray {
     TODO("Body is not provided")
 }
 
@@ -734,7 +746,9 @@ public actual fun FloatArray.copyInto(destination: FloatArray, destinationOffset
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun DoubleArray.copyInto(destination: DoubleArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): DoubleArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun DoubleArray.copyInto(destination: DoubleArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): DoubleArray {
     TODO("Body is not provided")
 }
 
@@ -756,7 +770,9 @@ public actual fun DoubleArray.copyInto(destination: DoubleArray, destinationOffs
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun BooleanArray.copyInto(destination: BooleanArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): BooleanArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun BooleanArray.copyInto(destination: BooleanArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): BooleanArray {
     TODO("Body is not provided")
 }
 
@@ -778,7 +794,9 @@ public actual fun BooleanArray.copyInto(destination: BooleanArray, destinationOf
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-public actual fun CharArray.copyInto(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): CharArray {
+@kotlin.internal.InlineOnly
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+public actual inline fun CharArray.copyInto(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): CharArray {
     TODO("Body is not provided")
 }
 
@@ -1106,6 +1124,7 @@ public actual fun CharArray.copyOfRange(fromIndex: Int, toIndex: Int): CharArray
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T> Array<T>.fill(element: T, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1119,6 +1138,7 @@ public actual fun <T> Array<T>.fill(element: T, fromIndex: Int = 0, toIndex: Int
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ByteArray.fill(element: Byte, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1132,6 +1152,7 @@ public actual fun ByteArray.fill(element: Byte, fromIndex: Int = 0, toIndex: Int
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ShortArray.fill(element: Short, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1145,6 +1166,7 @@ public actual fun ShortArray.fill(element: Short, fromIndex: Int = 0, toIndex: I
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun IntArray.fill(element: Int, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1158,6 +1180,7 @@ public actual fun IntArray.fill(element: Int, fromIndex: Int = 0, toIndex: Int =
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun LongArray.fill(element: Long, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1171,6 +1194,7 @@ public actual fun LongArray.fill(element: Long, fromIndex: Int = 0, toIndex: Int
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun FloatArray.fill(element: Float, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1184,6 +1208,7 @@ public actual fun FloatArray.fill(element: Float, fromIndex: Int = 0, toIndex: I
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun DoubleArray.fill(element: Double, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1197,6 +1222,7 @@ public actual fun DoubleArray.fill(element: Double, fromIndex: Int = 0, toIndex:
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun BooleanArray.fill(element: Boolean, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1210,6 +1236,7 @@ public actual fun BooleanArray.fill(element: Boolean, fromIndex: Int = 0, toInde
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun CharArray.fill(element: Char, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1497,6 +1524,7 @@ public actual fun <T : Comparable<T>> Array<out T>.sort(): Unit {
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArrayOfComparable
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T : Comparable<T>> Array<out T>.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1512,6 +1540,7 @@ public actual fun <T : Comparable<T>> Array<out T>.sort(fromIndex: Int = 0, toIn
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ByteArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1527,6 +1556,7 @@ public actual fun ByteArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit 
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ShortArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1542,6 +1572,7 @@ public actual fun ShortArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun IntArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1557,6 +1588,7 @@ public actual fun IntArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun LongArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1572,6 +1604,7 @@ public actual fun LongArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit 
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun FloatArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1587,6 +1620,7 @@ public actual fun FloatArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun DoubleArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1602,6 +1636,7 @@ public actual fun DoubleArray.sort(fromIndex: Int = 0, toIndex: Int = size): Uni
  * 
  * @sample samples.collections.Arrays.Sorting.sortRangeOfArray
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun CharArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }
@@ -1626,6 +1661,7 @@ public actual fun <T> Array<out T>.sortWith(comparator: Comparator<in T>): Unit 
  * @throws IndexOutOfBoundsException if [fromIndex] is less than zero or [toIndex] is greater than the size of this array.
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
+@Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T> Array<out T>.sortWith(comparator: Comparator<in T>, fromIndex: Int = 0, toIndex: Int = size): Unit {
     TODO("Body is not provided")
 }

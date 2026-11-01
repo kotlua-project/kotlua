@@ -802,6 +802,12 @@ object ArrayOps : TemplateGroupBase() {
                     """
                 }
             }
+            on(Platform.Lua) {
+                suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+                signature("copyInto(destination: SELF, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size)")
+                inlineOnly()
+                // TODO
+            }
             on(Platform.JS) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
                 signature("copyInto(destination: SELF, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size)")
@@ -1416,6 +1422,9 @@ object ArrayOps : TemplateGroupBase() {
                 """
             }
         }
+        on(Platform.Lua) {
+            suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+        }
         on(Platform.JS) {
             since("1.4")
             suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
@@ -1457,6 +1466,9 @@ object ArrayOps : TemplateGroupBase() {
             """
         }
         returns("Unit")
+        on(Platform.Lua) {
+            suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+        }
         on(Platform.JVM) {
             suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
             body {
@@ -1673,6 +1685,9 @@ object ArrayOps : TemplateGroupBase() {
                 body {
                     "java.util.Arrays.fill(this, fromIndex, toIndex, element)"
                 }
+            }
+            on(Platform.Lua) {
+                suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
             }
             on(Platform.JS) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")

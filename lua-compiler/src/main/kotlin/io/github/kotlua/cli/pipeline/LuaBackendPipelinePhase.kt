@@ -31,13 +31,17 @@ object LuaBackendPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, Lu
 ) {
     override fun executePhase(input: ConfigurationPipelineArtifact): LuaBackendPipelineArtifact? {
         val configuration = input.configuration
-        val outputDirPath = configuration.outputDir
+        val outputDirPath = configuration.outputDir!!
 
         val loadedKlibArtifact = LuaIrLoadingPipelinePhase.executePhaseIsolatedWithActions(input) ?: return null
         val loweredIr = LuaIrLoweringPipelinePhase.executePhaseIsolatedWithActions(loadedKlibArtifact) ?: return null
         val output = LuaCodegenPipelinePhase.executePhaseIsolatedWithActions(loweredIr) ?: return null
 
-        // writeAll
+        val code = output.result.luaSourceCode
+        val fileName = output.result.mainFileName
+
+        outputDirPath.mkdirs()
+        outputDirPath.resolve(fileName).writeText(code)
 
         return output
     }

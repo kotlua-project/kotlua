@@ -19,6 +19,7 @@
 package io.github.kotlua.cli.pipeline
 
 import io.github.kotlua.ir.LuaIrBackendContext
+import io.github.kotlua.ir.lower.serialization.ir.LuaModulesStructure
 import org.jetbrains.kotlin.backend.common.IrModuleInfo
 import org.jetbrains.kotlin.cli.pipeline.*
 import org.jetbrains.kotlin.config.CompilerConfiguration
@@ -92,7 +93,6 @@ data class LuaCompiledResult(
 
 data class LuaBackendPipelineArtifact(
     val result: LuaCompiledResult,
-    val outputDir: File,
     override val configuration: CompilerConfiguration,
 ) : PipelineArtifact() {
     @CliPipelineInternals(OPT_IN_MESSAGE)

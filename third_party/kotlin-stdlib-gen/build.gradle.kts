@@ -7,7 +7,7 @@ repositories {
 }
 
 val copyrightDirectory = project.layout.buildDirectory.dir("copyright")
-val mainProjectRootDir: File = gradle.parent?.rootProject?.rootDir ?: rootDir
+val mainProjectRootDir: File = rootDir.parentFile.parentFile ?: rootDir
 
 dependencies {
     api("org.jetbrains.kotlin:kotlin-reflect:2.5.0-Beta2")
@@ -53,6 +53,7 @@ tasks {
         group = "application"
         mainClass = "org.jetbrains.kotlin.generators.builtins.generateBuiltIns.GenerateBuiltInsKt"
         classpath = sourceSets.main.get().runtimeClasspath
+        require(mainProjectRootDir != rootDir)
         args = listOf("$mainProjectRootDir")
     }
 }

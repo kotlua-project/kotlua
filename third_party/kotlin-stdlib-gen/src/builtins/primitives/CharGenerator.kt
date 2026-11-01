@@ -366,6 +366,12 @@ class JvmCharGenerator(writer: PrintWriter) : CharGenerator(writer) {
     )
 }
 
+class LuaCharGenerator(writer: PrintWriter) : CharGenerator(writer) {
+    override val fileAnnotations: List<String> = listOf(
+        "Suppress(\"NON_ABSTRACT_FUNCTION_WITH_NO_BODY\")"
+    )
+}
+
 class JsCharGenerator(writer: PrintWriter) : CharGenerator(writer) {
     override fun FileBuilder.modifyGeneratedFile() {
         appendFileComment("Char is a magic class.")

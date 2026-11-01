@@ -25,6 +25,11 @@ sealed interface LuaStatement : LuaNode {
         }
     }
 
+    data class LocalFunctionDeclaration(
+        val name: String,
+        val function: LuaExpression.AnonymousFunction
+    ) : LuaStatement
+
     data class Assignment(
         val targets: List<LuaLValue>,
         val values: List<LuaExpression>,

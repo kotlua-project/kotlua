@@ -21,11 +21,16 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     versionCatalogs {
         create("libs") {
             from(files("../gradle/libs.versions.toml"))
         }
     }
+    repositories {
+        mavenCentral()
+    }
 }
 
 rootProject.name = "gradle-plugin"
+include(":compiler-options")

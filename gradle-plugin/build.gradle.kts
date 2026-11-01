@@ -13,31 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     `kotlin-dsl`
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-}
-
-kotlin {
-    compilerOptions {
-        jvmTarget = JvmTarget.JVM_17
-    }
-}
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
+    implementation(project(":compiler-options"))
     compileOnly(libs.kotlin.gradle.plugin)
-    compileOnly(libs.spotless.gradle.plugin)
-    compileOnly(libs.detekt.gradle.plugin)
 }
 
 gradlePlugin {
@@ -47,7 +29,7 @@ gradlePlugin {
                 libs.plugins.kotlua.gradlePlugin
                     .get()
                     .pluginId
-            implementationClass = "io.github.kotlua.KotlinLuaPlugin"
+            implementationClass = "io.github.kotlua.gradle.KotlinLuaPlugin"
         }
     }
 }

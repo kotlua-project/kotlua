@@ -16,13 +16,13 @@
 pluginManagement {
     includeBuild("build-logic")
     includeBuild("gradle-plugin")
-    includeBuild("third_party/kotlin-stdlib-gen")
     repositories {
         gradlePluginPortal()
         mavenCentral()
     }
 }
 dependencyResolutionManagement {
+    includeBuild("third_party/kotlin-stdlib-gen")
     repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
         mavenCentral()
@@ -36,4 +36,6 @@ include(
     ":lua-compiler",
     ":lua-ast",
     ":lua-stdlib",
+    ":lua-stdlib:minimal",
+    ":example"
 )

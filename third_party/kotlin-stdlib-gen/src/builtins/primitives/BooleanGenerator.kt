@@ -221,6 +221,17 @@ class JsBooleanGenerator(writer: PrintWriter) : BooleanGenerator(writer) {
     }
 }
 
+class LuaBooleanGenerator(writer: PrintWriter) : BooleanGenerator(writer) {
+    override fun FileBuilder.modifyGeneratedFile() {
+        suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
+        suppress("UNUSED_PARAMETER")
+    }
+
+    override fun MethodBuilder.modifyGeneratedHashCode() {
+        noBody()
+    }
+}
+
 class WasmBooleanGenerator(writer: PrintWriter) : BooleanGenerator(writer) {
     override fun FileBuilder.modifyGeneratedFile() {
         suppress("UNUSED_PARAMETER")

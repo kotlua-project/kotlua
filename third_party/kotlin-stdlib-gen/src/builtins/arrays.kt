@@ -250,6 +250,37 @@ class GenerateJvmArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
         }
 }
 
+class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : GenerateArrays(writer, primitiveArrays) {
+    override fun FileBuilder.modifyGeneratedFile() {
+        suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
+        suppress("UNUSED_PARAMETER")
+        suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
+    }
+    override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(kind) {
+        override fun SecondaryConstructorBuilder.modifySecondaryConstructor() {
+            annotations.removeAll { it.startsWith("Suppress") }
+            annotations += """Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")"""
+        }
+
+        override fun MethodBuilder.modifyGetOperator() {
+            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+        }
+
+        override fun MethodBuilder.modifySetOperator() {
+            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+        }
+
+        override fun PropertyBuilder.modifySizeProperty() {
+            annotations += """Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")"""
+        }
+
+        override fun MethodBuilder.modifyIterator() {
+            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+        }
+    }
+
+}
+
 class GenerateJsArrays(writer: PrintWriter, primitiveArrays: Boolean) : GenerateArrays(writer, primitiveArrays) {
     override fun FileBuilder.modifyGeneratedFile() {
         suppress("UNUSED_PARAMETER")

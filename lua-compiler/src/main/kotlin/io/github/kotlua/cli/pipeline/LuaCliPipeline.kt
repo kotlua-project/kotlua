@@ -43,7 +43,7 @@ class LuaCliPipeline(
             LuaFrontendPipelinePhase then
             FrontendFilesForPluginsGenerationPipelinePhase() then
             LuaFir2IrPipelinePhase then
-            // LuaKlibInliningPipelinePhase then
+            LuaKlibInliningPipelinePhase then
             LuaKlibSerializationPipelinePhase
 
     private fun createCodeGenerationPhase(): CompilerPhase<PipelineContext, ArgumentsPipelineArtifact<K2LuaCompilerArguments>, *> =

@@ -17,4 +17,4 @@ package io.github.kotlua.ast
 
 data class LuaBlock(
     val statements: List<LuaStatement>,
-) : LuaNode
+) : LuaStatement

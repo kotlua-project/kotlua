@@ -18,18 +18,41 @@
  */
 package io.github.kotlua.cli.pipeline
 
+import io.github.kotlua.config.includes
+import io.github.kotlua.config.libraries
+import io.github.kotlua.ir.loadIr
+import io.github.kotlua.ir.loadLuaKlibs
+import io.github.kotlua.ir.lower.serialization.ir.LuaModulesStructure
+import io.github.kotlua.library.LuaKlibPlatformChecker
 import org.jetbrains.kotlin.cli.pipeline.ConfigurationPipelineArtifact
 import org.jetbrains.kotlin.cli.pipeline.PerformanceNotifications
 import org.jetbrains.kotlin.cli.pipeline.PipelinePhase
+import org.jetbrains.kotlin.ir.declarations.impl.IrFactoryImpl
+import java.io.File
 
 object LuaIrLoadingPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, LuaLoadedIrPipelineArtifact>(
     name = "LuaIrLoadingPipelinePhase",
     preActions = setOf(PerformanceNotifications.TranslationToIrFinished),
     postActions = setOf(PerformanceNotifications.TranslationToIrFinished),
 ) {
-    override fun executePhase(input: ConfigurationPipelineArtifact): LuaLoadedIrPipelineArtifact? {
+    override fun executePhase(input: ConfigurationPipelineArtifact): LuaLoadedIrPipelineArtifact {
         val configuration = input.configuration
-        val includes = configuration
-        TODO()
+        val includes = configuration.includes!!
+        val includesPath = File(includes).canonicalPath
+        val mainLibPath = configuration.libraries.find { File(it).canonicalPath == includesPath }
+            ?: error("No library with name $includes ($includesPath) found")
+
+        val klibs = loadLuaKlibs(configuration, LuaKlibPlatformChecker)
+        val module = LuaModulesStructure(
+            mainModulePath = mainLibPath,
+            compilerConfiguration = configuration,
+            klibs = klibs
+        )
+        val irFactory = IrFactoryImpl
+        val loadedIr = loadIr(module, irFactory)
+        return LuaLoadedIrPipelineArtifact(
+            moduleInfo = loadedIr,
+            configuration = configuration
+        )
     }
 }

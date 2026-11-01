@@ -15,11 +15,33 @@
  */
 package io.github.kotlua.ir.transformers
 
+import io.github.kotlua.LuaTextOutput
+import io.github.kotlua.LuaToStringGenerator
+import io.github.kotlua.ast.LuaBlock
+import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
+import io.github.kotlua.ir.utils.LuaGenerationContext
+import io.github.kotlua.ir.utils.LuaStaticContext
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
 class IrModuleToLuaTransformer(
     private val backendContext: LuaIrBackendContext,
-    moduleToName: Map<IrModuleFragment, String> = emptyMap(),
-    private val removeUnusedAssociatedObjects: Boolean = true,
-)
+) {
+
+    fun generateModule(modules: Iterable<IrModuleFragment>): LuaCompiledResult {
+        val context = LuaStaticContext(backendContext)
+        val statements = modules.flatMap {
+            it.files.flatMap { file ->
+                file.accept(IrFileToLuaTransformer(), context).statements
+            }
+        }
+
+        val textOutput = LuaTextOutput()
+        val luaCode = LuaToStringGenerator.generate(LuaBlock(statements), textOutput)
+
+        return LuaCompiledResult(
+            mainFileName = "main.lua",
+            luaSourceCode = luaCode
+        )
+    }
+}
