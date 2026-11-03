@@ -31,6 +31,9 @@ object LuaConfigurationKeys {
 
     @JvmField
     val OUTPUT_NAME = CompilerConfigurationKey.create<String>("OUTPUT_NAME")
+
+    @JvmField
+    val NO_PACK = CompilerConfigurationKey.create<Boolean>("NO_PACK")
 }
 
 var CompilerConfiguration.includes: String?
@@ -56,3 +59,7 @@ var CompilerConfiguration.outputName: String?
     set(value) {
         put(LuaConfigurationKeys.OUTPUT_NAME, requireNotNull(value) { "nullable values are not allowed" })
     }
+
+var CompilerConfiguration.nopack: Boolean
+    get() = getBoolean(LuaConfigurationKeys.NO_PACK)
+    set(value) { put(LuaConfigurationKeys.NO_PACK, value) }

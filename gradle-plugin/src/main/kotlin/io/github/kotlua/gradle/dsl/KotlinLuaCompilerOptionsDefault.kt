@@ -41,4 +41,7 @@ internal abstract class KotlinLuaCompilerOptionsDefault @Inject constructor(
     override val moduleName: Property<String> =
         objectFactory.property<String>()
 
+    override val nopack: Property<Boolean> =
+        objectFactory.property(Boolean::class.java).convention(true)
+
 }

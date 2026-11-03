@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.library.KLIB_PROPERTY_BUILTINS_PLATFORM
 import org.jetbrains.kotlin.library.uniqueName
 
 const val LUA_PLATFORM_NAME: String = "LUA"
-const val KOTLIN_LUA_STDLIB_NAME: String = "kotlin"
+const val KOTLIN_LUA_STDLIB_NAME: String = "kotlin-stdlib-lua"
 
 val BaseKotlinLibrary.isLuaPlatform: Boolean
     get() = manifestProperties.getProperty(KLIB_PROPERTY_BUILTINS_PLATFORM) == LUA_PLATFORM_NAME

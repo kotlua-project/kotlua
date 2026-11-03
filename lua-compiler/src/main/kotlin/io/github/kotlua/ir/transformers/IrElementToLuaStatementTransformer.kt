@@ -1,8 +1,13 @@
 package io.github.kotlua.ir.transformers
 
 import io.github.kotlua.ast.LuaBlock
+import io.github.kotlua.ast.LuaExpression
+import io.github.kotlua.ast.LuaLValue
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ir.utils.LuaGenerationContext
+import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.translateCall
+import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
@@ -25,6 +30,8 @@ import org.jetbrains.kotlin.ir.expressions.IrTry
 import org.jetbrains.kotlin.ir.expressions.IrWhen
 import org.jetbrains.kotlin.ir.expressions.IrWhileLoop
 import org.jetbrains.kotlin.ir.util.irError
+import org.jetbrains.kotlin.ir.util.nonDispatchArguments
+import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 
 class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
 
@@ -38,7 +45,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         return LuaBlock(
             statements = body.statements.map {
                 it.accept(this, data)
-            }
+            },
         )
     }
 
@@ -50,7 +57,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         return LuaBlock(
             statements = expression.statements.map {
                 it.accept(this, data)
-            }
+            },
         )
     }
 
@@ -101,7 +108,15 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     }
 
     override fun visitCall(expression: IrCall, data: LuaGenerationContext): LuaStatement {
-        return super.visitCall(expression, data)
+        val function = expression.symbol.owner.realOverrideTarget
+        val transformer = IrElementToLuaExpressionTransformer()
+        return LuaExpression.FunctionCall(
+            target = LuaName(function.name.identifier),
+            args = function.nonDispatchParameters.map {
+                val arg = expression.arguments[it.indexInParameters]!!
+                arg.accept(transformer, data)
+            },
+        )
     }
 
     override fun visitInstanceInitializerCall(expression: IrInstanceInitializerCall, data: LuaGenerationContext): LuaStatement {

@@ -18,6 +18,7 @@
  */
 package io.github.kotlua.cli.pipeline
 
+import io.github.kotlua.config.nopack
 import io.github.kotlua.config.outputDir
 import io.github.kotlua.config.outputName
 import io.github.kotlua.ir.serializeModuleIntoKlib
@@ -64,7 +65,7 @@ object LuaKlibSerializationPipelinePhase : PipelinePhase<LuaFir2IrPipelineArtifa
             moduleFragment = fir2IrResult.irModuleFragment,
             irBuiltIns = fir2IrResult.irBuiltIns,
             cleanFiles = emptyList(),
-            nopack = false,
+            nopack = configuration.nopack,
             performanceManager = configuration.perfManager,
         )
 
@@ -76,6 +77,6 @@ object LuaKlibSerializationPipelinePhase : PipelinePhase<LuaFir2IrPipelineArtifa
 }
 
 internal fun CompilerConfiguration.computeOutputKlibPath(): Path {
-    val basePath = outputDir!!.resolve("${outputName!!}.klib").normalize()
+    val basePath = if (nopack) outputDir!! else outputDir!!.resolve("${outputName!!}.klib").normalize()
     return basePath.toPath().absolute()
 }

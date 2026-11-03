@@ -9,4 +9,8 @@ interface KotlinLuaCompilerOptions : KotlinCommonCompilerOptions {
     @get:Optional
     @get:Input
     val moduleName: Property<String>
+
+    @get:Optional
+    @get:Input
+    val nopack: Property<Boolean>
 }

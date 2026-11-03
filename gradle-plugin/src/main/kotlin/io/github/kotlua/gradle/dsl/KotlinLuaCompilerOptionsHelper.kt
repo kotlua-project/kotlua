@@ -16,5 +16,6 @@ internal object KotlinLuaCompilerOptionsHelper {
         args.suppressWarnings = from.suppressWarnings.get()
         args.verbose = from.verbose.get()
         args.freeArgs += from.freeCompilerArgs.get()
+        args.nopack = from.nopack.get()
     }
 }

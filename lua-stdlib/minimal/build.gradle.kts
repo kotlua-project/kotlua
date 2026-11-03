@@ -29,6 +29,8 @@ dependencies {
 kotlua {
     multiPlatformEnabled = true
     compilerOptions {
+        nopack = false
+        moduleName = "kotlin-stdlib-lua"
         freeCompilerArgs.addAll(
             listOf(
                 "-Xallow-kotlin-package",
@@ -50,12 +52,9 @@ kotlua {
     }
 }
 
-val parentDir: File = project.rootDir.parentFile
-val builtins = parentDir.resolve("builtins")
-
 tasks {
-    withType<Kotlin2LuaCompile>().configureEach {
-
-        source("src/", "runtime/", "builtins/")
+    named<Kotlin2LuaCompile>("kotlinLuaCompile").configure {
+        commonSourceSet.from("common/")
+        source("src/", "builtins/", "runtime/")
     }
 }

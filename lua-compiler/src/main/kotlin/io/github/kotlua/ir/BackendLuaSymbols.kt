@@ -32,7 +32,9 @@ class BackendLuaSymbols(
     private val stageController: StageController,
 ) : BackendKlibSymbols(irBuiltIns),
     PreSerializationLuaSymbols by PreSerializationLuaSymbols.Impl(irBuiltIns) {
-    override val stringBuilder: IrClassSymbol = LuaClassIds.StringBuilder.classSymbol()
+    override val stringBuilder: IrClassSymbol by lazy {
+        LuaClassIds.StringBuilder.classSymbol()
+    }
 
     override val throwNullPointerException: IrSimpleFunctionSymbol
         by CallableIds.throwNpe.functionSymbol()
@@ -49,22 +51,19 @@ class BackendLuaSymbols(
     override val throwUnsupportedOperationException: IrSimpleFunctionSymbol
         by CallableIds.throwUnsupportedOperationException.functionSymbol()
 
-    val noWhenBranchMatchedException: IrSimpleFunctionSymbol
-        by CallableIds.noWhenBranchMatchedException.functionSymbol()
+    override val defaultConstructorMarker: IrClassSymbol by lazy {
+        LuaClassIds.DefaultConstructorMarker.classSymbol()
+    }
 
-    val throwIse: IrSimpleFunctionSymbol
-        by CallableIds.throwIse.functionSymbol()
+    override val syntheticConstructorMarker: IrClassSymbol by lazy {
+        LuaClassIds.DefaultConstructorMarker.classSymbol()
+    }
 
-    val throwIae: IrSimpleFunctionSymbol
-        by CallableIds.throwIae.functionSymbol()
+    override val functionAdapter: IrClassSymbol by lazy {
+        LuaClassIds.FunctionAdapter.classSymbol()
+    }
 
-    override val defaultConstructorMarker: IrClassSymbol = LuaClassIds.DefaultConstructorMarker.classSymbol()
-
-    override val syntheticConstructorMarker: IrClassSymbol = LuaClassIds.DefaultConstructorMarker.classSymbol()
-
-    override val functionAdapter: IrClassSymbol = LuaClassIds.FunctionAdapter.classSymbol()
-
-    val enumEntries: IrClassSymbol = StandardClassIds.EnumEntries.classSymbol()
+//    val enumEntries: IrClassSymbol = StandardClassIds.EnumEntries.classSymbol()
 
     override val genericSharedVariableBox: PreSerializationKlibSymbols.SharedVariableBoxClassInfo by lazy {
 //        val classSymbol = LuaClassIds.ObjectRef.classSymbol()
@@ -101,11 +100,11 @@ class BackendLuaSymbols(
     val luaPCall: IrSimpleFunctionSymbol by LuaCallableIds.pcall.functionSymbol()
     val luaCode: IrSimpleFunctionSymbol by LuaCallableIds.lua.functionSymbol()
 
-    override fun isSideEffectFree(call: IrCall): Boolean =
-        call.symbol == luaRawGet ||
-            call.symbol == luaTypeOf ||
-            call.symbol == luaLengthOp ||
-            super.isSideEffectFree(call)
+//    override fun isSideEffectFree(call: IrCall): Boolean =
+//        call.symbol == luaRawGet ||
+//            call.symbol == luaTypeOf ||
+//            call.symbol == luaLengthOp ||
+//            super.isSideEffectFree(call)
 }
 
 private object LuaClassIds {

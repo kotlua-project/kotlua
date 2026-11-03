@@ -15,24 +15,38 @@
  */
 package io.github.kotlua.ir
 
+import io.github.kotlua.name.BASE_LUA_PACKAGE
 import org.jetbrains.kotlin.backend.common.ir.PreSerializationKlibSymbols
+import org.jetbrains.kotlin.builtins.StandardNames.COROUTINES_PACKAGE_FQ_NAME
 import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.functionSymbol
+import org.jetbrains.kotlin.ir.getterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.name.CallableId
+import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.name.StandardClassIds
 
 interface PreSerializationLuaSymbols : PreSerializationKlibSymbols {
     open class Impl(
         irBuiltIns: IrBuiltIns,
     ) : PreSerializationKlibSymbols.Impl(irBuiltIns),
         PreSerializationLuaSymbols {
-        override val coroutineContextGetter: IrSimpleFunctionSymbol
-            get() = TODO("Not yet implemented")
-        override val coroutineGetContext: IrSimpleFunctionSymbol
-            get() = TODO("Not yet implemented")
-        override val suspendCoroutineUninterceptedOrReturn: IrSimpleFunctionSymbol
-            get() = TODO("Not yet implemented")
+        override val coroutineContextGetter: IrSimpleFunctionSymbol by CallableIds.coroutineContextGetter.getterSymbol()
+        override val coroutineGetContext: IrSimpleFunctionSymbol by CallableIds.coroutineGetContext.functionSymbol()
+        override val suspendCoroutineUninterceptedOrReturn: IrSimpleFunctionSymbol by CallableIds.suspendCoroutineUninterceptedOrReturn.functionSymbol()
 
         companion object {
-            private object CallableIds
+            private const val COROUTINE_SUSPEND_OR_RETURN_LUA_NAME = "suspendCoroutineUninterceptedOrReturnLua"
+
+            private object CallableIds {
+                private val String.baseLuaCallableId: CallableId
+                    get() = CallableId(StandardClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
+                val coroutineContextGetter: CallableId =
+                    CallableId(COROUTINES_PACKAGE_FQ_NAME, Name.identifier(PreSerializationKlibSymbols.COROUTINE_CONTEXT_NAME))
+
+                val coroutineGetContext: CallableId = PreSerializationKlibSymbols.GET_COROUTINE_CONTEXT_NAME.baseLuaCallableId
+                val suspendCoroutineUninterceptedOrReturn: CallableId = COROUTINE_SUSPEND_OR_RETURN_LUA_NAME.baseLuaCallableId
+            }
 
             private object ClassIds
         }

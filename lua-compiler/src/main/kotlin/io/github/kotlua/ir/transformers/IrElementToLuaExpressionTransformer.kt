@@ -6,6 +6,7 @@ import io.github.kotlua.ir.utils.LuaGenerationContext
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrComposite
 import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrDynamicMemberExpression
@@ -47,7 +48,19 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     }
 
     override fun visitConst(expression: IrConst, data: LuaGenerationContext): LuaExpression {
-        return super.visitConst(expression, data)
+        val kind = expression.kind
+        return when (kind) {
+            IrConstKind.Boolean -> LuaExpression.BooleanLiteral(expression.value as Boolean)
+            IrConstKind.Byte -> LuaExpression.IntLiteral((expression.value as Byte).toInt())
+            IrConstKind.Char -> LuaExpression.StringLiteral((expression.value as Char).toString())
+            IrConstKind.Double -> LuaExpression.DoubleLiteral(expression.value as Double)
+            IrConstKind.Float -> LuaExpression.DoubleLiteral((expression.value as Float).toDouble())
+            IrConstKind.Int -> LuaExpression.IntLiteral(expression.value as Int)
+            IrConstKind.Long -> LuaExpression.LongLiteral(expression.value as Long)
+            IrConstKind.Null -> LuaExpression.NilLiteral
+            IrConstKind.Short -> LuaExpression.IntLiteral((expression.value as Short).toInt())
+            IrConstKind.String -> LuaExpression.StringLiteral(expression.value as String)
+        }
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation, data: LuaGenerationContext): LuaExpression {

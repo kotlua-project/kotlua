@@ -23,6 +23,7 @@ import io.github.kotlua.cli.LuaCliDiagnostics.LUA_ARGUMENT_WARNING
 import io.github.kotlua.cli.compiler.K2LuaCompilerArguments
 import io.github.kotlua.config.includes
 import io.github.kotlua.config.libraries
+import io.github.kotlua.config.nopack
 import io.github.kotlua.config.outputDir
 import io.github.kotlua.config.outputName
 import io.github.kotlua.ir.luaLowerings
@@ -88,6 +89,8 @@ object LuaConfigurationUpdater : ConfigurationUpdater<K2LuaCompilerArguments>() 
                 }
             }
         }
+
+        configuration.nopack = arguments.nopack
 
         configuration.targetPlatform = LuaPlatforms.defaultLuaPlatform
         configuration.phaseConfig =

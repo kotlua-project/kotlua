@@ -32,6 +32,16 @@ class K2LuaCompilerArguments : CommonKlibBasedCompilerArguments() {
         }
 
     @Argument(
+        value = "-nopack",
+        description = "Don't pack the library into a klib file.",
+    )
+    var nopack: Boolean = false
+        set(value) {
+            checkFrozen()
+            field = value
+        }
+
+    @Argument(
         value = "-libraries",
         valueDescription = "<path>",
         description = "Paths to dependent KLibs separated by path separator.",
