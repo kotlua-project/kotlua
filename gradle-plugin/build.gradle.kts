@@ -17,6 +17,10 @@ plugins {
     `kotlin-dsl`
 }
 
+kotlin {
+    jvmToolchain(25)
+}
+
 dependencies {
     implementation(project(":compiler-options"))
     compileOnly(libs.kotlin.gradle.plugin)

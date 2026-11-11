@@ -23,7 +23,6 @@ pluginManagement {
 }
 dependencyResolutionManagement {
     includeBuild("third_party/kotlin-stdlib-gen")
-    repositoriesMode = RepositoriesMode.FAIL_ON_PROJECT_REPOS
     repositories {
         mavenCentral()
     }
@@ -37,5 +36,6 @@ include(
     ":lua-ast",
     ":lua-stdlib",
     ":lua-stdlib:minimal",
-    ":example"
+    ":example",
+    ":tooling:model"
 )

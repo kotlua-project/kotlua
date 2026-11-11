@@ -27,6 +27,8 @@ replay_pid*
 **/build/
 !**/src/**/build/
 
+local.properties
+
 # Ignore Gradle GUI config
 gradle-app.setting
 
@@ -50,6 +52,7 @@ gradle-app.setting
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+.intellijPlatform/
 
 ### Eclipse ###
 .apt_generated

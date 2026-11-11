@@ -3,6 +3,7 @@ kotlin = "2.4.21"
 junit = "5.11.4"
 spotless = "8.10.3"
 detekt = "2.0.0-alpha.6"
+intellijPlatform = "2.19.0"
 
 [libraries]
 junit-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit" }
@@ -20,6 +21,8 @@ detekt-gradle-plugin = { module = "dev.detekt:dev.detekt.gradle.plugin", version
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
+intellij-platform = { id = "org.jetbrains.intellij.platform", version.ref = "intellijPlatform" }
+intellij-platformSettings = { id = "org.jetbrains.intellij.platform.settings", version.ref = "intellijPlatform" }
 
 kotlua-kotlin = { id = "kotlua.kotlin-convention" }
 kotlua-root = { id = "kotlua.root" }

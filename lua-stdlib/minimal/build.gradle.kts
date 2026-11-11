@@ -1,5 +1,3 @@
-import io.github.kotlua.gradle.Kotlin2LuaCompile
-
 /*
  * Copyright 2026 The kotlua Authors
  *
@@ -52,9 +50,12 @@ kotlua {
     }
 }
 
-tasks {
-    named<Kotlin2LuaCompile>("kotlinLuaCompile").configure {
-        commonSourceSet.from("common/")
-        source("src/", "builtins/", "runtime/")
+sourceSets {
+    commonMain {
+        kotlin.setSrcDirs(listOf("common"))
+    }
+    luaMain {
+        kotlin.setSrcDirs(listOf("src", "builtins", "runtime"))
+        resources.setSrcDirs(emptyList<Any>())
     }
 }
