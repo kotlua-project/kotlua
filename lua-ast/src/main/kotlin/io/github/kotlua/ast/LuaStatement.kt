@@ -17,7 +17,7 @@ package io.github.kotlua.ast
 
 sealed interface LuaStatement : LuaNode {
     data class LocalVarDeclaration(
-        val names: List<String>,
+        val names: List<LuaName>,
         val initializers: List<LuaExpression>,
     ) : LuaStatement {
         init {
@@ -25,9 +25,35 @@ sealed interface LuaStatement : LuaNode {
         }
     }
 
+    data object Empty : LuaStatement
+
+    data class NumericFor(
+        val variable: LuaName,
+        val start: LuaExpression,
+        val limit: LuaExpression,
+        val step: LuaExpression? = null,
+        val body: LuaBlock,
+    ) : LuaStatement
+
+    data class GenericFor(
+        val variables: List<LuaName>,
+        val iterators: List<LuaExpression>,
+        val body: LuaBlock,
+    ) : LuaStatement {
+        init {
+            require(variables.isNotEmpty())
+        }
+    }
+
+    data class FunctionDeclaration(
+        val target: LuaLValue,
+        val methodName: String? = null,
+        val function: LuaExpression.AnonymousFunction,
+    ) : LuaStatement
+
     data class LocalFunctionDeclaration(
-        val name: String,
-        val function: LuaExpression.AnonymousFunction
+        val name: LuaName,
+        val function: LuaExpression.AnonymousFunction,
     ) : LuaStatement
 
     data class Assignment(

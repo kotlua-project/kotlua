@@ -16,7 +16,6 @@
 
 plugins {
     base
-    alias(libs.plugins.kotlua.spotless)
     alias(libs.plugins.kotlua.gradlePlugin)
 }
 

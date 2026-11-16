@@ -15,6 +15,9 @@
  */
 package io.github.kotlua.ast
 
+import io.github.kotlua.ast.scope.LuaScope
+
 data class LuaBlock(
     val statements: List<LuaStatement>,
+    val scope: LuaScope,
 ) : LuaStatement

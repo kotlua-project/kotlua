@@ -15,18 +15,23 @@
  */
 package io.github.kotlua.ir
 
-import org.jetbrains.kotlin.backend.common.lower.DefaultParameterCleaner
+import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
+import io.github.kotlua.ir.lower.calls.CallsLowering
+import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.lower.EnumWhenLowering
+import org.jetbrains.kotlin.backend.common.lower.ExpectDeclarationsRemoveLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpressionBodyTransformer
 import org.jetbrains.kotlin.backend.common.lower.InitializersLowering
 import org.jetbrains.kotlin.backend.common.lower.InnerClassesLowering
 import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
+import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationPopupLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationsLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDelegatedPropertiesLowering
 import org.jetbrains.kotlin.backend.common.lower.PropertiesLowering
 import org.jetbrains.kotlin.backend.common.lower.RangeContainsLowering
 import org.jetbrains.kotlin.backend.common.lower.RedundantCastsRemoverLowering
 import org.jetbrains.kotlin.backend.common.lower.SharedVariablesLowering
+import org.jetbrains.kotlin.backend.common.lower.StripTypeAliasDeclarationsLowering
 import org.jetbrains.kotlin.backend.common.lower.TailrecLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.InlineCallCycleCheckerLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
@@ -37,25 +42,32 @@ import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.inline.loweringsOfTheFirstPhase
 
+private fun createLuaCodeOutliningPhaseOnSecondStage(context: LoweringContext): LuaCodeOutliningLowering = LuaCodeOutliningLowering(context)
+
 // TODO
 val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment, IrModuleFragment>> =
     createModulePhases(
         ::InlineCallCycleCheckerLowering,
+        ::createLuaCodeOutliningPhaseOnSecondStage,
+        ::LateinitLowering,
+        ::SharedVariablesLowering,
         ::LocalClassesInInlineLambdasLowering,
         ::RedundantCastsRemoverLowering,
-        ::SharedVariablesLowering,
-        ::LocalDeclarationsLowering,
-        ::LocalDelegatedPropertiesLowering,
+        ::ExpectDeclarationsRemoveLowering,
+        ::StripTypeAliasDeclarationsLowering,
         ::TailrecLowering,
+        ::LocalDeclarationsLowering,
+        ::LocalDeclarationPopupLowering,
         ::InnerClassesLowering,
         ::PropertiesLowering,
         ::InitializersLowering,
+//        ::KotlinNothingValueExceptionLowering,
         ::EnumWhenLowering,
-        ::DefaultParameterCleaner,
-        ::ForLoopsLowering,
+        ::LocalDelegatedPropertiesLowering,
         ::RangeContainsLowering,
-        ::LateinitLowering,
+        ::ForLoopsLowering,
         ::ExpressionBodyTransformer,
+        ::CallsLowering,
     )
 
 fun luaLoweringsOfTheFirstPhase(

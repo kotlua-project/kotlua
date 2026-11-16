@@ -33,7 +33,13 @@ private val JETBRAINS_DERIVED_SOURCES =
 
 private val thirdPartyExcludes = listOf("**/thirdparty/**", "**/third_party/**")
 
-private val generatedExcludes = listOf("**/generated/**")
+private val generatedExcludes =
+    listOf(
+        "**/generated/**",
+        "**/lua-stdlib/minimal/common/**",
+        "**/lua-stdlib/minimal/builtins/**",
+        "**/lua-stdlib/builtins/**",
+    )
 
 internal fun Project.configureSpotlessForJvm() {
     configureSpotlessCommon()

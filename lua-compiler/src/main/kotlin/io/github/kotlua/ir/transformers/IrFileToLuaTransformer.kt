@@ -1,23 +1,42 @@
+/*
+ * Copyright 2026 The kotlua Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.kotlua.ir.transformers
 
 import io.github.kotlua.ast.LuaBlock
-import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.LuaStaticContext
 import org.jetbrains.kotlin.ir.declarations.IrFile
-import org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI
 
-@OptIn(UnsafeDuringIrConstructionAPI::class)
 class IrFileToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaBlock, LuaStaticContext>() {
-    override fun visitFile(declaration: IrFile, data: LuaStaticContext): LuaBlock {
-        val fileContext = LuaGenerationContext(
-            staticContext = data,
-        )
+    override fun visitFile(
+        declaration: IrFile,
+        data: LuaStaticContext,
+    ): LuaBlock {
+        val fileContext =
+            LuaGenerationContext(
+                staticContext = data,
+                currentScope = data.rootScope,
+            )
 
         return LuaBlock(
-            statements = declaration.declarations.map {
-                it.accept(IrDeclarationToLuaTransformer(), fileContext)
-            },
+            statements =
+                declaration.declarations.map {
+                    it.accept(IrDeclarationToLuaTransformer(), fileContext)
+                },
+            scope = data.rootScope,
         )
     }
 }

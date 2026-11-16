@@ -33,6 +33,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 rootProject.name = "kotlua"
 include(
     ":lua-compiler",
+    ":lua-parser",
     ":lua-ast",
     ":lua-stdlib",
     ":lua-stdlib:minimal",

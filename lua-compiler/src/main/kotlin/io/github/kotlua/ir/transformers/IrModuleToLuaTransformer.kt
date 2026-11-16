@@ -28,22 +28,30 @@ import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 class IrModuleToLuaTransformer(
     private val backendContext: LuaIrBackendContext,
 ) {
-
-    fun generateModule(modules: Iterable<IrModuleFragment>): LuaCompiledResult {
+    fun generateModule(
+        mainModule: IrModuleFragment,
+        modules: Iterable<IrModuleFragment>,
+    ): LuaCompiledResult {
         val context = LuaStaticContext(backendContext)
-        runSimpleDce(modules)
-        val statements = modules.flatMap {
-            it.files.flatMap { file ->
-                file.accept(IrFileToLuaTransformer(), context).statements
+        runSimpleDce(modules, mainModule)
+
+        val statements =
+            modules.flatMap { module ->
+                module.files.flatMap { file ->
+                    file.accept(IrFileToLuaTransformer(), context).statements
+                }
             }
-        }
 
         val textOutput = LuaTextOutput()
-        val luaCode = LuaToStringGenerator.generate(LuaBlock(statements), textOutput)
+        val luaCode =
+            LuaToStringGenerator.generate(
+                LuaBlock(statements, context.rootScope),
+                textOutput,
+            )
 
         return LuaCompiledResult(
             mainFileName = "main.lua",
-            luaSourceCode = luaCode
+            luaSourceCode = luaCode,
         )
     }
 }

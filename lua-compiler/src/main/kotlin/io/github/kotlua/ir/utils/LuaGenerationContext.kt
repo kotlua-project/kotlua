@@ -1,5 +1,61 @@
+/*
+ * Copyright 2026 The kotlua Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.kotlua.ir.utils
 
+import io.github.kotlua.ast.LuaName
+import io.github.kotlua.ast.scope.LuaScope
+import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
+
 class LuaGenerationContext(
-    val staticContext: LuaStaticContext
-)
+    val staticContext: LuaStaticContext,
+    val currentScope: LuaScope,
+    val localNames: NameTable<IrDeclaration> = NameTable(NameScope.EmptyScope),
+) {
+    fun newLocalContext(
+        function: IrFunction,
+        scope: LuaScope,
+    ): LuaGenerationContext {
+        val childTable = NameTable<IrDeclaration>(parent = localNames)
+        val generator = LuaLocalNameGenerator(childTable)
+        function.parameters.forEach { it.accept(generator, null) }
+        function.body?.accept(generator, null)
+        return LuaGenerationContext(
+            staticContext = staticContext,
+            currentScope = scope,
+            localNames = childTable,
+        )
+    }
+
+    fun getNameForValueDeclaration(declaration: IrDeclarationWithName): LuaName {
+        val localName = localNames[declaration]
+        if (localName != null) {
+            return currentScope.findName(localName) ?: currentScope.declareName(localName)
+        }
+        return staticContext.irNamer.getNameForStaticDeclaration(declaration)
+    }
+
+    fun getNameForStaticDeclaration(declaration: IrDeclarationWithName): LuaName =
+        staticContext.irNamer.getNameForStaticDeclaration(declaration)
+
+    fun getNameForMemberFunction(function: IrSimpleFunction): LuaName = staticContext.irNamer.getNameForMemberFunction(function)
+
+    fun getNameForMemberField(field: IrField): LuaName = staticContext.irNamer.getNameForMemberField(field)
+
+    fun checkIfLuaCode(symbol: IrFunctionSymbol): Boolean = symbol == staticContext.backendContext.symbols.luaCode
+
+    fun checkIfHasAssociatedLuaCode(symbol: IrFunctionSymbol): Boolean = symbol.owner.getLuaCode() != null
+}

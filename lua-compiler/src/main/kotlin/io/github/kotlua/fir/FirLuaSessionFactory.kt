@@ -19,6 +19,7 @@ import io.github.kotlua.resolve.LuaDefaultImportsProvider
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.fir.FirSession
 import org.jetbrains.kotlin.fir.SessionConfiguration
+import org.jetbrains.kotlin.fir.deserialization.FirTypeDeserializer
 import org.jetbrains.kotlin.fir.scopes.FirDefaultImportsProviderHolder
 import org.jetbrains.kotlin.fir.scopes.impl.FirEnumEntriesSupport
 import org.jetbrains.kotlin.fir.session.AbstractFirKlibSessionFactory
@@ -29,6 +30,8 @@ object FirLuaSessionFactory : AbstractFirKlibSessionFactory<FirLuaSessionFactory
     override fun createLibraryContext(configuration: CompilerConfiguration): Context = Context(configuration)
 
     override fun createSourceContext(configuration: CompilerConfiguration): Context = Context(configuration)
+
+    override fun createFlexibleTypeFactory(session: FirSession): FirTypeDeserializer.FlexibleTypeFactory = LuaFlexibleTypeFactory(session)
 
     override fun FirSession.registerLibrarySessionComponents(c: Context) {
         registerLuaComponents()

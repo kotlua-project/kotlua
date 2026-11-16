@@ -1,141 +1,201 @@
+/*
+ * Copyright 2026 The kotlua Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.kotlua.ir.transformers
 
 import io.github.kotlua.ast.LuaBlock
+import io.github.kotlua.ast.LuaCompositeBlock
 import io.github.kotlua.ast.LuaExpression
-import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
+import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
-import org.jetbrains.kotlin.ir.backend.js.transformers.irToJs.translateCall
-import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
+import io.github.kotlua.ir.utils.buildLuaIf
+import io.github.kotlua.ir.utils.translateCall
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
-import org.jetbrains.kotlin.ir.expressions.IrBlock
-import org.jetbrains.kotlin.ir.expressions.IrBlockBody
-import org.jetbrains.kotlin.ir.expressions.IrBreak
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrComposite
-import org.jetbrains.kotlin.ir.expressions.IrContinue
-import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrDoWhileLoop
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
-import org.jetbrains.kotlin.ir.expressions.IrInstanceInitializerCall
-import org.jetbrains.kotlin.ir.expressions.IrReturn
-import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
-import org.jetbrains.kotlin.ir.expressions.IrSetField
-import org.jetbrains.kotlin.ir.expressions.IrSetValue
-import org.jetbrains.kotlin.ir.expressions.IrThrow
-import org.jetbrains.kotlin.ir.expressions.IrTry
-import org.jetbrains.kotlin.ir.expressions.IrWhen
-import org.jetbrains.kotlin.ir.expressions.IrWhileLoop
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.irError
-import org.jetbrains.kotlin.ir.util.nonDispatchArguments
-import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.isElseBranch
 
 class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
+    private val exprTransformer = IrElementToLuaExpressionTransformer()
 
-    override fun visitFunction(declaration: IrFunction, data: LuaGenerationContext): LuaStatement {
+    override fun visitFunction(
+        declaration: IrFunction,
+        data: LuaGenerationContext,
+    ): LuaStatement {
         irError("All functions must be already lowered") {
             withIrEntry("declaration", declaration)
         }
     }
 
-    override fun visitBlockBody(body: IrBlockBody, data: LuaGenerationContext): LuaStatement {
+    override fun visitBlockBody(
+        body: IrBlockBody,
+        data: LuaGenerationContext,
+    ): LuaStatement =
+        LuaBlock(
+            statements = body.statements.map { it.accept(this, data) },
+            scope = data.currentScope,
+        )
+
+    override fun visitBlock(
+        expression: IrBlock,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val blockScope = LuaLocalScope(data.currentScope)
+        val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
         return LuaBlock(
-            statements = body.statements.map {
-                it.accept(this, data)
-            },
+            statements = expression.statements.map { it.accept(this, blockContext) },
+            scope = blockScope,
         )
     }
 
-    override fun visitReturnableBlock(expression: IrReturnableBlock, data: LuaGenerationContext): LuaStatement {
-        return super.visitReturnableBlock(expression, data)
-    }
+    override fun visitComposite(
+        expression: IrComposite,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val statements =
+            expression.statements
+                .map { it.accept(this, data) }
+                .filter { it !is LuaStatement.Empty }
 
-    override fun visitBlock(expression: IrBlock, data: LuaGenerationContext): LuaStatement {
-        return LuaBlock(
-            statements = expression.statements.map {
-                it.accept(this, data)
-            },
-        )
-    }
-
-    override fun visitComposite(expression: IrComposite, data: LuaGenerationContext): LuaStatement {
-        return super.visitComposite(expression, data)
-    }
-
-    override fun visitExpression(expression: IrExpression, data: LuaGenerationContext): LuaStatement {
-        return super.visitExpression(expression, data)
-    }
-
-    override fun visitFunctionExpression(expression: IrFunctionExpression, data: LuaGenerationContext): LuaStatement {
-        return super.visitFunctionExpression(expression, data)
-    }
-
-    override fun visitBreak(jump: IrBreak, data: LuaGenerationContext): LuaStatement {
-        return LuaStatement.Break
-    }
-
-    override fun visitContinue(jump: IrContinue, data: LuaGenerationContext): LuaStatement {
-        irError("Unsupported operation") {
-            withIrEntry("operation", jump)
+        return when (statements.size) {
+            0 -> LuaStatement.Empty
+            1 -> statements.single()
+            else -> LuaCompositeBlock(statements)
         }
     }
 
-    override fun visitSetField(expression: IrSetField, data: LuaGenerationContext): LuaStatement {
-        return super.visitSetField(expression, data)
-    }
+    override fun visitExpression(
+        expression: IrExpression,
+        data: LuaGenerationContext,
+    ): LuaStatement =
+        when (val luaExpr = expression.accept(exprTransformer, data)) {
+            is LuaStatement -> {
+                luaExpr
+            }
 
-    override fun visitSetValue(expression: IrSetValue, data: LuaGenerationContext): LuaStatement {
-        return super.visitSetValue(expression, data)
-    }
+            is LuaExpression.NilLiteral -> {
+                LuaStatement.Empty
+            }
 
-    override fun visitReturn(expression: IrReturn, data: LuaGenerationContext): LuaStatement {
-        return super.visitReturn(expression, data)
-    }
+            else -> {
+                LuaStatement.LocalVarDeclaration(
+                    names = listOf(LuaName("_")),
+                    initializers = listOf(luaExpr),
+                )
+            }
+        }
 
-    override fun visitThrow(expression: IrThrow, data: LuaGenerationContext): LuaStatement {
-        return super.visitThrow(expression, data)
-    }
-
-    override fun visitVariable(declaration: IrVariable, data: LuaGenerationContext): LuaStatement {
-        return super.visitVariable(declaration, data)
-    }
-
-    override fun visitDelegatingConstructorCall(expression: IrDelegatingConstructorCall, data: LuaGenerationContext): LuaStatement {
-        return super.visitDelegatingConstructorCall(expression, data)
-    }
-
-    override fun visitCall(expression: IrCall, data: LuaGenerationContext): LuaStatement {
-        val function = expression.symbol.owner.realOverrideTarget
-        val transformer = IrElementToLuaExpressionTransformer()
-        return LuaExpression.FunctionCall(
-            target = LuaName(function.name.identifier),
-            args = function.nonDispatchParameters.map {
-                val arg = expression.arguments[it.indexInParameters]!!
-                arg.accept(transformer, data)
-            },
+    override fun visitVariable(
+        declaration: IrVariable,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val varName = data.getNameForValueDeclaration(declaration)
+        val init = declaration.initializer?.accept(exprTransformer, data)
+        return LuaStatement.LocalVarDeclaration(
+            names = listOf(varName),
+            initializers = listOfNotNull(init),
         )
     }
 
-    override fun visitInstanceInitializerCall(expression: IrInstanceInitializerCall, data: LuaGenerationContext): LuaStatement {
-        return super.visitInstanceInitializerCall(expression, data)
+    override fun visitSetValue(
+        expression: IrSetValue,
+        data: LuaGenerationContext,
+    ): LuaStatement =
+        LuaStatement.Assignment(
+            targets = listOf(data.getNameForValueDeclaration(expression.symbol.owner)),
+            values = listOf(expression.value.accept(exprTransformer, data)),
+        )
+
+    override fun visitReturn(
+        expression: IrReturn,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        if (expression.value is IrGetObjectValue && expression.value.type.isUnit()) {
+            return LuaStatement.Return(emptyList())
+        }
+        return LuaStatement.Return(
+            values = listOf(expression.value.accept(exprTransformer, data)),
+        )
     }
 
-    override fun visitTry(aTry: IrTry, data: LuaGenerationContext): LuaStatement {
-        return super.visitTry(aTry, data)
+    override fun visitBreak(
+        jump: IrBreak,
+        data: LuaGenerationContext,
+    ): LuaStatement = LuaStatement.Break
+
+    override fun visitContinue(
+        jump: IrContinue,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        irError("Unsupported operation") { withIrEntry("operation", jump) }
     }
 
-    override fun visitWhen(expression: IrWhen, data: LuaGenerationContext): LuaStatement {
-        return super.visitWhen(expression, data)
+    override fun visitCall(
+        expression: IrCall,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        if (data.checkIfLuaCode(expression.symbol) || data.checkIfHasAssociatedLuaCode(expression.symbol)) {
+            return LuaCallTransformer(expression, data).generateStatement()
+        }
+        return when (val result = translateCall(expression, data, exprTransformer)) {
+            is LuaStatement -> {
+                result
+            }
+
+            else -> {
+                LuaStatement.LocalVarDeclaration(
+                    names = listOf(LuaName("_")),
+                    initializers = listOf(result),
+                )
+            }
+        }
     }
 
-    override fun visitWhileLoop(loop: IrWhileLoop, data: LuaGenerationContext): LuaStatement {
-        return super.visitWhileLoop(loop, data)
+    override fun visitWhen(
+        expression: IrWhen,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val branches = expression.branches
+        if (branches.isEmpty()) return LuaStatement.Empty
+
+        val single = branches.singleOrNull()
+        if (single != null && isElseBranch(single)) {
+            return single.result.accept(this, data)
+        }
+
+        return buildLuaIf(expression, data, data.currentScope) { branchResult, parentScope ->
+            val blockScope = LuaLocalScope(parentScope)
+            val stmts =
+                when (branchResult) {
+                    is IrContainerExpression -> branchResult.statements.map { it.accept(this, data) }
+                    else -> listOf(branchResult.accept(this, data))
+                }
+            LuaBlock(stmts, blockScope)
+        }
     }
 
-    override fun visitDoWhileLoop(loop: IrDoWhileLoop, data: LuaGenerationContext): LuaStatement {
-        return super.visitDoWhileLoop(loop, data)
-    }
+    override fun visitTypeOperator(
+        expression: IrTypeOperatorCall,
+        data: LuaGenerationContext,
+    ): LuaStatement =
+        when (expression.operator) {
+            IrTypeOperator.IMPLICIT_COERCION_TO_UNIT -> expression.argument.accept(this, data)
+            else -> super.visitTypeOperator(expression, data)
+        }
 }

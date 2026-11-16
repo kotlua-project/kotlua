@@ -5,9 +5,9 @@
 
 package kotlin.internal
 
-internal class IrLinkageError(message: String?) : Error(message)
+internal class IrLinkageError(
+    message: String?,
+) : Error(message)
 
 @UsedFromCompilerGeneratedCode
-internal fun throwIrLinkageError(message: String?): Nothing {
-    throw IrLinkageError(message)
-}
+internal fun throwIrLinkageError(message: String?): Nothing = throw IrLinkageError(message)

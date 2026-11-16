@@ -1,46 +1,70 @@
+/*
+ * Copyright 2026 The kotlua Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.kotlua.ir.transformers
 
-import io.github.kotlua.ast.LuaBlock
-import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaStatement
+import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
 import io.github.kotlua.ir.utils.LuaGenerationContext
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrScript
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 
 class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
-    override fun visitSimpleFunction(declaration: IrSimpleFunction, data: LuaGenerationContext): LuaStatement {
+    override fun visitSimpleFunction(
+        declaration: IrSimpleFunction,
+        data: LuaGenerationContext,
+    ): LuaStatement {
         require(!declaration.isExpect)
+        if (declaration.isExternal ||
+            declaration.body == null ||
+            declaration.origin == LuaCodeOutliningLowering.OUTLINED_LUA_CODE_ORIGIN ||
+            declaration.hasAnnotation(LuaStandardClassIds.Annotations.LuaIntrinsic)
+        ) {
+            return LuaStatement.Empty
+        }
         return declaration.accept(IrFunctionToLuaTransformer(), data)
     }
 
-    override fun visitConstructor(declaration: IrConstructor, data: LuaGenerationContext): LuaStatement {
-        return super.visitConstructor(declaration, data)
-    }
+    override fun visitConstructor(
+        declaration: IrConstructor,
+        data: LuaGenerationContext,
+    ): LuaStatement = super.visitConstructor(declaration, data)
 
-    override fun visitClass(declaration: IrClass, data: LuaGenerationContext): LuaStatement {
-        return LuaStatement.LocalFunctionDeclaration(
-            name = declaration.name.identifier,
-            function = LuaExpression.AnonymousFunction(
-                parameters = emptyList(),
-                isVararg = false,
-                block = LuaBlock(emptyList())
-            )
-        )
-    }
+    override fun visitClass(
+        declaration: IrClass,
+        data: LuaGenerationContext,
+    ): LuaStatement = LuaStatement.Empty
 
-    override fun visitField(declaration: IrField, data: LuaGenerationContext): LuaStatement {
-        return super.visitField(declaration, data)
-    }
+    override fun visitField(
+        declaration: IrField,
+        data: LuaGenerationContext,
+    ): LuaStatement = super.visitField(declaration, data)
 
-    override fun visitVariable(declaration: IrVariable, data: LuaGenerationContext): LuaStatement {
-        return super.visitVariable(declaration, data)
-    }
+    override fun visitVariable(
+        declaration: IrVariable,
+        data: LuaGenerationContext,
+    ): LuaStatement = super.visitVariable(declaration, data)
 
-    override fun visitScript(declaration: IrScript, data: LuaGenerationContext): LuaStatement {
-        return super.visitScript(declaration, data)
-    }
+    override fun visitScript(
+        declaration: IrScript,
+        data: LuaGenerationContext,
+    ): LuaStatement = super.visitScript(declaration, data)
 }

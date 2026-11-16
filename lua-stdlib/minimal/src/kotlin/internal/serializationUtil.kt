@@ -20,6 +20,7 @@ internal actual inline fun throwReadObjectNotSupported(): Nothing {
 internal actual inline fun wrapAsDeserializationException(action: () -> Unit) {
     TODO()
 }
+
 /**
  * Argument type for `readObject` function.
  *

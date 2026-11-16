@@ -67,7 +67,7 @@ class LuaTextOutput(
         }
     }
 
-    fun print(s: String) {
+    fun printToOutput(s: String) {
         if (s.isEmpty()) return
         applyIndent()
 
@@ -83,7 +83,7 @@ class LuaTextOutput(
         }
     }
 
-    fun print(c: Char) {
+    fun printToOutput(c: Char) {
         if (c == '\n') {
             newline()
         } else {
@@ -93,15 +93,15 @@ class LuaTextOutput(
         }
     }
 
-    fun println(s: String = "") {
-        if (s.isNotEmpty()) print(s)
+    fun printWithNewLine(s: String = "") {
+        if (s.isNotEmpty()) printToOutput(s)
         newline()
     }
 
-    fun println(c: Char) {
-        print(c)
+    fun printWithNewLine(c: Char) {
+        printToOutput(c)
         newline()
     }
 
-    override fun toString(): String = out.toString()
+    override fun toString(): String = out.toString().trim()
 }

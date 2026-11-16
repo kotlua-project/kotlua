@@ -39,20 +39,22 @@ object LuaIrLoadingPipelinePhase : PipelinePhase<ConfigurationPipelineArtifact, 
         val configuration = input.configuration
         val includes = configuration.includes!!
         val includesPath = File(includes).canonicalPath
-        val mainLibPath = configuration.libraries.find { File(it).canonicalPath == includesPath }
-            ?: error("No library with name $includes ($includesPath) found")
+        val mainLibPath =
+            configuration.libraries.find { File(it).canonicalPath == includesPath }
+                ?: error("No library with name $includes ($includesPath) found")
 
         val klibs = loadLuaKlibs(configuration, LuaKlibPlatformChecker)
-        val module = LuaModulesStructure(
-            mainModulePath = mainLibPath,
-            compilerConfiguration = configuration,
-            klibs = klibs
-        )
+        val module =
+            LuaModulesStructure(
+                mainModulePath = mainLibPath,
+                compilerConfiguration = configuration,
+                klibs = klibs,
+            )
         val irFactory = IrFactoryImpl
         val loadedIr = loadIr(module, irFactory)
         return LuaLoadedIrPipelineArtifact(
             moduleInfo = loadedIr,
-            configuration = configuration
+            configuration = configuration,
         )
     }
 }

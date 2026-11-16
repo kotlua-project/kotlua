@@ -15,7 +15,10 @@
  */
 package io.github.kotlua.ast
 
-data class LuaName(
+class LuaName(
     val identifier: String,
+    val isTemporary: Boolean = false,
 ) : LuaExpression,
-    LuaLValue
+    LuaLValue {
+    override fun toString() = identifier
+}

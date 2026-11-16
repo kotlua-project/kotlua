@@ -8,24 +8,24 @@ package kotlin.coroutines
 @PublishedApi
 @SinceKotlin("1.3")
 internal actual class SafeContinuation<in T>
-internal actual constructor(
-    private val delegate: Continuation<T>,
-    initialResult: Any?
-) : Continuation<T> {
-    @PublishedApi
-    internal actual constructor(delegate: Continuation<T>) : this(delegate, null)
+    internal actual constructor(
+        private val delegate: Continuation<T>,
+        initialResult: Any?,
+    ) : Continuation<T> {
+        @PublishedApi
+        internal actual constructor(delegate: Continuation<T>) : this(delegate, null)
 
-    public actual override val context: CoroutineContext
-        get() = delegate.context
+        public actual override val context: CoroutineContext
+            get() = delegate.context
 
-    private var result: Any? = initialResult
+        private var result: Any? = initialResult
 
-    public actual override fun resumeWith(result: Result<T>) {
-        TODO()
+        public actual override fun resumeWith(result: Result<T>) {
+            TODO()
+        }
+
+        @PublishedApi
+        internal actual fun getOrThrow(): Any? {
+            TODO()
+        }
     }
-
-    @PublishedApi
-    internal actual fun getOrThrow(): Any? {
-        TODO()
-    }
-}

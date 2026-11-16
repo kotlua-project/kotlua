@@ -54,12 +54,13 @@ object LuaIrLoweringPipelinePhase : PipelinePhase<LuaLoadedIrPipelineArtifact, L
             "Lua compiler needs LuaIrLinker, but got ${deserializer.javaClass.name}"
         }
         val moduleDescriptor = moduleFragment.descriptor
-        val context = LuaIrBackendContext(
-            module = moduleDescriptor,
-            irBuiltIns = irBuiltIns,
-            symbolTable = symbolTable,
-            configuration = configuration
-        )
+        val context =
+            LuaIrBackendContext(
+                module = moduleDescriptor,
+                irBuiltIns = irBuiltIns,
+                symbolTable = symbolTable,
+                configuration = configuration,
+            )
         val irProviders = listOf(deserializer)
         ExternalDependenciesGenerator(symbolTable, irProviders).generateUnboundSymbolsAsDependencies()
         deserializer.postProcess(irBuiltIns, inOrAfterLinkageStep = true)
@@ -78,7 +79,7 @@ object LuaIrLoweringPipelinePhase : PipelinePhase<LuaLoadedIrPipelineArtifact, L
             context = context,
             mainModule = moduleFragment,
             allModules = allModules,
-            configuration = configuration
+            configuration = configuration,
         )
     }
 }

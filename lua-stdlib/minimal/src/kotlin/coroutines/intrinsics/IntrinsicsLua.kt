@@ -18,9 +18,7 @@ import kotlin.internal.UsedFromCompilerGeneratedCode
  */
 @SinceKotlin("1.3")
 @InlineOnly
-public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturn(
-    completion: Continuation<T>
-): Any? = TODO()
+public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturn(completion: Continuation<T>): Any? = TODO()
 
 /**
  * Starts unintercepted coroutine with receiver type [R] and result type [T] and executes it until its first suspension.
@@ -38,14 +36,14 @@ public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrRetu
 @InlineOnly
 public actual inline fun <R, T> (suspend R.() -> T).startCoroutineUninterceptedOrReturn(
     receiver: R,
-    completion: Continuation<T>
+    completion: Continuation<T>,
 ): Any? = TODO()
 
 @InlineOnly
 internal actual inline fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterceptedOrReturn(
     receiver: R,
     param: P,
-    completion: Continuation<T>
+    completion: Continuation<T>,
 ): Any? = TODO()
 
 /**
@@ -65,9 +63,7 @@ internal actual inline fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterc
  * state machine of the coroutine and may result in arbitrary behaviour or exception.
  */
 @SinceKotlin("1.3")
-public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(
-    completion: Continuation<T>
-): Continuation<Unit> = TODO()
+public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(completion: Continuation<T>): Continuation<Unit> = TODO()
 
 /**
  * Creates unintercepted coroutine with receiver type [R] and result type [T].
@@ -88,7 +84,7 @@ public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(
 @SinceKotlin("1.3")
 public actual fun <R, T> (suspend R.() -> T).createCoroutineUnintercepted(
     receiver: R,
-    completion: Continuation<T>
+    completion: Continuation<T>,
 ): Continuation<Unit> = TODO()
 
 /**

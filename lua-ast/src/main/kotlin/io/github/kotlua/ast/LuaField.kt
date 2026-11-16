@@ -16,17 +16,17 @@
 package io.github.kotlua.ast
 
 sealed interface LuaField : LuaNode {
-    data class ExpIndex(
-        val index: LuaExpression,
+    data class Indexed(
+        val key: LuaExpression,
         val value: LuaExpression,
     ) : LuaField
 
-    data class NameIndex(
-        val index: LuaName,
+    data class Named(
+        val name: String,
         val value: LuaExpression,
     ) : LuaField
 
-    data class Exp(
+    data class Positional(
         val value: LuaExpression,
     ) : LuaField
 }

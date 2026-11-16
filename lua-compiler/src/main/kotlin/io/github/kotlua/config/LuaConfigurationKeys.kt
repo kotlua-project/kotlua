@@ -62,4 +62,6 @@ var CompilerConfiguration.outputName: String?
 
 var CompilerConfiguration.nopack: Boolean
     get() = getBoolean(LuaConfigurationKeys.NO_PACK)
-    set(value) { put(LuaConfigurationKeys.NO_PACK, value) }
+    set(value) {
+        put(LuaConfigurationKeys.NO_PACK, value)
+    }

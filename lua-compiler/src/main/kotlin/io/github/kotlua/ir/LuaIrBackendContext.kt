@@ -48,16 +48,17 @@ class LuaIrBackendContext(
     override val innerClassesSupport = LuaInnerClassesSupport()
     override val irFactory: IrFactory = symbolTable.irFactory
     override var inVerbosePhase: Boolean = false
-    override val diagnosticReporter = KtDiagnosticReporterWithImplicitIrBasedContext(
-        configuration.diagnosticsCollector,
-        configuration.languageVersionSettings
-    )
+    override val diagnosticReporter =
+        KtDiagnosticReporterWithImplicitIrBasedContext(
+            configuration.diagnosticsCollector,
+            configuration.languageVersionSettings,
+        )
     override val symbols = BackendLuaSymbols(irBuiltIns, irFactory.stageController)
     override val sharedVariablesManager = KlibSharedVariablesManager(symbols)
 
-    override val partialLinkageSupport = createPartialLinkageSupportForLowerings(
-        configuration.partialLinkageConfig,
-        diagnosticReporter = diagnosticReporter
-    )
-
+    override val partialLinkageSupport =
+        createPartialLinkageSupportForLowerings(
+            configuration.partialLinkageConfig,
+            diagnosticReporter = diagnosticReporter,
+        )
 }

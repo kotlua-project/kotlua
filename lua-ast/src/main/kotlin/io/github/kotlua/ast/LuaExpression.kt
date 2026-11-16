@@ -15,6 +15,8 @@
  */
 package io.github.kotlua.ast
 
+import io.github.kotlua.ast.scope.LuaScope
+
 sealed interface LuaExpression : LuaNode {
     data object NilLiteral : LuaExpression
 
@@ -56,9 +58,10 @@ sealed interface LuaExpression : LuaNode {
     ) : LuaExpression
 
     data class AnonymousFunction(
-        val parameters: List<String>,
+        val parameters: List<LuaName>,
         val isVararg: Boolean,
         val block: LuaBlock,
+        val scope: LuaScope,
     ) : LuaExpression
 
     data class FunctionCall(

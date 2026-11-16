@@ -15,20 +15,34 @@
  */
 package io.github.kotlua.ast
 
-enum class LuaBinaryOperator {
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Power,
-    Modulo,
-    Concat,
-    Gt,
-    Gte,
-    Lt,
-    Lte,
-    Eq,
-    Neq,
-    And,
-    Or,
+enum class LuaBinaryOperator(
+    val precedence: Int,
+    val isRightAssociative: Boolean = false,
+) {
+    Or(1),
+    And(2),
+
+    Gt(3),
+    Gte(3),
+    Lt(3),
+    Lte(3),
+    Eq(3),
+    Neq(3),
+
+    Concat(4, isRightAssociative = true),
+
+    Add(5),
+    Subtract(5),
+
+    Multiply(6),
+    Divide(6),
+    Modulo(6),
+
+    Power(8, isRightAssociative = true),
+    ;
+
+    companion object {
+        const val UNARY_PRECEDENCE = 7
+        const val ATOM_PRECEDENCE = 9
+    }
 }

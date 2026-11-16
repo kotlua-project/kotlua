@@ -15,40 +15,52 @@
  */
 package io.github.kotlua.ir
 
-import io.github.kotlua.name.BASE_LUA_PACKAGE
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.ir.PreSerializationKlibSymbols
 import org.jetbrains.kotlin.builtins.StandardNames.COROUTINES_PACKAGE_FQ_NAME
 import org.jetbrains.kotlin.ir.IrBuiltIns
+import org.jetbrains.kotlin.ir.classSymbol
 import org.jetbrains.kotlin.ir.functionSymbol
 import org.jetbrains.kotlin.ir.getterSymbol
+import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.types.IrDynamicType
+import org.jetbrains.kotlin.ir.types.impl.IrDynamicTypeImpl
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.Name
-import org.jetbrains.kotlin.name.StandardClassIds
+import org.jetbrains.kotlin.types.Variance
 
 interface PreSerializationLuaSymbols : PreSerializationKlibSymbols {
+    val dynamicType: IrDynamicType
+        get() = IrDynamicTypeImpl(emptyList(), Variance.INVARIANT)
+
+    val luaCode: IrSimpleFunctionSymbol
+    val luaOutlinedFunctionAnnotationSymbol: IrClassSymbol
+
     open class Impl(
         irBuiltIns: IrBuiltIns,
     ) : PreSerializationKlibSymbols.Impl(irBuiltIns),
         PreSerializationLuaSymbols {
         override val coroutineContextGetter: IrSimpleFunctionSymbol by CallableIds.coroutineContextGetter.getterSymbol()
         override val coroutineGetContext: IrSimpleFunctionSymbol by CallableIds.coroutineGetContext.functionSymbol()
-        override val suspendCoroutineUninterceptedOrReturn: IrSimpleFunctionSymbol by CallableIds.suspendCoroutineUninterceptedOrReturn.functionSymbol()
+        override val suspendCoroutineUninterceptedOrReturn: IrSimpleFunctionSymbol by CallableIds.suspendCoroutineUninterceptedOrReturn
+            .functionSymbol()
+        override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
+        override val luaOutlinedFunctionAnnotationSymbol: IrClassSymbol = LuaStandardClassIds.Annotations.LuaOutlinedFunction.classSymbol()
 
         companion object {
             private const val COROUTINE_SUSPEND_OR_RETURN_LUA_NAME = "suspendCoroutineUninterceptedOrReturnLua"
 
             private object CallableIds {
                 private val String.baseLuaCallableId: CallableId
-                    get() = CallableId(StandardClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
+                    get() = CallableId(LuaStandardClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
+
                 val coroutineContextGetter: CallableId =
                     CallableId(COROUTINES_PACKAGE_FQ_NAME, Name.identifier(PreSerializationKlibSymbols.COROUTINE_CONTEXT_NAME))
 
                 val coroutineGetContext: CallableId = PreSerializationKlibSymbols.GET_COROUTINE_CONTEXT_NAME.baseLuaCallableId
                 val suspendCoroutineUninterceptedOrReturn: CallableId = COROUTINE_SUSPEND_OR_RETURN_LUA_NAME.baseLuaCallableId
             }
-
-            private object ClassIds
         }
     }
 }

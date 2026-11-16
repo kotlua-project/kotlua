@@ -17,6 +17,7 @@ package io.github.kotlua
 
 import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
+import io.github.kotlua.ast.LuaCompositeBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaField
 import io.github.kotlua.ast.LuaLValue
@@ -27,12 +28,34 @@ import io.github.kotlua.ast.LuaUnaryOperator
 class LuaToStringGenerator private constructor(
     val textOutput: LuaTextOutput,
 ) {
+    private var previousStatementEndedWithExpression = false
+
     companion object {
         fun generate(
             program: LuaBlock,
             textOutput: LuaTextOutput = LuaTextOutput(),
         ): String {
             LuaToStringGenerator(textOutput).generate(program.statements)
+            return textOutput.toString()
+        }
+
+        fun generateStatement(
+            statement: LuaStatement,
+            textOutput: LuaTextOutput = LuaTextOutput(),
+        ): String {
+            with(LuaToStringGenerator(textOutput)) {
+                textOutput.printLuaStatement(statement)
+            }
+            return textOutput.toString()
+        }
+
+        fun generateExpression(
+            expression: LuaExpression,
+            textOutput: LuaTextOutput = LuaTextOutput(),
+        ): String {
+            with(LuaToStringGenerator(textOutput)) {
+                textOutput.printLuaExpression(expression)
+            }
             return textOutput.toString()
         }
     }
@@ -53,7 +76,7 @@ class LuaToStringGenerator private constructor(
         for ((index, value) in withIndex()) {
             action(value)
             if (index != lastIndex) {
-                out.print(separator)
+                out.printToOutput(separator)
             }
         }
     }
@@ -65,164 +88,254 @@ class LuaToStringGenerator private constructor(
         }
     }
 
+    private fun LuaTextOutput.printPrefixExpression(node: LuaExpression) {
+        val isPrefixExp =
+            node is LuaLValue ||
+                node is LuaExpression.FunctionCall ||
+                node is LuaExpression.MethodCall
+
+        if (isPrefixExp) {
+            printLuaExpression(node)
+        } else {
+            printToOutput('(')
+            printLuaExpression(node)
+            printToOutput(')')
+        }
+    }
+
     private fun LuaTextOutput.printLuaLValue(node: LuaLValue) {
         when (node) {
             is LuaLValue.TableField -> {
-                printLuaExpression(node.target)
-                print('.')
-                print(node.fieldName)
+                printPrefixExpression(node.target)
+                printToOutput('.')
+                printToOutput(node.fieldName)
             }
 
             is LuaLValue.TableIndex -> {
-                printLuaExpression(node.target)
-                print('[')
+                printPrefixExpression(node.target)
+                printToOutput('[')
                 printLuaExpression(node.index)
-                print(']')
+                printToOutput(']')
             }
 
             is LuaName -> {
-                print(node.identifier)
+                printToOutput(node.identifier)
             }
         }
     }
 
     private fun LuaTextOutput.printFunctionCall(node: LuaExpression.FunctionCall) {
-        printLuaExpression(node.target)
-        print('(')
+        printPrefixExpression(node.target)
+        printToOutput('(')
         node.args.printExpressionsWithSeparator()
-        print(')')
+        printToOutput(')')
     }
 
     private fun LuaTextOutput.printMethodCall(node: LuaExpression.MethodCall) {
-        printLuaExpression(node.target)
-        print(':')
-        print(node.methodName)
-        print('(')
+        printPrefixExpression(node.target)
+        printToOutput(':')
+        printToOutput(node.methodName)
+        printToOutput('(')
         node.args.printExpressionsWithSeparator()
-        print(')')
+        printToOutput(')')
     }
 
     private fun LuaTextOutput.printLuaStatement(node: LuaStatement) {
-        when (node) {
-            is LuaExpression.FunctionCall -> {
-                printFunctionCall(node)
-                newline()
-            }
-
-            is LuaExpression.MethodCall -> {
-                printMethodCall(node)
-                newline()
-            }
-
-            is LuaStatement.Assignment -> {
-                node.targets.printWithSeparator {
-                    printLuaLValue(it)
+        printWithLeadingSemi(node) {
+            when (node) {
+                is LuaExpression.FunctionCall -> {
+                    printFunctionCall(node)
+                    newline()
                 }
-                print(" = ")
-                node.values.printExpressionsWithSeparator()
-                newline()
-            }
 
-            LuaStatement.Break -> {
-                println("break")
-            }
-
-            is LuaStatement.If -> {
-                print("if ")
-                printLuaExpression(node.condition)
-                println(" then")
-                printLuaBlock(node.thenBlock)
-                node.elseIfs.forEach { (expr, block) ->
-                    print("elseif ")
-                    printLuaExpression(expr)
-                    println(" then")
-                    printLuaBlock(block)
+                is LuaExpression.MethodCall -> {
+                    printMethodCall(node)
+                    newline()
                 }
-                node.elseBlock?.let { block ->
-                    println("else")
-                    printLuaBlock(block)
-                }
-                println("end")
-            }
 
-            is LuaStatement.LocalVarDeclaration -> {
-                print("local ")
-                node.names.printWithSeparator {
-                    print(it)
-                }
-                if (node.initializers.isNotEmpty()) {
-                    print(" = ")
-                    node.initializers.printExpressionsWithSeparator()
-                }
-                newline()
-            }
-
-            is LuaStatement.RepeatUntil -> {
-                println("repeat")
-                printLuaBlock(node.body)
-                print("until ")
-                printLuaExpression(node.condition)
-                newline()
-            }
-
-            is LuaStatement.Return -> {
-                print("return")
-                if (node.values.isNotEmpty()) {
-                    whitespace()
+                is LuaStatement.Assignment -> {
+                    node.targets.printWithSeparator {
+                        printLuaLValue(it)
+                    }
+                    printToOutput(" = ")
                     node.values.printExpressionsWithSeparator()
+                    newline()
                 }
-                newline()
-            }
 
-            is LuaStatement.While -> {
-                print("while ")
-                printLuaExpression(node.condition)
-                println(" do")
-                printLuaBlock(node.body)
-                println("end")
-            }
+                LuaStatement.Break -> {
+                    printWithNewLine("break")
+                }
 
-            is LuaStatement.LocalFunctionDeclaration -> {
-                print("local function ${node.name}(")
-                printLuaAnonymousFunctionParams(node.function)
-                println(')')
-                printLuaBlock(node.function.block)
-                println("end")
-            }
+                is LuaStatement.If -> {
+                    printToOutput("if ")
+                    printLuaExpression(node.condition)
+                    printWithNewLine(" then")
+                    printLuaBlock(node.thenBlock)
+                    node.elseIfs.forEach { (expr, block) ->
+                        printToOutput("elseif ")
+                        printLuaExpression(expr)
+                        printWithNewLine(" then")
+                        printLuaBlock(block)
+                    }
+                    node.elseBlock?.let { block ->
+                        printWithNewLine("else")
+                        printLuaBlock(block)
+                    }
+                    printWithNewLine("end")
+                }
 
-            is LuaBlock -> {
-                println("do")
-                printLuaBlock(node)
-                println("end")
+                is LuaStatement.LocalVarDeclaration -> {
+                    printToOutput("local ")
+                    node.names.printWithSeparator {
+                        printToOutput(it.identifier)
+                    }
+                    if (node.initializers.isNotEmpty()) {
+                        printToOutput(" = ")
+                        node.initializers.printExpressionsWithSeparator()
+                    }
+                    newline()
+                }
+
+                is LuaStatement.RepeatUntil -> {
+                    printWithNewLine("repeat")
+                    printLuaBlock(node.body)
+                    printToOutput("until ")
+                    printLuaExpression(node.condition)
+                    newline()
+                }
+
+                is LuaStatement.Return -> {
+                    printToOutput("return")
+                    if (node.values.isNotEmpty()) {
+                        whitespace()
+                        node.values.printExpressionsWithSeparator()
+                    }
+                    newline()
+                }
+
+                is LuaStatement.While -> {
+                    printToOutput("while ")
+                    printLuaExpression(node.condition)
+                    printWithNewLine(" do")
+                    printLuaBlock(node.body)
+                    printWithNewLine("end")
+                }
+
+                is LuaStatement.LocalFunctionDeclaration -> {
+                    printToOutput("local function ")
+                    printToOutput(node.name.identifier)
+                    printToOutput('(')
+                    printLuaAnonymousFunctionParams(node.function)
+                    printWithNewLine(')')
+                    printLuaBlock(node.function.block)
+                    printWithNewLine("end")
+                }
+
+                is LuaStatement.FunctionDeclaration -> {
+                    printToOutput("function ")
+                    printLuaLValue(node.target)
+                    node.methodName?.let {
+                        printToOutput(':')
+                        printToOutput(it)
+                    }
+                    printToOutput('(')
+                    printLuaAnonymousFunctionParams(node.function)
+                    printWithNewLine(')')
+                    printLuaBlock(node.function.block)
+                    printWithNewLine("end")
+                }
+
+                is LuaStatement.NumericFor -> {
+                    printToOutput("for ")
+                    printToOutput(node.variable.identifier)
+                    printToOutput(" = ")
+                    printLuaExpression(node.start)
+                    printToOutput(", ")
+                    printLuaExpression(node.limit)
+                    node.step?.let {
+                        printToOutput(", ")
+                        printLuaExpression(it)
+                    }
+                    printWithNewLine(" do")
+                    printLuaBlock(node.body)
+                    printWithNewLine("end")
+                }
+
+                is LuaStatement.GenericFor -> {
+                    printToOutput("for ")
+                    node.variables.printWithSeparator {
+                        printToOutput(it.identifier)
+                    }
+                    printToOutput(" in ")
+                    node.iterators.printExpressionsWithSeparator()
+                    printWithNewLine(" do")
+                    printLuaBlock(node.body)
+                    printWithNewLine("end")
+                }
+
+                is LuaBlock -> {
+                    printWithNewLine("do")
+                    printLuaBlock(node)
+                    printWithNewLine("end")
+                }
+
+                is LuaCompositeBlock -> {
+                    printStatements(node.statements)
+                }
+
+                LuaStatement.Empty -> {
+                    Unit
+                }
             }
         }
     }
 
+    private fun LuaTextOutput.printWithLeadingSemi(
+        node: LuaStatement,
+        block: LuaTextOutput.() -> Unit,
+    ) {
+        val preserveSemi = node !is LuaCompositeBlock && node !== LuaStatement.Empty
+        if (preserveSemi && previousStatementEndedWithExpression && node.startsWithOpenParen()) {
+            printToOutput(';')
+        }
+        block()
+        if (preserveSemi) {
+            previousStatementEndedWithExpression = node.endsWithExpression()
+        }
+    }
+
     private fun LuaTextOutput.printLuaBlock(node: LuaBlock) {
+        val savedFlag = previousStatementEndedWithExpression
+        previousStatementEndedWithExpression = false
         withIndent {
-            node.statements.forEach { statement ->
-                printLuaStatement(statement)
-            }
+            printStatements(node.statements)
+        }
+        previousStatementEndedWithExpression = savedFlag
+    }
+
+    private fun LuaTextOutput.printStatements(statements: Iterable<LuaStatement>) {
+        statements.forEach { statement ->
+            printLuaStatement(statement)
         }
     }
 
     private fun LuaTextOutput.printLuaField(node: LuaField) {
         when (node) {
-            is LuaField.Exp -> {
+            is LuaField.Positional -> {
                 printLuaExpression(node.value)
             }
 
-            is LuaField.ExpIndex -> {
-                print('[')
-                printLuaExpression(node.index)
-                print(']')
-                print(" = ")
+            is LuaField.Indexed -> {
+                printToOutput('[')
+                printLuaExpression(node.key)
+                printToOutput(']')
+                printToOutput(" = ")
                 printLuaExpression(node.value)
             }
 
-            is LuaField.NameIndex -> {
-                print(node.index.identifier)
-                print(" = ")
+            is LuaField.Named -> {
+                printToOutput(node.name)
+                printToOutput(" = ")
                 printLuaExpression(node.value)
             }
         }
@@ -247,30 +360,30 @@ class LuaToStringGenerator private constructor(
                 LuaBinaryOperator.And -> "and"
                 LuaBinaryOperator.Or -> "or"
             }
-        print(str)
+        printToOutput(str)
     }
 
     private fun LuaTextOutput.printUnaryOperator(operator: LuaUnaryOperator) {
         when (operator) {
-            LuaUnaryOperator.Not -> print("not ")
-            LuaUnaryOperator.Length -> print('#')
-            LuaUnaryOperator.Negate -> print('-')
+            LuaUnaryOperator.Not -> printToOutput("not ")
+            LuaUnaryOperator.Length -> printToOutput('#')
+            LuaUnaryOperator.Negate -> printToOutput('-')
         }
     }
 
     private fun LuaTextOutput.whitespace() {
-        print(' ')
+        printToOutput(' ')
     }
 
     private fun LuaTextOutput.printLuaAnonymousFunctionParams(node: LuaExpression.AnonymousFunction) {
         for ((index, param) in node.parameters.withIndex()) {
-            print(param)
+            printToOutput(param.identifier)
             if (index != node.parameters.lastIndex || node.isVararg) {
-                print(", ")
+                printToOutput(", ")
             }
         }
         if (node.isVararg) {
-            print("...")
+            printToOutput("...")
         }
     }
 
@@ -278,29 +391,54 @@ class LuaToStringGenerator private constructor(
         when (node) {
             is LuaExpression.UnaryOp -> {
                 printUnaryOperator(node.op)
-                printLuaExpression(node.operand)
+                val operandPrecedence = node.operand.precedence()
+                val needParens =
+                    operandPrecedence < LuaBinaryOperator.UNARY_PRECEDENCE ||
+                        (node.op == LuaUnaryOperator.Negate && node.operand.startsWithMinus())
+                printWithParentheses(needParens = needParens) {
+                    printLuaExpression(node.operand)
+                }
             }
 
             is LuaExpression.BinaryOp -> {
-                print('(')
-                printLuaExpression(node.left)
+                val binOpPrecedence = node.op.precedence
+                val rightAssociative = node.op.isRightAssociative
+
+                val leftPrecedence = node.left.precedence()
+                val rightPrecedence = node.right.precedence()
+
+                val wrapLeft =
+                    when {
+                        rightAssociative -> leftPrecedence <= binOpPrecedence
+                        else -> leftPrecedence < binOpPrecedence
+                    }
+                val wrapRight =
+                    when {
+                        rightAssociative -> rightPrecedence < binOpPrecedence
+                        else -> rightPrecedence <= binOpPrecedence
+                    }
+
+                printWithParentheses(needParens = wrapLeft) {
+                    printLuaExpression(node.left)
+                }
                 whitespace()
                 printBinaryOperator(node.op)
                 whitespace()
-                printLuaExpression(node.right)
-                print(')')
+                printWithParentheses(needParens = wrapRight) {
+                    printLuaExpression(node.right)
+                }
             }
 
             is LuaExpression.AnonymousFunction -> {
-                print("function (")
+                printToOutput("function(")
                 printLuaAnonymousFunctionParams(node)
-                println(')')
+                printWithNewLine(')')
                 printLuaBlock(node.block)
-                print("end")
+                printToOutput("end")
             }
 
             is LuaExpression.BooleanLiteral -> {
-                print(node.value.toString())
+                printToOutput(node.value.toString())
             }
 
             is LuaExpression.FunctionCall -> {
@@ -312,27 +450,27 @@ class LuaToStringGenerator private constructor(
             }
 
             LuaExpression.NilLiteral -> {
-                print("nil")
+                printToOutput("nil")
             }
 
             is LuaExpression.DoubleLiteral -> {
-                print(node.value.toString())
+                printToOutput(node.value.toString())
             }
 
             is LuaExpression.LongLiteral -> {
-                print(node.value.toString())
+                printToOutput(node.value.toString())
             }
 
             is LuaExpression.IntLiteral -> {
-                print(node.value.toString())
+                printToOutput(node.value.toString())
             }
 
             is LuaExpression.StringLiteral -> {
-                print(LuaStringEscaper.escape(node.value))
+                printToOutput(LuaStringEscaper.escape(node.value))
             }
 
             is LuaExpression.TableConstructor -> {
-                print('{')
+                printToOutput('{')
                 if (node.fields.isNotEmpty()) {
                     whitespace()
                     node.fields.printWithSeparator("; ") { field ->
@@ -340,11 +478,11 @@ class LuaToStringGenerator private constructor(
                     }
                     whitespace()
                 }
-                print('}')
+                printToOutput('}')
             }
 
             LuaExpression.VarargLiteral -> {
-                print("...")
+                printToOutput("...")
             }
 
             is LuaLValue -> {
@@ -352,4 +490,63 @@ class LuaToStringGenerator private constructor(
             }
         }
     }
+
+    private fun LuaExpression.precedence(): Int =
+        when (this) {
+            is LuaExpression.BinaryOp -> op.precedence
+            is LuaExpression.UnaryOp -> LuaBinaryOperator.UNARY_PRECEDENCE
+            is LuaExpression.IntLiteral if value < 0 -> LuaBinaryOperator.UNARY_PRECEDENCE
+            is LuaExpression.LongLiteral if value < 0L -> LuaBinaryOperator.UNARY_PRECEDENCE
+            is LuaExpression.DoubleLiteral if value < 0.0 -> LuaBinaryOperator.UNARY_PRECEDENCE
+            else -> LuaBinaryOperator.ATOM_PRECEDENCE
+        }
+
+    private fun LuaExpression.startsWithMinus(): Boolean =
+        when (this) {
+            is LuaExpression.UnaryOp -> op == LuaUnaryOperator.Negate
+            is LuaExpression.IntLiteral -> value < 0
+            is LuaExpression.LongLiteral -> value < 0L
+            is LuaExpression.DoubleLiteral -> value < 0.0
+            else -> false
+        }
+
+    private inline fun LuaTextOutput.printWithParentheses(
+        needParens: Boolean,
+        block: LuaTextOutput.() -> Unit,
+    ) {
+        if (needParens) printToOutput('(')
+        block()
+        if (needParens) printToOutput(')')
+    }
+
+    private fun LuaExpression.startsWithOpenParenAsPrefix(): Boolean =
+        when (this) {
+            is LuaName -> false
+            is LuaLValue.TableField -> target.startsWithOpenParenAsPrefix()
+            is LuaLValue.TableIndex -> target.startsWithOpenParenAsPrefix()
+            is LuaExpression.FunctionCall -> target.startsWithOpenParenAsPrefix()
+            is LuaExpression.MethodCall -> target.startsWithOpenParenAsPrefix()
+            else -> true
+        }
+
+    private fun LuaStatement.startsWithOpenParen(): Boolean =
+        when (this) {
+            is LuaExpression.FunctionCall -> target.startsWithOpenParenAsPrefix()
+            is LuaExpression.MethodCall -> target.startsWithOpenParenAsPrefix()
+            is LuaStatement.Assignment -> targets.firstOrNull()?.startsWithOpenParenAsPrefix() == true
+            else -> false
+        }
+
+    private fun LuaStatement.endsWithExpression(): Boolean =
+        when (this) {
+            is LuaStatement.Assignment,
+            is LuaExpression.FunctionCall,
+            is LuaExpression.MethodCall,
+            is LuaStatement.RepeatUntil,
+            -> true
+
+            is LuaStatement.LocalVarDeclaration -> initializers.isNotEmpty()
+
+            else -> false
+        }
 }

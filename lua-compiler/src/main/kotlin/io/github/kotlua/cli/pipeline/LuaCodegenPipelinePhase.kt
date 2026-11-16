@@ -44,7 +44,7 @@ object LuaCodegenPipelinePhase : PipelinePhase<LuaLoweredIrPipelineArtifact, Lua
                 backendContext = input.context,
             )
 
-        val result = transformer.generateModule(input.allModules)
+        val result = transformer.generateModule(input.mainModule, input.allModules)
 
         return LuaBackendPipelineArtifact(
             result = result,

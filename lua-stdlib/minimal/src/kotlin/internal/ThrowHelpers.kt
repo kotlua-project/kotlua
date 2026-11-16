@@ -15,5 +15,4 @@ internal fun throwUninitializedPropertyAccessException(name: String): Nothing =
 @PublishedApi
 @SinceKotlin("2.3")
 @UsedFromCompilerGeneratedCode
-internal fun throwUnsupportedOperationException(message: String): Nothing =
-    throw UnsupportedOperationException(message)
+internal fun throwUnsupportedOperationException(message: String): Nothing = throw UnsupportedOperationException(message)

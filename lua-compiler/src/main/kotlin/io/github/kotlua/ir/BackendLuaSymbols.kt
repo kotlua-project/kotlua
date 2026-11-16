@@ -15,6 +15,7 @@
  */
 package io.github.kotlua.ir
 
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.ir.BackendKlibSymbols
 import org.jetbrains.kotlin.backend.common.ir.PreSerializationKlibSymbols
 import org.jetbrains.kotlin.ir.IrBuiltIns
@@ -36,20 +37,17 @@ class BackendLuaSymbols(
         LuaClassIds.StringBuilder.classSymbol()
     }
 
-    override val throwNullPointerException: IrSimpleFunctionSymbol
-        by CallableIds.throwNpe.functionSymbol()
+    override val throwNullPointerException: IrSimpleFunctionSymbol by CallableIds.throwNpe.functionSymbol()
 
-    override val throwTypeCastException: IrSimpleFunctionSymbol
-        by CallableIds.throwCce.functionSymbol()
+    override val throwTypeCastException: IrSimpleFunctionSymbol by CallableIds.throwCce.functionSymbol()
 
-    override val throwKotlinNothingValueException: IrSimpleFunctionSymbol
-        by CallableIds.throwKotlinNothingValueException.functionSymbol()
+    override val throwKotlinNothingValueException: IrSimpleFunctionSymbol by CallableIds.throwKotlinNothingValueException.functionSymbol()
 
-    override val throwUninitializedPropertyAccessException: IrSimpleFunctionSymbol
-        by CallableIds.throwUninitializedPropertyAccessException.functionSymbol()
+    override val throwUninitializedPropertyAccessException: IrSimpleFunctionSymbol by CallableIds.throwUninitializedPropertyAccessException
+        .functionSymbol()
 
-    override val throwUnsupportedOperationException: IrSimpleFunctionSymbol
-        by CallableIds.throwUnsupportedOperationException.functionSymbol()
+    override val throwUnsupportedOperationException: IrSimpleFunctionSymbol by CallableIds.throwUnsupportedOperationException
+        .functionSymbol()
 
     override val defaultConstructorMarker: IrClassSymbol by lazy {
         LuaClassIds.DefaultConstructorMarker.classSymbol()
@@ -79,32 +77,42 @@ class BackendLuaSymbols(
 
     override val continuationClass: IrClassSymbol = LuaClassIds.Continuation.classSymbol()
 
-    override val coroutineSuspendedGetter: IrSimpleFunctionSymbol
-        by CallableIds.coroutineSuspended.getterSymbol()
+    override val coroutineSuspendedGetter: IrSimpleFunctionSymbol by CallableIds.coroutineSuspended.getterSymbol()
 
-    override val getContinuation: IrSimpleFunctionSymbol
-        by CallableIds.getContinuation.functionSymbol()
+    override val getContinuation: IrSimpleFunctionSymbol by CallableIds.getContinuation.functionSymbol()
 
-    override val returnIfSuspended: IrSimpleFunctionSymbol
-        by CallableIds.returnIfSuspended.functionSymbol()
+    override val returnIfSuspended: IrSimpleFunctionSymbol by CallableIds.returnIfSuspended.functionSymbol()
 
-    val luaSetMetatable: IrSimpleFunctionSymbol by LuaCallableIds.setMetatable.functionSymbol()
-    val luaGetMetatable: IrSimpleFunctionSymbol by LuaCallableIds.getMetatable.functionSymbol()
-    val luaRawGet: IrSimpleFunctionSymbol by LuaCallableIds.rawGet.functionSymbol()
-    val luaRawSet: IrSimpleFunctionSymbol by LuaCallableIds.rawSet.functionSymbol()
-    val luaTableNew: IrSimpleFunctionSymbol by LuaCallableIds.tableNew.functionSymbol()
-    val luaTypeOf: IrSimpleFunctionSymbol by LuaCallableIds.typeOf.functionSymbol()
-    val luaStringConcat: IrSimpleFunctionSymbol by LuaCallableIds.stringConcat.functionSymbol()
-    val luaLengthOp: IrSimpleFunctionSymbol by LuaCallableIds.lengthOp.functionSymbol()
-    val luaError: IrSimpleFunctionSymbol by LuaCallableIds.error.functionSymbol()
-    val luaPCall: IrSimpleFunctionSymbol by LuaCallableIds.pcall.functionSymbol()
-    val luaCode: IrSimpleFunctionSymbol by LuaCallableIds.lua.functionSymbol()
+    val luaEq: IrSimpleFunctionSymbol by LuaCallableIds.luaEq.functionSymbol()
+    val luaNeq: IrSimpleFunctionSymbol by LuaCallableIds.luaNeq.functionSymbol()
+    val luaGt: IrSimpleFunctionSymbol by LuaCallableIds.luaGt.functionSymbol()
+    val luaGte: IrSimpleFunctionSymbol by LuaCallableIds.luaGte.functionSymbol()
+    val luaLt: IrSimpleFunctionSymbol by LuaCallableIds.luaLt.functionSymbol()
+    val luaLte: IrSimpleFunctionSymbol by LuaCallableIds.luaLte.functionSymbol()
 
-//    override fun isSideEffectFree(call: IrCall): Boolean =
-//        call.symbol == luaRawGet ||
-//            call.symbol == luaTypeOf ||
-//            call.symbol == luaLengthOp ||
-//            super.isSideEffectFree(call)
+    val luaNot: IrSimpleFunctionSymbol by LuaCallableIds.luaNot.functionSymbol()
+    val luaAnd: IrSimpleFunctionSymbol by LuaCallableIds.luaAnd.functionSymbol()
+    val luaOr: IrSimpleFunctionSymbol by LuaCallableIds.luaOr.functionSymbol()
+    val luaUnaryMinus: IrSimpleFunctionSymbol by LuaCallableIds.luaUnaryMinus.functionSymbol()
+
+    val luaPlus: IrSimpleFunctionSymbol by LuaCallableIds.luaPlus.functionSymbol()
+    val luaMinus: IrSimpleFunctionSymbol by LuaCallableIds.luaMinus.functionSymbol()
+    val luaMult: IrSimpleFunctionSymbol by LuaCallableIds.luaMult.functionSymbol()
+    val luaDiv: IrSimpleFunctionSymbol by LuaCallableIds.luaDiv.functionSymbol()
+    val luaMod: IrSimpleFunctionSymbol by LuaCallableIds.luaMod.functionSymbol()
+    val luaPow: IrSimpleFunctionSymbol by LuaCallableIds.luaPow.functionSymbol()
+
+    val luaConcat: IrSimpleFunctionSymbol by LuaCallableIds.luaConcat.functionSymbol()
+    val luaLength: IrSimpleFunctionSymbol by LuaCallableIds.luaLength.functionSymbol()
+
+    val luaEmptyTable: IrSimpleFunctionSymbol by LuaCallableIds.luaEmptyTable.functionSymbol()
+    val luaTableGet: IrSimpleFunctionSymbol by LuaCallableIds.luaTableGet.functionSymbol()
+    val luaTableSet: IrSimpleFunctionSymbol by LuaCallableIds.luaTableSet.functionSymbol()
+    val unreachable: IrSimpleFunctionSymbol by LuaCallableIds.unreachable.functionSymbol()
+
+    override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
+
+    override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
 }
 
 private object LuaClassIds {
@@ -117,8 +125,6 @@ private object LuaClassIds {
 
     val FunctionAdapter = "FunctionAdapter".luaInternalClassId
     val DefaultConstructorMarker = "DefaultConstructorMarker".luaInternalClassId
-
-    val ObjectRef = ClassId(FqName("kotlin.jvm.internal.Ref"), Name.identifier("ObjectRef"))
 
     val Continuation = ClassId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("Continuation"))
 }
@@ -147,17 +153,32 @@ private object CallableIds {
 }
 
 private object LuaCallableIds {
-    private val String.luaCallableId get() = CallableId(LuaClassIds.BASE_LUA_INTERNAL_PACKAGE, Name.identifier(this))
+    private val String.luaCallableId get() = CallableId(LuaClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
 
-    val setMetatable = "setmetatable".luaCallableId
-    val getMetatable = "getmetatable".luaCallableId
-    val rawGet = "rawget".luaCallableId
-    val rawSet = "rawset".luaCallableId
-    val tableNew = "tableNew".luaCallableId
-    val typeOf = "typeOf".luaCallableId
-    val stringConcat = "stringConcat".luaCallableId
-    val lengthOp = "lengthOp".luaCallableId
-    val error = "error".luaCallableId
-    val pcall = "pcall".luaCallableId
-    val lua = CallableId(LuaClassIds.BASE_LUA_PACKAGE, Name.identifier("lua"))
+    val luaEq = "luaEq".luaCallableId
+    val luaNeq = "luaNeq".luaCallableId
+    val luaGt = "luaGt".luaCallableId
+    val luaGte = "luaGte".luaCallableId
+    val luaLt = "luaLt".luaCallableId
+    val luaLte = "luaLte".luaCallableId
+
+    val luaNot = "luaNot".luaCallableId
+    val luaAnd = "luaAnd".luaCallableId
+    val luaOr = "luaOr".luaCallableId
+    val luaUnaryMinus = "luaUnaryMinus".luaCallableId
+
+    val luaPlus = "luaPlus".luaCallableId
+    val luaMinus = "luaMinus".luaCallableId
+    val luaMult = "luaMult".luaCallableId
+    val luaDiv = "luaDiv".luaCallableId
+    val luaMod = "luaMod".luaCallableId
+    val luaPow = "luaPow".luaCallableId
+
+    val luaConcat = "luaConcat".luaCallableId
+    val luaLength = "luaLength".luaCallableId
+
+    val luaEmptyTable = "luaEmptyTable".luaCallableId
+    val luaTableGet = "luaTableGet".luaCallableId
+    val luaTableSet = "luaTableSet".luaCallableId
+    val unreachable = "unreachable".luaCallableId
 }

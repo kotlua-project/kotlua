@@ -70,6 +70,7 @@ class KotlinLuaPlugin @Inject constructor(
             this.entryModule = compileTask.map { it.destinationDirectory.asFile.orNull }
             this.compilerClasspath.from(compileTask.map { it.compilerClasspath })
             this.destinationDirectory.set(linkOutputDirectory)
+            this.libraries.from(luaMain.compileClasspath)
         }
 
         project.tasks.named("assemble").configure {

@@ -21,8 +21,10 @@ public actual open class CancellationException : IllegalStateException {
 @SinceKotlin("1.4")
 @Deprecated("Provided for expect-actual matching", level = DeprecationLevel.HIDDEN)
 @InlineOnly
-public actual inline fun CancellationException(message: String?, cause: Throwable?): CancellationException =
-    CancellationException(message, cause)
+public actual inline fun CancellationException(
+    message: String?,
+    cause: Throwable?,
+): CancellationException = CancellationException(message, cause)
 
 /**
  * Creates an instance of [CancellationException] with the given [cause].
@@ -30,5 +32,4 @@ public actual inline fun CancellationException(message: String?, cause: Throwabl
 @SinceKotlin("1.4")
 @Deprecated("Provided for expect-actual matching", level = DeprecationLevel.HIDDEN)
 @InlineOnly
-public actual inline fun CancellationException(cause: Throwable?): CancellationException =
-    CancellationException(cause)
+public actual inline fun CancellationException(cause: Throwable?): CancellationException = CancellationException(cause)

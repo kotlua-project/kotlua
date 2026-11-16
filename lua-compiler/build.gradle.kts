@@ -17,7 +17,26 @@ plugins {
     alias(libs.plugins.kotlua.kotlin)
 }
 
+kotlin {
+    compilerOptions {
+        optIn.add("org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI")
+    }
+}
+
 dependencies {
     implementation(projects.luaAst)
+    implementation(projects.luaParser)
     implementation(libs.kotlin.compiler.embeddable)
+
+    testImplementation(libs.luaj.jse)
+}
+
+//val stdlibCompileTask = project(":lua-stdlib:minimal").tasks.named("kotlinLuaCompile")
+val stdlibKlibFile = project(":lua-stdlib:minimal").layout.buildDirectory.file("lua/classes/kotlin-stdlib-lua.klib")
+
+tasks.test {
+    useJUnitPlatform()
+//    dependsOn(stdlibCompileTask)
+
+    jvmArgs("-Dkotlua.test.stdlib=${stdlibKlibFile.get().asFile.absolutePath}")
 }

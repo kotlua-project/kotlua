@@ -13,28 +13,46 @@ package kotlin.internal
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBox<T>(var element: T)
+internal class SharedVariableBox<T>(
+    var element: T,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxBoolean(var element: Boolean)
+internal class SharedVariableBoxBoolean(
+    var element: Boolean,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxByte(var element: Byte)
+internal class SharedVariableBoxByte(
+    var element: Byte,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxShort(var element: Short)
+internal class SharedVariableBoxShort(
+    var element: Short,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxInt(var element: Int)
+internal class SharedVariableBoxInt(
+    var element: Int,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxLong(var element: Long)
+internal class SharedVariableBoxLong(
+    var element: Long,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxFloat(var element: Float)
+internal class SharedVariableBoxFloat(
+    var element: Float,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxDouble(var element: Double)
+internal class SharedVariableBoxDouble(
+    var element: Double,
+)
 
 @UsedFromCompilerGeneratedCode
-internal class SharedVariableBoxChar(var element: Char)
+internal class SharedVariableBoxChar(
+    var element: Char,
+)
