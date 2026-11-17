@@ -53,14 +53,22 @@ abstract class AbstractKotluaTest {
     protected fun compileToLua(
         kotlinCode: String,
         moduleName: String = "testModule",
+    ): String = compileToLua(mapOf("Test.kt" to kotlinCode), moduleName)
+
+    protected fun compileToLua(
+        files: Map<String, String>,
+        moduleName: String = "testModule",
     ): String {
         val srcDir = tempDir.resolve("src").createDirectories()
         val classesDir = tempDir.resolve("classes").createDirectories()
         val generatedDir = tempDir.resolve("generated").createDirectories()
 
-        val ktFile =
-            srcDir.resolve("Test.kt").apply {
-                writeText(kotlinCode)
+        val ktPaths =
+            files.map { (relativePath, content) ->
+                val target = srcDir.resolve(relativePath)
+                target.parent?.createDirectories()
+                target.writeText(content)
+                target.absolutePathString()
             }
 
         runCompiler(
@@ -74,7 +82,7 @@ abstract class AbstractKotluaTest {
                     "-nopack",
                     "-ir-output-dir",
                     classesDir.absolutePathString(),
-                    ktFile.absolutePathString(),
+                    *ktPaths.toTypedArray(),
                 ),
         )
 
@@ -105,25 +113,18 @@ abstract class AbstractKotluaTest {
         return luaFile.readText()
     }
 
-    protected fun loadLuaGlobals(
-        luaCode: String,
-        chunkName: String = "testModule.lua",
-    ): Globals {
-        val globals = JsePlatform.standardGlobals()
-        try {
-            globals.load(luaCode, chunkName).call()
-        } catch (e: Throwable) {
-            fail<Unit>("Lua load/execution error: ${e.message}\n\nGenerated Lua:\n$luaCode", e)
-        }
-        return globals
-    }
-
     protected fun evalLuaFunction(
         kotlinCode: String,
         functionName: String = "test",
         vararg args: LuaValue,
+    ): Pair<LuaValue, String> = evalLuaFunction(mapOf("Test.kt" to kotlinCode), functionName, *args)
+
+    protected fun evalLuaFunction(
+        files: Map<String, String>,
+        functionName: String = "test",
+        vararg args: LuaValue,
     ): Pair<LuaValue, String> {
-        val luaCode = compileToLua(kotlinCode)
+        val luaCode = compileToLua(files)
         val globals = loadLuaGlobals(luaCode)
         val fn = globals.get(functionName)
         assertFalse(fn.isnil(), "Function '$functionName' was not found in generated Lua:\n$luaCode")
@@ -138,8 +139,25 @@ abstract class AbstractKotluaTest {
     }
 
     protected fun assertBoxOk(kotlinCode: String) {
-        val (result, luaCode) = evalLuaFunction(kotlinCode, "box")
+        assertBoxOk(mapOf("Test.kt" to kotlinCode))
+    }
+
+    protected fun assertBoxOk(files: Map<String, String>) {
+        val (result, luaCode) = evalLuaFunction(files, "box")
         assertEquals("OK", result.tojstring(), "box() failed. Generated Lua:\n$luaCode")
+    }
+
+    protected fun loadLuaGlobals(
+        luaCode: String,
+        chunkName: String = "testModule.lua",
+    ): Globals {
+        val globals = JsePlatform.standardGlobals()
+        try {
+            globals.load(luaCode, chunkName).call()
+        } catch (e: Throwable) {
+            fail<Unit>("Lua load/execution error: ${e.message}\n\nGenerated Lua:\n$luaCode", e)
+        }
+        return globals
     }
 
     private fun runCompiler(
