@@ -1,14 +1,27 @@
+/*
+ * Copyright 2026 The kotlua Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.kotlua
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.luaj.vm2.lib.jse.JsePlatform
 
 class ModuleIsolationBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled("TODO: Module scoping (_M / _P) instead of polluting _G")
     fun `kotlin functions named like lua builtins do not overwrite _G`() {
         val luaCode =
             compileToLua(
@@ -37,7 +50,6 @@ class ModuleIsolationBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Module export table + exclude private declarations")
     fun `private declarations are not exported in module table and not leaked to _G`() {
         val luaCode =
             compileToLua(
@@ -58,7 +70,6 @@ class ModuleIsolationBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: File/module scoping for private functions with same name")
     fun `same private function names in different files do not collide`() {
         assertBoxOk(
             mapOf(

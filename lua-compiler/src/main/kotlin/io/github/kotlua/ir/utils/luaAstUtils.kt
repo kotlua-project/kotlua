@@ -17,6 +17,8 @@ package io.github.kotlua.ir.utils
 
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
+import io.github.kotlua.ast.LuaLValue
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.scope.LuaScope
 import io.github.kotlua.ir.transformers.IrElementToLuaExpressionTransformer
@@ -24,15 +26,18 @@ import io.github.kotlua.ir.transformers.translateLuaCodeIntoStatementList
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrAnnotation
 import org.jetbrains.kotlin.ir.expressions.IrBranch
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrWhen
 import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.util.getAnnotation
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.name.ClassId
@@ -52,7 +57,7 @@ internal fun translateCall(
         if (function.parent is IrFunction) {
             data.getNameForValueDeclaration(function)
         } else {
-            data.getNameForStaticDeclaration(function)
+            data.getRefForStaticDeclaration(function)
         }
 
     val args =
@@ -63,6 +68,53 @@ internal fun translateCall(
         }
 
     return LuaExpression.FunctionCall(target = target, args = args)
+}
+
+internal fun luaElementAccess(
+    name: LuaName,
+    receiver: LuaExpression?,
+): LuaLValue =
+    when {
+        receiver == null -> name
+        name.identifier.isValidLuaIdentifier() -> LuaLValue.TableField(receiver, name.identifier)
+        else -> LuaLValue.TableIndex(receiver, LuaExpression.StringLiteral(name.identifier))
+    }
+
+internal fun luaElementAccess(
+    name: String,
+    receiver: LuaExpression?,
+): LuaLValue =
+    when {
+        receiver == null -> LuaName(makeValidLuaIdentifier(name))
+        name.isValidLuaIdentifier() -> LuaLValue.TableField(receiver, name)
+        else -> LuaLValue.TableIndex(receiver, LuaExpression.StringLiteral(name))
+    }
+
+internal fun resolveFieldAccess(
+    expression: IrFieldAccessExpression,
+    data: LuaGenerationContext,
+    exprTransformer: IrElementToLuaExpressionTransformer,
+): LuaLValue {
+    val field = expression.symbol.owner
+    val fieldParent = field.parent
+    val receiver = expression.receiver?.accept(exprTransformer, data)
+
+    if (fieldParent is IrClass && field.isEffectivelyExternal()) {
+        val externalReceiver =
+            receiver
+                ?: compilationException(
+                    "Expect expression.receiver to not be null",
+                    expression,
+                )
+        return luaElementAccess(field.name.asString(), externalReceiver)
+    }
+
+    return if (receiver == null) {
+        data.getRefForStaticDeclaration(field)
+    } else {
+        val fieldName = data.getNameForMemberField(field)
+        luaElementAccess(fieldName, receiver)
+    }
 }
 
 internal inline fun buildLuaIf(

@@ -59,7 +59,7 @@ class IrFunctionToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatemen
             )
         } else {
             LuaStatement.FunctionDeclaration(
-                target = data.staticContext.getNameForStaticDeclaration(declaration),
+                target = data.getRefForStaticDeclaration(declaration),
                 methodName = null,
                 function = fnExpr,
             )

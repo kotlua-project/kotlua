@@ -17,7 +17,9 @@ package io.github.kotlua.ir.transformers
 
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ir.utils.LuaGenerationContext
+import io.github.kotlua.ir.utils.LuaModuleReservedScope
 import io.github.kotlua.ir.utils.LuaStaticContext
+import io.github.kotlua.ir.utils.NameTable
 import org.jetbrains.kotlin.ir.declarations.IrFile
 
 class IrFileToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaBlock, LuaStaticContext>() {
@@ -29,6 +31,7 @@ class IrFileToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaBlock, LuaSt
             LuaGenerationContext(
                 staticContext = data,
                 currentScope = data.rootScope,
+                localNames = NameTable(LuaModuleReservedScope),
             )
 
         return LuaBlock(

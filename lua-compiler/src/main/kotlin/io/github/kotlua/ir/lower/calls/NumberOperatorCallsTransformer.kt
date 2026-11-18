@@ -21,6 +21,9 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.types.isByte
+import org.jetbrains.kotlin.ir.types.isInt
+import org.jetbrains.kotlin.ir.types.isShort
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
@@ -62,12 +65,17 @@ class NumberOperatorCallsTransformer(
                     }
 
                     OperatorNameConventions.DIV if paramCount == 2 -> {
-                        // TODO: integer division (trunc/modf)
-                        add(fn.symbol, symbols.luaDiv)
+                        val rhsType = fn.parameters[1].type
+                        val rhsIsIntegral = rhsType.isByte() || rhsType.isShort() || rhsType.isInt()
+                        if (!isFloating && rhsIsIntegral) {
+                            add(fn.symbol, symbols.luaIntDiv)
+                        } else {
+                            add(fn.symbol, symbols.luaDiv)
+                        }
                     }
 
                     OperatorNameConventions.REM if paramCount == 2 -> {
-                        add(fn.symbol, symbols.luaMod)
+                        add(fn.symbol, symbols.luaRem)
                     }
 
                     OperatorNameConventions.UNARY_MINUS if paramCount == 1 -> {

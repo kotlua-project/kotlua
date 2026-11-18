@@ -18,10 +18,11 @@ package io.github.kotlua.ir.transformers
 import io.github.kotlua.LuaTextOutput
 import io.github.kotlua.LuaToStringGenerator
 import io.github.kotlua.ast.LuaBlock
+import io.github.kotlua.ast.LuaExpression
+import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.dce.runSimpleDce
-import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.LuaStaticContext
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 
@@ -35,12 +36,28 @@ class IrModuleToLuaTransformer(
         val context = LuaStaticContext(backendContext)
         runSimpleDce(modules, mainModule)
 
-        val statements =
+        val header =
+            listOf(
+                LuaStatement.LocalVarDeclaration(
+                    names = listOf(context.moduleTableName),
+                    initializers = listOf(LuaExpression.TableConstructor(emptyList())),
+                ),
+                LuaStatement.LocalVarDeclaration(
+                    names = listOf(context.privateTableName),
+                    initializers = listOf(LuaExpression.TableConstructor(emptyList())),
+                ),
+            )
+
+        val declarations =
             modules.flatMap { module ->
                 module.files.flatMap { file ->
                     file.accept(IrFileToLuaTransformer(), context).statements
                 }
             }
+
+        val footer = listOf(LuaStatement.Return(listOf(context.moduleTableName)))
+
+        val statements = header + declarations + context.initializerBlock + footer
 
         val textOutput = LuaTextOutput()
         val luaCode =

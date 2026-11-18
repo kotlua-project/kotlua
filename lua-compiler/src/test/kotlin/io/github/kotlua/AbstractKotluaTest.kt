@@ -50,6 +50,9 @@ abstract class AbstractKotluaTest {
                         "Run via Gradle :lua-compiler:test or pass -Dkotlua.test.stdlib=...",
                 )
 
+    protected val nativeLuaExecutable: String?
+        get() = System.getProperty("kotlua.test.luaExecutable")?.takeIf { it.isNotBlank() }
+
     protected fun compileToLua(
         kotlinCode: String,
         moduleName: String = "testModule",
@@ -125,8 +128,18 @@ abstract class AbstractKotluaTest {
         vararg args: LuaValue,
     ): Pair<LuaValue, String> {
         val luaCode = compileToLua(files)
-        val globals = loadLuaGlobals(luaCode)
-        val fn = globals.get(functionName)
+        val executable = nativeLuaExecutable
+        if (executable != null) {
+            return evalOnNativeLua(executable, luaCode, functionName, args) to luaCode
+        }
+
+        val (globals, moduleExports) = loadLuaModule(luaCode)
+        val fn =
+            if (moduleExports.istable()) {
+                moduleExports.get(functionName)
+            } else {
+                globals.get(functionName)
+            }
         assertFalse(fn.isnil(), "Function '$functionName' was not found in generated Lua:\n$luaCode")
 
         val result =
@@ -136,6 +149,54 @@ abstract class AbstractKotluaTest {
                 fail("Runtime error calling '$functionName': ${e.message}\n\nGenerated Lua:\n$luaCode", e)
             }
         return result to luaCode
+    }
+
+    private fun evalOnNativeLua(
+        executable: String,
+        luaCode: String,
+        functionName: String,
+        args: Array<out LuaValue>,
+    ): LuaValue {
+        val moduleFile = tempDir.resolve("native_module.lua").apply { writeText(luaCode) }
+        val resultFile = tempDir.resolve("native_result.txt")
+        val luaArgs = args.joinToString(", ") { it.toLuaLiteral() }
+        val escapedModulePath = moduleFile.absolutePathString().replace("\\", "/")
+        val escapedResultPath = resultFile.absolutePathString().replace("\\", "/")
+
+        val runnerScript =
+            """
+            local chunk = assert(loadfile("${escapedModulePath.escapeLua()}"))
+            local exported = chunk()
+            local fn = type(exported) == "table" and exported["${functionName.escapeLua()}"] or _G["${functionName.escapeLua()}"]
+            assert(fn ~= nil, "Function '${functionName.escapeLua()}' was not found")
+            local res = fn($luaArgs)
+            local out = assert(io.open("${escapedResultPath.escapeLua()}", "wb"))
+            out:write(type(res) .. "\n" .. tostring(res))
+            out:close()
+            """.trimIndent()
+
+        val runnerFile = tempDir.resolve("native_runner.lua").apply { writeText(runnerScript) }
+        val process =
+            ProcessBuilder(executable, runnerFile.absolutePathString())
+                .redirectErrorStream(true)
+                .start()
+        val processOutput = process.inputStream.bufferedReader(StandardCharsets.UTF_8).readText()
+        val exitCode = process.waitFor()
+        assertEquals(
+            0,
+            exitCode,
+            "Native Lua '$executable' failed (exit=$exitCode):\n$processOutput\n\nGenerated Lua:\n$luaCode",
+        )
+
+        val lines = resultFile.readText().split('\n', limit = 2)
+        val type = lines[0]
+        val raw = lines.getOrElse(1) { "" }
+        return when (type) {
+            "nil" -> LuaValue.NIL
+            "boolean" -> LuaValue.valueOf(raw == "true")
+            "number" -> raw.toIntOrNull()?.let { LuaValue.valueOf(it) } ?: LuaValue.valueOf(raw.toDouble())
+            else -> LuaValue.valueOf(raw)
+        }
     }
 
     protected fun assertBoxOk(kotlinCode: String) {
@@ -160,6 +221,20 @@ abstract class AbstractKotluaTest {
         return globals
     }
 
+    protected fun loadLuaModule(
+        luaCode: String,
+        chunkName: String = "testModule.lua",
+    ): Pair<Globals, LuaValue> {
+        val globals = JsePlatform.standardGlobals()
+        val moduleExports =
+            try {
+                globals.load(luaCode, chunkName).call()
+            } catch (e: Throwable) {
+                fail("Lua load/execution error: ${e.message}\n\nGenerated Lua:\n$luaCode", e)
+            }
+        return globals to moduleExports
+    }
+
     private fun runCompiler(
         stageName: String,
         args: Array<String>,
@@ -176,6 +251,49 @@ abstract class AbstractKotluaTest {
             "K2LuaCompiler failed at '$stageName' stage with $exitCode.\nCompiler output:\n$compilerOutput",
         )
     }
+
+    private fun LuaValue.toLuaLiteral(): String =
+        when {
+            isnil() -> {
+                "nil"
+            }
+
+            isboolean() -> {
+                toboolean().toString()
+            }
+
+            isint() -> {
+                toint().toString()
+            }
+
+            isnumber() -> {
+                val d = todouble()
+                when {
+                    d.isNaN() -> "(0/0)"
+                    d == Double.POSITIVE_INFINITY -> "(1/0)"
+                    d == Double.NEGATIVE_INFINITY -> "(-1/0)"
+                    else -> d.toString()
+                }
+            }
+
+            else -> {
+                "\"${tojstring().escapeLua()}\""
+            }
+        }
+
+    private fun String.escapeLua(): String =
+        buildString(length) {
+            for (ch in this@escapeLua) {
+                when (ch) {
+                    '\\' -> append("\\\\")
+                    '"' -> append("\\\"")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> append(ch)
+                }
+            }
+        }
 
     companion object {
         init {

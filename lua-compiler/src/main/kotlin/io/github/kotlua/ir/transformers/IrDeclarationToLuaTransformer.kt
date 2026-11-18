@@ -56,7 +56,20 @@ class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaState
     override fun visitField(
         declaration: IrField,
         data: LuaGenerationContext,
-    ): LuaStatement = super.visitField(declaration, data)
+    ): LuaStatement {
+        if (declaration.isExternal) return LuaStatement.Empty
+
+        val fieldRef = data.getRefForStaticDeclaration(declaration)
+        declaration.initializer?.let { irInitializer ->
+            val initializer = irInitializer.accept(IrElementToLuaExpressionTransformer(), data)
+            data.staticContext.initializerBlock +=
+                LuaStatement.Assignment(
+                    targets = listOf(fieldRef),
+                    values = listOf(initializer),
+                )
+        }
+        return LuaStatement.Empty
+    }
 
     override fun visitVariable(
         declaration: IrVariable,

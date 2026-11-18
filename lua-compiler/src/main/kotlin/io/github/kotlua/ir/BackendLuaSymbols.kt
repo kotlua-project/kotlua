@@ -110,6 +110,11 @@ class BackendLuaSymbols(
     val luaTableSet: IrSimpleFunctionSymbol by LuaCallableIds.luaTableSet.functionSymbol()
     val unreachable: IrSimpleFunctionSymbol by LuaCallableIds.unreachable.functionSymbol()
 
+    val luaEquals: IrSimpleFunctionSymbol by LuaCallableIds.equals.functionSymbol()
+    val luaToString: IrSimpleFunctionSymbol by LuaCallableIds.toString.functionSymbol()
+    val luaIntDiv: IrSimpleFunctionSymbol by LuaCallableIds.intDiv.functionSymbol()
+    val luaRem: IrSimpleFunctionSymbol by LuaCallableIds.rem.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
     override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
@@ -181,4 +186,9 @@ private object LuaCallableIds {
     val luaTableGet = "luaTableGet".luaCallableId
     val luaTableSet = "luaTableSet".luaCallableId
     val unreachable = "unreachable".luaCallableId
+
+    val equals = "equals".luaCallableId
+    val intDiv = "intDiv".luaCallableId
+    val rem = "rem".luaCallableId
+    val toString = "toString".luaCallableId
 }

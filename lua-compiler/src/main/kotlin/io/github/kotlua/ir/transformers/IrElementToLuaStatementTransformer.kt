@@ -23,10 +23,12 @@ import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
+import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
 import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.irError
 import org.jetbrains.kotlin.ir.util.isElseBranch
@@ -58,10 +60,18 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     ): LuaStatement {
         val blockScope = LuaLocalScope(data.currentScope)
         val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
-        return LuaBlock(
-            statements = expression.statements.map { it.accept(this, blockContext) },
-            scope = blockScope,
-        )
+        val block =
+            LuaBlock(
+                statements = expression.statements.map { it.accept(this, blockContext) },
+                scope = blockScope,
+            )
+        if (expression is IrReturnableBlock) {
+            return LuaStatement.RepeatUntil(
+                body = block,
+                condition = LuaExpression.BooleanLiteral(true),
+            )
+        }
+        return block
     }
 
     override fun visitComposite(
@@ -126,6 +136,9 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         expression: IrReturn,
         data: LuaGenerationContext,
     ): LuaStatement {
+        if (expression.returnTargetSymbol is IrReturnableBlockSymbol) {
+            return LuaStatement.Break
+        }
         if (expression.value is IrGetObjectValue && expression.value.type.isUnit()) {
             return LuaStatement.Return(emptyList())
         }
@@ -198,4 +211,16 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             IrTypeOperator.IMPLICIT_COERCION_TO_UNIT -> expression.argument.accept(this, data)
             else -> super.visitTypeOperator(expression, data)
         }
+
+    override fun visitSetField(
+        expression: IrSetField,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val dest = resolveFieldAccess(expression, data, exprTransformer)
+        val source = expression.value.accept(exprTransformer, data)
+        return LuaStatement.Assignment(
+            targets = listOf(dest),
+            values = listOf(source),
+        )
+    }
 }

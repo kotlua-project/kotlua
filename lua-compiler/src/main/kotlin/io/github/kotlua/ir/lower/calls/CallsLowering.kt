@@ -40,6 +40,7 @@ class CallsLowering(
             NumberOperatorCallsTransformer(context),
             EqualityAndComparisonCallsTransformer(context),
             PrimitiveContainerMemberCallTransformer(context),
+            MethodsOfAnyCallsTransformer(context),
         )
 
     override fun lower(

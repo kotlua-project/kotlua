@@ -18,7 +18,7 @@ package io.github.kotlua.ir.utils
 import io.github.kotlua.ast.LuaName
 import org.jetbrains.kotlin.ir.declarations.*
 
-class LuaSimpleIrNamer : LuaIrNamer {
+class LuaSimpleIrNamer : LuaIrNamerBase() {
     private val globalNames = NameTable<IrDeclaration>()
     private val cache = mutableMapOf<IrDeclaration, LuaName>()
 

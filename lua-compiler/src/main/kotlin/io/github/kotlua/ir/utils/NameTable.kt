@@ -60,12 +60,31 @@ fun makeValidLuaIdentifier(name: String): String {
     return if (sanitized in LUA_KEYWORDS) "${sanitized}_" else sanitized
 }
 
+fun String.isValidLuaIdentifier(): Boolean {
+    if (isEmpty() || this in LUA_KEYWORDS) return false
+    val first = this[0]
+    if (first !in 'a'..'z' && first !in 'A'..'Z' && first != '_') return false
+    for (i in 1 until length) {
+        val c = this[i]
+        if (c !in 'a'..'z' && c !in 'A'..'Z' && c !in '0'..'9' && c != '_') return false
+    }
+    return true
+}
+
 abstract class NameScope {
     abstract fun isReserved(name: String): Boolean
 
     object EmptyScope : NameScope() {
         override fun isReserved(name: String): Boolean = false
     }
+}
+
+object LuaModuleReservedScope : NameScope() {
+    const val MODULE_TABLE_NAME = "_M"
+    const val PRIVATE_TABLE_NAME = "_P"
+    private val reserved = setOf(MODULE_TABLE_NAME, PRIVATE_TABLE_NAME)
+
+    override fun isReserved(name: String): Boolean = name in reserved
 }
 
 class NameTable<T>(

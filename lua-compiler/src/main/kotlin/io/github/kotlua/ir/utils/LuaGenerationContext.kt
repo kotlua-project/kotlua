@@ -15,10 +15,13 @@
  */
 package io.github.kotlua.ir.utils
 
+import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.scope.LuaScope
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 
 class LuaGenerationContext(
     val staticContext: LuaStaticContext,
@@ -58,4 +61,29 @@ class LuaGenerationContext(
     fun checkIfLuaCode(symbol: IrFunctionSymbol): Boolean = symbol == staticContext.backendContext.symbols.luaCode
 
     fun checkIfHasAssociatedLuaCode(symbol: IrFunctionSymbol): Boolean = symbol.owner.getLuaCode() != null
+
+    fun getRefForStaticDeclaration(declaration: IrDeclarationWithName): LuaLValue {
+        val name = getNameForStaticDeclaration(declaration)
+        if (declaration.isEffectivelyExternal()) {
+            return name
+        }
+        val isPrivate =
+            when (declaration) {
+                is IrField -> {
+                    true
+                }
+
+                is IrDeclarationWithVisibility -> {
+                    declaration.visibility == DescriptorVisibilities.PRIVATE ||
+                        declaration.visibility == DescriptorVisibilities.PRIVATE_TO_THIS ||
+                        declaration.visibility == DescriptorVisibilities.LOCAL
+                }
+
+                else -> {
+                    false
+                }
+            }
+        val container = if (isPrivate) staticContext.privateTableName else staticContext.moduleTableName
+        return luaElementAccess(name, container)
+    }
 }

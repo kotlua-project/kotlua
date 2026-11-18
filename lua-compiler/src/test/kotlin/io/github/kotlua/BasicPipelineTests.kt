@@ -88,11 +88,11 @@ class BasicPipelineTests : AbstractKotluaTest() {
             fun strLen(s: String): Int = s.length
             """.trimIndent()
 
-        val (strRes, luaCode) = evalLuaFunction(code, "test", LuaValue.valueOf("Kotlua"))
-        assertEquals("Hello, Kotlua!", strRes.tojstring())
+        val luaCode = compileToLua(code)
+        val (_, moduleExports) = loadLuaModule(luaCode)
 
-        val globals = loadLuaGlobals(luaCode)
-        assertEquals(6, globals.get("strLen").call(LuaValue.valueOf("Kotlua")).toint())
+        assertEquals("Hello, Kotlua!", moduleExports.get("test").call(LuaValue.valueOf("Kotlua")).tojstring())
+        assertEquals(6, moduleExports.get("strLen").call(LuaValue.valueOf("Kotlua")).toint())
     }
 
     @Test
@@ -110,9 +110,10 @@ class BasicPipelineTests : AbstractKotluaTest() {
             }
             """.trimIndent()
 
-        // compute(2, 5) = 25, compute(3, 1) = 31 -> 56
-        val (result, luaCode) = evalLuaFunction(code, "test")
-        assertEquals(56, result.toint(), "Generated Lua:\n$luaCode")
-        assertTrue(luaCode.contains("function compute"), "Expected 'compute' function in:\n$luaCode")
+        val luaCode = compileToLua(code)
+        val (_, moduleExports) = loadLuaModule(luaCode)
+
+        assertTrue(moduleExports.get("compute").isfunction(), "Expected 'compute' function in module exports:\n$luaCode")
+        assertEquals(56, moduleExports.get("test").call().toint(), "Generated Lua:\n$luaCode")
     }
 }

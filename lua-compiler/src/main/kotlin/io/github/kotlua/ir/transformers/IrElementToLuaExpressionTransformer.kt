@@ -18,13 +18,19 @@ package io.github.kotlua.ir.transformers
 import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
+import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaStatement
+import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ast.scope.LuaScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
+import io.github.kotlua.ir.utils.luaElementAccess
+import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
+import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrComposite
@@ -34,6 +40,7 @@ import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrContainerExpression
 import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrDynamicMemberExpression
+import org.jetbrains.kotlin.ir.expressions.IrDynamicOperator
 import org.jetbrains.kotlin.ir.expressions.IrDynamicOperatorExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpressionBody
@@ -51,8 +58,11 @@ import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
 import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.expressions.IrWhen
+import org.jetbrains.kotlin.ir.expressions.left
+import org.jetbrains.kotlin.ir.expressions.right
 import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.types.isUnit
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
 
 class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<LuaExpression, LuaGenerationContext>() {
@@ -64,6 +74,16 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     // TODO: BlockDecomposerLowering
     override fun visitBlock(
         expression: IrBlock,
+        data: LuaGenerationContext,
+    ): LuaExpression = translateContainerExpression(expression, data)
+
+    override fun visitComposite(
+        expression: IrComposite,
+        data: LuaGenerationContext,
+    ): LuaExpression = translateContainerExpression(expression, data)
+
+    private fun translateContainerExpression(
+        expression: IrContainerExpression,
         data: LuaGenerationContext,
     ): LuaExpression {
         val stmts = expression.statements
@@ -83,11 +103,6 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         return LuaExpression.FunctionCall(target = anonFn, args = emptyList())
     }
 
-    override fun visitComposite(
-        expression: IrComposite,
-        data: LuaGenerationContext,
-    ): LuaExpression = super.visitComposite(expression, data)
-
     override fun visitVararg(
         expression: IrVararg,
         data: LuaGenerationContext,
@@ -96,7 +111,7 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitExpressionBody(
         body: IrExpressionBody,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitExpressionBody(body, data)
+    ): LuaExpression = body.expression.accept(this, data)
 
     override fun visitFunctionExpression(
         expression: IrFunctionExpression,
@@ -139,7 +154,7 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitGetField(
         expression: IrGetField,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitGetField(expression, data)
+    ): LuaExpression = resolveFieldAccess(expression, data, this)
 
     override fun visitGetValue(
         expression: IrGetValue,
@@ -157,7 +172,20 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitSetField(
         expression: IrSetField,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitSetField(expression, data)
+    ): LuaExpression {
+        val dest = resolveFieldAccess(expression, data, this)
+        val source = expression.value.accept(this, data)
+        val fnScope = LuaFunctionScope(data.currentScope)
+        val assignment = LuaStatement.Assignment(targets = listOf(dest), values = listOf(source))
+        val anonFn =
+            LuaExpression.AnonymousFunction(
+                parameters = emptyList(),
+                isVararg = false,
+                block = LuaBlock(listOf(assignment), fnScope),
+                scope = fnScope,
+            )
+        return LuaExpression.FunctionCall(target = anonFn, args = emptyList())
+    }
 
     override fun visitSetValue(
         expression: IrSetValue,
@@ -290,15 +318,142 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitDynamicMemberExpression(
         expression: IrDynamicMemberExpression,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitDynamicMemberExpression(expression, data)
+    ): LuaExpression = luaElementAccess(expression.memberName, expression.receiver.accept(this, data))
 
     override fun visitDynamicOperatorExpression(
         expression: IrDynamicOperatorExpression,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitDynamicOperatorExpression(expression, data)
+    ): LuaExpression =
+        when (expression.operator) {
+            IrDynamicOperator.UNARY_PLUS -> {
+                expression.receiver.accept(this, data)
+            }
+
+            IrDynamicOperator.UNARY_MINUS -> {
+                unaryOperation(LuaUnaryOperator.Negate, expression, data)
+            }
+
+            IrDynamicOperator.EXCL -> {
+                unaryOperation(LuaUnaryOperator.Not, expression, data)
+            }
+
+            IrDynamicOperator.BINARY_PLUS -> {
+                binaryOperation(LuaBinaryOperator.Add, expression, data)
+            }
+
+            IrDynamicOperator.BINARY_MINUS -> {
+                binaryOperation(LuaBinaryOperator.Subtract, expression, data)
+            }
+
+            IrDynamicOperator.MUL -> {
+                binaryOperation(LuaBinaryOperator.Multiply, expression, data)
+            }
+
+            IrDynamicOperator.DIV -> {
+                binaryOperation(LuaBinaryOperator.Divide, expression, data)
+            }
+
+            IrDynamicOperator.MOD -> {
+                binaryOperation(LuaBinaryOperator.Modulo, expression, data)
+            }
+
+            IrDynamicOperator.GT -> {
+                binaryOperation(LuaBinaryOperator.Gt, expression, data)
+            }
+
+            IrDynamicOperator.LT -> {
+                binaryOperation(LuaBinaryOperator.Lt, expression, data)
+            }
+
+            IrDynamicOperator.GE -> {
+                binaryOperation(LuaBinaryOperator.Gte, expression, data)
+            }
+
+            IrDynamicOperator.LE -> {
+                binaryOperation(LuaBinaryOperator.Lte, expression, data)
+            }
+
+            IrDynamicOperator.EQEQ,
+            IrDynamicOperator.EQEQEQ,
+            -> {
+                binaryOperation(LuaBinaryOperator.Eq, expression, data)
+            }
+
+            IrDynamicOperator.EXCLEQ,
+            IrDynamicOperator.EXCLEQEQ,
+            -> {
+                binaryOperation(LuaBinaryOperator.Neq, expression, data)
+            }
+
+            IrDynamicOperator.ANDAND -> {
+                binaryOperation(LuaBinaryOperator.And, expression, data)
+            }
+
+            IrDynamicOperator.OROR -> {
+                binaryOperation(LuaBinaryOperator.Or, expression, data)
+            }
+
+            IrDynamicOperator.ARRAY_ACCESS -> {
+                LuaLValue.TableIndex(
+                    target = expression.left.accept(this, data),
+                    index = expression.right.accept(this, data),
+                )
+            }
+
+            IrDynamicOperator.INVOKE -> {
+                LuaExpression.FunctionCall(
+                    target = expression.receiver.accept(this, data),
+                    args = expression.arguments.map { it.accept(this, data) },
+                )
+            }
+
+            IrDynamicOperator.EQ -> {
+                val dest = expression.left.accept(this, data) as LuaLValue
+                val source = expression.right.accept(this, data)
+                val fnScope = LuaFunctionScope(data.currentScope)
+                val assignment = LuaStatement.Assignment(targets = listOf(dest), values = listOf(source))
+                val anonFn =
+                    LuaExpression.AnonymousFunction(
+                        parameters = emptyList(),
+                        isVararg = false,
+                        block = LuaBlock(listOf(assignment), fnScope),
+                        scope = fnScope,
+                    )
+                LuaExpression.FunctionCall(target = anonFn, args = emptyList())
+            }
+
+            IrDynamicOperator.PREFIX_INCREMENT,
+            IrDynamicOperator.PREFIX_DECREMENT,
+            IrDynamicOperator.POSTFIX_INCREMENT,
+            IrDynamicOperator.POSTFIX_DECREMENT,
+            IrDynamicOperator.PLUSEQ,
+            IrDynamicOperator.MINUSEQ,
+            IrDynamicOperator.MULEQ,
+            IrDynamicOperator.DIVEQ,
+            IrDynamicOperator.MODEQ,
+            -> {
+                TODO("Dynamic operator ${expression.operator} is not implemented yet")
+            }
+        }
 
     override fun visitRawFunctionReference(
         expression: IrRawFunctionReference,
         data: LuaGenerationContext,
     ): LuaExpression = super.visitRawFunctionReference(expression, data)
+
+    private fun unaryOperation(
+        operator: LuaUnaryOperator,
+        expression: IrDynamicOperatorExpression,
+        data: LuaGenerationContext,
+    ) = LuaExpression.UnaryOp(operator, expression.receiver.accept(this, data))
+
+    private fun binaryOperation(
+        operator: LuaBinaryOperator,
+        expression: IrDynamicOperatorExpression,
+        data: LuaGenerationContext,
+    ) = LuaExpression.BinaryOp(
+        expression.left.accept(this, data),
+        operator,
+        expression.right.accept(this, data),
+    )
 }

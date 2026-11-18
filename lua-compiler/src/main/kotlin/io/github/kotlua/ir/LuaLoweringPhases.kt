@@ -15,9 +15,17 @@
  */
 package io.github.kotlua.ir
 
+import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
+import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
+import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
+import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
+import io.github.kotlua.ir.lower.inline.LuaAllFunctionInlining
+import io.github.kotlua.ir.lower.inline.LuaPrivateFunctionInlining
+import io.github.kotlua.ir.lower.inline.RemoveInlineDeclarationsWithReifiedTypeParametersLowering
 import org.jetbrains.kotlin.backend.common.LoweringContext
+import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
 import org.jetbrains.kotlin.backend.common.lower.EnumWhenLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpectDeclarationsRemoveLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpressionBodyTransformer
@@ -33,26 +41,43 @@ import org.jetbrains.kotlin.backend.common.lower.RedundantCastsRemoverLowering
 import org.jetbrains.kotlin.backend.common.lower.SharedVariablesLowering
 import org.jetbrains.kotlin.backend.common.lower.StripTypeAliasDeclarationsLowering
 import org.jetbrains.kotlin.backend.common.lower.TailrecLowering
+import org.jetbrains.kotlin.backend.common.lower.UpgradeCallableReferences
 import org.jetbrains.kotlin.backend.common.lower.inline.InlineCallCycleCheckerLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
 import org.jetbrains.kotlin.backend.common.lower.loops.ForLoopsLowering
 import org.jetbrains.kotlin.backend.common.phaser.createModulePhases
+import org.jetbrains.kotlin.config.LanguageFeature
 import org.jetbrains.kotlin.config.LanguageVersionSettings
 import org.jetbrains.kotlin.config.phaser.NamedCompilerPhase
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.inline.OuterThisInInlineFunctionsSpecialAccessorLowering
+import org.jetbrains.kotlin.ir.inline.SyntheticAccessorLowering
 import org.jetbrains.kotlin.ir.inline.loweringsOfTheFirstPhase
+
+private fun createUpgradeCallableReferences(context: LoweringContext): UpgradeCallableReferences =
+    UpgradeCallableReferences(context, upgradeSamConversions = false)
+
+private fun createLuaCodeOutliningPhaseOnFirstStage(context: LoweringContext): LuaCodeOutliningLowering = LuaCodeOutliningLowering(context)
 
 private fun createLuaCodeOutliningPhaseOnSecondStage(context: LoweringContext): LuaCodeOutliningLowering = LuaCodeOutliningLowering(context)
 
-// TODO
+private fun createSyntheticAccessorGenerationPhase(context: LoweringContext): SyntheticAccessorLowering = SyntheticAccessorLowering(context)
+
 val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment, IrModuleFragment>> =
     createModulePhases(
         ::InlineCallCycleCheckerLowering,
+        ::createUpgradeCallableReferences,
         ::createLuaCodeOutliningPhaseOnSecondStage,
         ::LateinitLowering,
         ::SharedVariablesLowering,
         ::LocalClassesInInlineLambdasLowering,
+        ::LuaPrivateFunctionInlining,
+        ::OuterThisInInlineFunctionsSpecialAccessorLowering,
+        ::createSyntheticAccessorGenerationPhase,
+        ::LuaAllFunctionInlining,
         ::RedundantCastsRemoverLowering,
+        ::CopyInlineFunctionBodyLowering,
+        ::RemoveInlineDeclarationsWithReifiedTypeParametersLowering,
         ::ExpectDeclarationsRemoveLowering,
         ::StripTypeAliasDeclarationsLowering,
         ::TailrecLowering,
@@ -61,16 +86,30 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::InnerClassesLowering,
         ::PropertiesLowering,
         ::InitializersLowering,
+        ::LuaStringConcatenationLowering,
 //        ::KotlinNothingValueExceptionLowering,
         ::EnumWhenLowering,
         ::LocalDelegatedPropertiesLowering,
+        ::LuaReturnableBlockLowering,
         ::RangeContainsLowering,
         ::ForLoopsLowering,
         ::ExpressionBodyTransformer,
+        ::LuaBlockDecomposerLowering,
         ::CallsLowering,
     )
 
 fun luaLoweringsOfTheFirstPhase(
     languageVersionSettings: LanguageVersionSettings,
-): List<NamedCompilerPhase<LuaPreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> =
-    createModulePhases(*loweringsOfTheFirstPhase(languageVersionSettings).toTypedArray())
+): List<NamedCompilerPhase<LuaPreSerializationLoweringContext, IrModuleFragment, IrModuleFragment>> {
+    val phases =
+        buildList<(LuaPreSerializationLoweringContext) -> ModuleLoweringPass> {
+            if (languageVersionSettings.supportsFeature(LanguageFeature.IrRichCallableReferencesInKlibs)) {
+                this += ::createUpgradeCallableReferences
+            }
+            if (languageVersionSettings.supportsFeature(LanguageFeature.IrIntraModuleInlinerBeforeKlibSerialization)) {
+                this += ::createLuaCodeOutliningPhaseOnFirstStage
+            }
+            this += loweringsOfTheFirstPhase(languageVersionSettings)
+        }
+    return createModulePhases(*phases.toTypedArray())
+}
