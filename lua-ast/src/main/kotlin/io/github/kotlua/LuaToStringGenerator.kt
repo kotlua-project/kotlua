@@ -454,7 +454,12 @@ class LuaToStringGenerator private constructor(
             }
 
             is LuaExpression.DoubleLiteral -> {
-                printToOutput(node.value.toString())
+                when {
+                    node.value.isNaN() -> printToOutput("0 / 0")
+                    node.value == Double.POSITIVE_INFINITY -> printToOutput("1 / 0")
+                    node.value == Double.NEGATIVE_INFINITY -> printToOutput("-1 / 0")
+                    else -> printToOutput(node.value.toString())
+                }
             }
 
             is LuaExpression.LongLiteral -> {
@@ -497,7 +502,8 @@ class LuaToStringGenerator private constructor(
             is LuaExpression.UnaryOp -> LuaBinaryOperator.UNARY_PRECEDENCE
             is LuaExpression.IntLiteral if value < 0 -> LuaBinaryOperator.UNARY_PRECEDENCE
             is LuaExpression.LongLiteral if value < 0L -> LuaBinaryOperator.UNARY_PRECEDENCE
-            is LuaExpression.DoubleLiteral if value < 0.0 -> LuaBinaryOperator.UNARY_PRECEDENCE
+            is LuaExpression.DoubleLiteral if (value.isNaN() || value.isInfinite()) -> LuaBinaryOperator.Divide.precedence
+            is LuaExpression.DoubleLiteral if value.hasNegativeSign() -> LuaBinaryOperator.UNARY_PRECEDENCE
             else -> LuaBinaryOperator.ATOM_PRECEDENCE
         }
 
@@ -506,9 +512,11 @@ class LuaToStringGenerator private constructor(
             is LuaExpression.UnaryOp -> op == LuaUnaryOperator.Negate
             is LuaExpression.IntLiteral -> value < 0
             is LuaExpression.LongLiteral -> value < 0L
-            is LuaExpression.DoubleLiteral -> value < 0.0
+            is LuaExpression.DoubleLiteral -> !value.isNaN() && value.hasNegativeSign()
             else -> false
         }
+
+    private fun Double.hasNegativeSign(): Boolean = toRawBits() < 0L
 
     private inline fun LuaTextOutput.printWithParentheses(
         needParens: Boolean,

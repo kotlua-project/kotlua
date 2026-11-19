@@ -159,6 +159,81 @@ class LuaAstTests {
             assertEquals("a ^ b ^ c", renderExpr(rightPow))
             assertEquals("a .. b .. c", renderExpr(rightConcat))
         }
+
+        @Test
+        fun `unary minus on negative zero DoubleLiteral wraps literal to prevent Lua comment`() {
+            val expression =
+                LuaExpression.UnaryOp(
+                    LuaUnaryOperator.Negate,
+                    LuaExpression.DoubleLiteral(-0.0),
+                )
+            assertEquals("-(-0.0)", renderExpr(expression))
+        }
+
+        @Test
+        fun `special DoubleLiterals respect division precedence in surrounding expressions`() {
+            val divByPosInf =
+                LuaExpression.BinaryOp(
+                    LuaExpression.IntLiteral(10),
+                    LuaBinaryOperator.Divide,
+                    LuaExpression.DoubleLiteral(Double.POSITIVE_INFINITY),
+                )
+            val divByNegInf =
+                LuaExpression.BinaryOp(
+                    LuaExpression.IntLiteral(10),
+                    LuaBinaryOperator.Divide,
+                    LuaExpression.DoubleLiteral(Double.NEGATIVE_INFINITY),
+                )
+            val nanPow =
+                LuaExpression.BinaryOp(
+                    LuaExpression.DoubleLiteral(Double.NaN),
+                    LuaBinaryOperator.Power,
+                    LuaExpression.IntLiteral(2),
+                )
+            val negInfPow =
+                LuaExpression.BinaryOp(
+                    LuaExpression.DoubleLiteral(Double.NEGATIVE_INFINITY),
+                    LuaBinaryOperator.Power,
+                    LuaExpression.IntLiteral(2),
+                )
+            val negatePosInf =
+                LuaExpression.UnaryOp(
+                    LuaUnaryOperator.Negate,
+                    LuaExpression.DoubleLiteral(Double.POSITIVE_INFINITY),
+                )
+            val negateNegInf =
+                LuaExpression.UnaryOp(
+                    LuaUnaryOperator.Negate,
+                    LuaExpression.DoubleLiteral(Double.NEGATIVE_INFINITY),
+                )
+            val negateNan =
+                LuaExpression.UnaryOp(
+                    LuaUnaryOperator.Negate,
+                    LuaExpression.DoubleLiteral(Double.NaN),
+                )
+            val addPosInf =
+                LuaExpression.BinaryOp(
+                    LuaExpression.IntLiteral(1),
+                    LuaBinaryOperator.Add,
+                    LuaExpression.DoubleLiteral(Double.POSITIVE_INFINITY),
+                )
+            val subNegInf =
+                LuaExpression.BinaryOp(
+                    LuaExpression.IntLiteral(1),
+                    LuaBinaryOperator.Subtract,
+                    LuaExpression.DoubleLiteral(Double.NEGATIVE_INFINITY),
+                )
+
+            assertEquals("10 / (1 / 0)", renderExpr(divByPosInf))
+            assertEquals("10 / (-1 / 0)", renderExpr(divByNegInf))
+            assertEquals("(0 / 0) ^ 2", renderExpr(nanPow))
+            assertEquals("(-1 / 0) ^ 2", renderExpr(negInfPow))
+            assertEquals("-(1 / 0)", renderExpr(negatePosInf))
+            assertEquals("-(-1 / 0)", renderExpr(negateNegInf))
+            assertEquals("-(0 / 0)", renderExpr(negateNan))
+            assertEquals("1 + 1 / 0", renderExpr(addPosInf))
+            assertEquals("1 - -1 / 0", renderExpr(subNegInf))
+        }
     }
 
     @Nested
@@ -177,6 +252,14 @@ class LuaAstTests {
         fun `string literal escapes single quotes, backslashes, and control characters`() {
             val expr = LuaExpression.StringLiteral("line1\n\t'single' \"double\"\\end")
             assertEquals("'line1\\n\\t\\'single\\' \"double\"\\\\end'", renderExpr(expr))
+        }
+
+        @Test
+        fun `special DoubleLiterals render as Lua 5_1 expressions`() {
+            assertEquals("0 / 0", renderExpr(LuaExpression.DoubleLiteral(Double.NaN)))
+            assertEquals("1 / 0", renderExpr(LuaExpression.DoubleLiteral(Double.POSITIVE_INFINITY)))
+            assertEquals("-1 / 0", renderExpr(LuaExpression.DoubleLiteral(Double.NEGATIVE_INFINITY)))
+            assertEquals("-0.0", renderExpr(LuaExpression.DoubleLiteral(-0.0)))
         }
     }
 

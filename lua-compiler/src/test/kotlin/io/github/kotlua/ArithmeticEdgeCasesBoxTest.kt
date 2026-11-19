@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class ArithmeticEdgeCasesBoxTest : AbstractKotluaTest() {
