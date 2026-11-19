@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrDynamicType
 import org.jetbrains.kotlin.ir.types.isAny
 import org.jetbrains.kotlin.ir.types.isArray
@@ -27,6 +28,7 @@ import org.jetbrains.kotlin.ir.types.isPrimitiveType
 import org.jetbrains.kotlin.ir.types.isString
 import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.hasShape
+import org.jetbrains.kotlin.ir.util.isFakeOverriddenFromAny
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.util.OperatorNameConventions
 
@@ -42,23 +44,42 @@ class MethodsOfAnyCallsTransformer(
     ): IrExpression {
         if (doNotIntrinsify) return call
         val function = call.symbol.owner
-        if (function.name != OperatorNameConventions.TO_STRING) return call
 
-        if (shouldReplaceToStringWithRuntimeCall(call)) {
-            return IrCallImpl(
-                startOffset = call.startOffset,
-                endOffset = call.endOffset,
-                type = call.type,
-                symbol = symbols.luaToString,
-                typeArgumentsCount = 0,
-                origin = call.origin,
-            ).apply {
-                arguments[0] = call.arguments[0]
+        return when (function.name) {
+            OperatorNameConventions.TO_STRING -> {
+                if (shouldReplaceToStringWithRuntimeCall(call)) {
+                    val target = if (call.isSuperToAny()) symbols.luaAnyToString else symbols.luaToString
+                    replaceWithUnaryCall(call, target)
+                } else {
+                    call
+                }
+            }
+
+            OperatorNameConventions.HASH_CODE -> {
+                if (shouldReplaceHashCodeWithRuntimeCall(call)) {
+                    val target = if (call.isSuperToAny()) symbols.luaAnyHashCode else symbols.luaHashCode
+                    replaceWithUnaryCall(call, target)
+                } else {
+                    call
+                }
+            }
+
+            OperatorNameConventions.EQUALS -> {
+                if (shouldReplaceEqualsWithRuntimeCall(call)) {
+                    val target = if (call.isSuperToAny()) symbols.luaEq else symbols.luaEquals
+                    replaceWithBinaryCall(call, target)
+                } else {
+                    call
+                }
+            }
+
+            else -> {
+                call
             }
         }
-
-        return call
     }
+
+    private fun IrFunctionAccessExpression.isSuperToAny(): Boolean = (this as? IrCall)?.superQualifierSymbol == irBuiltIns.anyClass
 
     private fun shouldReplaceToStringWithRuntimeCall(call: IrFunctionAccessExpression): Boolean {
         val function = call.symbol.owner
@@ -83,9 +104,86 @@ class MethodsOfAnyCallsTransformer(
             }
         }
 
+        if (function.isFakeOverriddenFromAny()) return true
+
         val receiverType = function.dispatchReceiverParameter?.type ?: return false
         return receiverType.run {
             isArray() || isAny() || this is IrDynamicType || isString() || isPrimitiveType()
         }
     }
+
+    private fun shouldReplaceHashCodeWithRuntimeCall(call: IrFunctionAccessExpression): Boolean {
+        val function = call.symbol.owner
+        if (!function.hasShape(dispatchReceiver = true, regularParameters = 0)) return false
+
+        if (call is IrCall) {
+            val superQualifierSymbol = call.superQualifierSymbol
+            if (superQualifierSymbol != null &&
+                !superQualifierSymbol.owner.isInterface &&
+                superQualifierSymbol != irBuiltIns.anyClass
+            ) {
+                return false
+            }
+        }
+
+        if (function.isFakeOverriddenFromAny()) return true
+
+        val receiverType = function.dispatchReceiverParameter?.type ?: return false
+        return receiverType.run {
+            isArray() || isAny() || this is IrDynamicType || isString() || isPrimitiveType()
+        }
+    }
+
+    private fun shouldReplaceEqualsWithRuntimeCall(call: IrFunctionAccessExpression): Boolean {
+        val function = call.symbol.owner
+        if (!function.hasShape(dispatchReceiver = true, regularParameters = 1)) return false
+
+        if (call is IrCall) {
+            val superQualifierSymbol = call.superQualifierSymbol
+            if (superQualifierSymbol != null &&
+                !superQualifierSymbol.owner.isInterface &&
+                superQualifierSymbol != irBuiltIns.anyClass
+            ) {
+                return false
+            }
+        }
+
+        if (function.isFakeOverriddenFromAny()) return true
+
+        val receiverType = function.dispatchReceiverParameter?.type ?: return false
+        return receiverType.run {
+            isArray() || isAny() || this is IrDynamicType || isString() || isPrimitiveType()
+        }
+    }
+
+    private fun replaceWithUnaryCall(
+        call: IrFunctionAccessExpression,
+        target: IrSimpleFunctionSymbol,
+    ): IrExpression =
+        IrCallImpl(
+            startOffset = call.startOffset,
+            endOffset = call.endOffset,
+            type = call.type,
+            symbol = target,
+            typeArgumentsCount = 0,
+            origin = call.origin,
+        ).apply {
+            arguments[0] = call.arguments[0]
+        }
+
+    private fun replaceWithBinaryCall(
+        call: IrFunctionAccessExpression,
+        target: IrSimpleFunctionSymbol,
+    ): IrExpression =
+        IrCallImpl(
+            startOffset = call.startOffset,
+            endOffset = call.endOffset,
+            type = call.type,
+            symbol = target,
+            typeArgumentsCount = 0,
+            origin = call.origin,
+        ).apply {
+            arguments[0] = call.arguments[0]
+            arguments[1] = call.arguments[1]
+        }
 }

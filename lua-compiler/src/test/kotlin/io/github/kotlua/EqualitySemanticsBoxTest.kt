@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
@@ -76,7 +75,6 @@ class EqualitySemanticsBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes, is-check & polymorphic Any.equals dispatch in coreRuntime.equals")
     fun `structural equals vs referential equality for classes`() {
         assertBoxOk(
             """

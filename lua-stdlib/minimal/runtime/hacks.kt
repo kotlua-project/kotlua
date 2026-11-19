@@ -11,6 +11,14 @@ internal fun THROW_NPE(): Nothing {
     unreachable()
 }
 
+
+@PublishedApi
+@UsedFromCompilerGeneratedCode
+internal fun THROW_CCE(): Nothing {
+    lua("error('ClassCastException')")
+    unreachable()
+}
+
 @PublishedApi
 @UsedFromCompilerGeneratedCode
 internal fun <T : Any> ensureNotNull(v: T?): T = v ?: THROW_NPE()

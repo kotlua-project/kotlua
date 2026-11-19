@@ -20,6 +20,7 @@ import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaField
 import io.github.kotlua.ast.LuaLValue
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaFunctionScope
@@ -32,6 +33,7 @@ import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
+import org.jetbrains.kotlin.ir.types.classOrNull
 
 private typealias LuaIrCallTransformer<T, R> = (T, context: LuaGenerationContext) -> R
 private typealias LuaIrExpressionCallTransformer<T> = LuaIrCallTransformer<T, LuaExpression>
@@ -137,6 +139,29 @@ class LuaExpressionIntrinsicTransformers(
                         )
                     LuaExpression.FunctionCall(target = anonFn, args = emptyList())
                 }
+
+                withTranslatedArgs(symbols.luaTypeOf) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("type"), args = listOf(args[0]))
+                }
+                withTranslatedArgs(symbols.luaIsTypeOf) { args ->
+                    LuaExpression.BinaryOp(
+                        left = LuaExpression.FunctionCall(target = LuaName("type"), args = listOf(args[0])),
+                        op = LuaBinaryOperator.Eq,
+                        right = args[1],
+                    )
+                }
+                withTranslatedArgs(symbols.luaGetMetatable) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("getmetatable"), args = listOf(args[0]))
+                }
+                withTranslatedArgs(symbols.luaSetMetatable) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("setmetatable"), args = listOf(args[0], args[1]))
+                }
+                put(symbols.luaClass) { call, context ->
+                    val klass =
+                        call.typeArguments[0]?.classOrNull?.owner
+                            ?: compilationException("luaClass requires a class type argument", call)
+                    context.getRefForStaticDeclaration(klass)
+                }
             }
     }
 
@@ -173,6 +198,9 @@ class LuaStatementIntrinsicTransformers(
                         targets = listOf(LuaLValue.TableIndex(target = args[0], index = LuaExpression.IntLiteral(1))),
                         values = listOf(args[1]),
                     )
+                }
+                withTranslatedArgs(symbols.luaSetMetatable) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("setmetatable"), args = listOf(args[0], args[1]))
                 }
             }
     }

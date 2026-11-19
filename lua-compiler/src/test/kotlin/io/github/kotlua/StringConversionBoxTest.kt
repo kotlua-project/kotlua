@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class StringConversionBoxTest : AbstractKotluaTest() {
@@ -65,7 +64,6 @@ class StringConversionBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes & custom toString dispatch via coreRuntime.toString")
     fun `custom class toString used in concatenation and via Any`() {
         assertBoxOk(
             $$"""

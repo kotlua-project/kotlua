@@ -15,12 +15,16 @@
  */
 package io.github.kotlua.ir.transformers
 
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.getLuaCode
+import io.github.kotlua.ir.utils.luaElementAccess
 import io.github.kotlua.ir.utils.translateFunctionToAnonymousFunction
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.util.parentAsClass
 
 class IrFunctionToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
     override fun visitSimpleFunction(
@@ -29,17 +33,49 @@ class IrFunctionToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatemen
     ): LuaStatement {
         val fnExpr = declaration.getLuaCode() ?: translateFunctionToAnonymousFunction(declaration, data)
 
+        val target =
+            when {
+                declaration.parent is IrFunction -> {
+                    data.getNameForValueDeclaration(declaration)
+                }
+
+                declaration.dispatchReceiverParameter != null -> {
+                    luaElementAccess(
+                        data.getNameForMemberFunction(declaration),
+                        data.getRefForStaticDeclaration(declaration.parentAsClass),
+                    )
+                }
+
+                else -> {
+                    data.getRefForStaticDeclaration(declaration)
+                }
+            }
+
         return if (declaration.parent is IrFunction) {
             LuaStatement.LocalFunctionDeclaration(
-                name = data.getNameForValueDeclaration(declaration),
+                name = target as LuaName,
                 function = fnExpr,
             )
         } else {
             LuaStatement.FunctionDeclaration(
-                target = data.getRefForStaticDeclaration(declaration),
+                target = target,
                 methodName = null,
                 function = fnExpr,
             )
         }
+    }
+
+    override fun visitConstructor(
+        declaration: IrConstructor,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val fnExpr = translateFunctionToAnonymousFunction(declaration, data)
+        val classRef = data.getRefForStaticDeclaration(declaration.parentAsClass)
+        val ctorName = data.staticContext.irNamer.getNameForConstructor(declaration)
+        return LuaStatement.FunctionDeclaration(
+            target = luaElementAccess(ctorName, classRef),
+            methodName = null,
+            function = fnExpr,
+        )
     }
 }

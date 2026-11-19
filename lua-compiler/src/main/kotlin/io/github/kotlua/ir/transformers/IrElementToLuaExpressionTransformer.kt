@@ -19,6 +19,7 @@ import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaLValue
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaFunctionScope
@@ -65,6 +66,8 @@ import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
+import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.parentAsClass
 
 class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<LuaExpression, LuaGenerationContext>() {
     override fun visitMemberAccess(
@@ -204,7 +207,25 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         data.staticContext.expressionIntrinsics[expression.symbol]?.let { intrinsic ->
             return intrinsic(expression, data)
         }
-        return super.visitConstructorCall(expression, data)
+        val ctor = expression.symbol.owner
+        val classRef = data.getRefForStaticDeclaration(ctor.parentAsClass)
+        val ctorName = data.staticContext.irNamer.getNameForConstructor(ctor)
+        val instanceExpr =
+            LuaExpression.FunctionCall(
+                target = LuaName("setmetatable"),
+                args = listOf(LuaExpression.TableConstructor(emptyList()), classRef),
+            )
+        val args =
+            listOf(instanceExpr) +
+                ctor.nonDispatchParameters.map { param ->
+                    expression.arguments[param.indexInParameters]
+                        ?.accept(this, data)
+                        ?: LuaExpression.NilLiteral
+                }
+        return LuaExpression.FunctionCall(
+            target = luaElementAccess(ctorName, classRef),
+            args = args,
+        )
     }
 
     override fun visitCall(

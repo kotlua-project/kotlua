@@ -18,6 +18,7 @@ package io.github.kotlua.ir.utils
 import io.github.kotlua.ast.LuaName
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationWithName
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationWithVisibility
@@ -30,6 +31,9 @@ import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.utils.DFS
 
 class LuaNameLinkingNamer : LuaIrNamerBase() {
+    private val constructorNameMap = mutableMapOf<IrConstructor, LuaName>()
+    private val constructorNameTables = mutableMapOf<IrClass, NameTable<IrConstructor>>()
+
     private val staticNameMap = mutableMapOf<IrDeclaration, LuaName>()
     private val memberFunctionNameMap = mutableMapOf<String, LuaName>()
     private val memberFieldNameMap = mutableMapOf<IrField, LuaName>()
@@ -52,6 +56,12 @@ class LuaNameLinkingNamer : LuaIrNamerBase() {
             else -> {
                 false
             }
+        }
+
+    override fun getNameForConstructor(constructor: IrConstructor): LuaName =
+        constructorNameMap.getOrPut(constructor) {
+            val table = constructorNameTables.getOrPut(constructor.parentAsClass) { NameTable() }
+            LuaName(table.declareFreshName(constructor, calculateLuaConstructorSignature(constructor)))
         }
 
     override fun getNameForStaticDeclaration(declaration: IrDeclarationWithName): LuaName =

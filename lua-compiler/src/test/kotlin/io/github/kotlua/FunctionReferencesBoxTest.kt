@@ -304,7 +304,6 @@ class FunctionReferencesBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: OOP / bound member references")
     fun `bound and unbound member function references`() {
         assertBoxOk(
             """

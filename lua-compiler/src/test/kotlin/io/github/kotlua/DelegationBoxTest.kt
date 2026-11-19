@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test
 
 class DelegationBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled("TODO: Classes, interfaces & interface delegation with by")
     fun `interface delegation with property and partial override`() {
         assertBoxOk(
             """
@@ -49,7 +48,6 @@ class DelegationBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes, interfaces, multiple delegation & overloaded delegated methods")
     fun `multiple interface delegation with overloaded methods`() {
         assertBoxOk(
             """

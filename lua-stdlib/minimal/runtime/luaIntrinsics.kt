@@ -114,4 +114,25 @@ internal fun luaTableSet(table: Any?, key: Any?, value: Any?)
 
 @LuaIntrinsic
 @UsedFromCompilerGeneratedCode
+internal fun luaTypeOf(value: Any?): String
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun isTypeOf(value: Any?, expectedType: String): Boolean
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun luaGetMetatable(table: Any?): Any?
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+@IgnorableReturnValue
+internal fun luaSetMetatable(table: Any?, metatable: Any?): Any?
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun <T : Any> luaClass(): Any?
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
 internal fun unreachable(): Nothing

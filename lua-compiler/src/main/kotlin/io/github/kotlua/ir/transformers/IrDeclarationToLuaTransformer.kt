@@ -46,17 +46,15 @@ class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaState
     override fun visitConstructor(
         declaration: IrConstructor,
         data: LuaGenerationContext,
-    ): LuaStatement = super.visitConstructor(declaration, data)
+    ): LuaStatement {
+        if (declaration.isExternal) return LuaStatement.Empty
+        return declaration.accept(IrFunctionToLuaTransformer(), data)
+    }
 
     override fun visitClass(
         declaration: IrClass,
         data: LuaGenerationContext,
-    ): LuaStatement {
-        if (declaration.symbol == data.staticContext.backendContext.symbols.genericSharedVariableBox.klass) {
-            return LuaStatement.Empty
-        }
-        return LuaStatement.Empty
-    }
+    ): LuaStatement = LuaStatement.Empty
 
     override fun visitField(
         declaration: IrField,

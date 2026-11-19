@@ -15,12 +15,10 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class OverrideAndSuperBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled("TODO: Classes, property override & super property access")
     fun `override val and var with polymorphic access and super property`() {
         assertBoxOk(
             """
@@ -46,7 +44,6 @@ class OverrideAndSuperBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes, overloaded method override & super overload dispatch")
     fun `override one overloaded method and call super for that overload`() {
         assertBoxOk(
             """
@@ -69,7 +66,6 @@ class OverrideAndSuperBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes & static super dispatch across three inheritance levels")
     fun `three-level inheritance chain with super calls`() {
         assertBoxOk(
             """
@@ -94,7 +90,6 @@ class OverrideAndSuperBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Interfaces & qualified super calls")
     fun `qualified super calls for multiple interfaces`() {
         assertBoxOk(
             """

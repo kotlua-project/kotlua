@@ -22,11 +22,14 @@ import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
+import org.jetbrains.kotlin.ir.util.parentAsClass
 
 class LuaGenerationContext(
     val staticContext: LuaStaticContext,
     val currentScope: LuaScope,
     val localNames: NameTable<IrDeclaration> = NameTable(NameScope.EmptyScope),
+    val currentThisName: LuaName? = null,
+    val isConstructor: Boolean = false,
 ) {
     fun newLocalContext(
         function: IrFunction,
@@ -35,11 +38,29 @@ class LuaGenerationContext(
         val childTable = NameTable<IrDeclaration>(parent = localNames)
         val generator = LuaLocalNameGenerator(childTable)
         function.parameters.forEach { it.accept(generator, null) }
+        if (function is IrConstructor) {
+            function.parentAsClass.thisReceiver?.accept(generator, null)
+        }
         function.body?.accept(generator, null)
+
+        val tempContext =
+            LuaGenerationContext(
+                staticContext = staticContext,
+                currentScope = scope,
+                localNames = childTable,
+            )
+        val thisName =
+            when (function) {
+                is IrConstructor -> function.parentAsClass.thisReceiver?.let { tempContext.getNameForValueDeclaration(it) }
+                else -> function.dispatchReceiverParameter?.let { tempContext.getNameForValueDeclaration(it) }
+            }
+
         return LuaGenerationContext(
             staticContext = staticContext,
             currentScope = scope,
             localNames = childTable,
+            currentThisName = thisName,
+            isConstructor = function is IrConstructor,
         )
     }
 

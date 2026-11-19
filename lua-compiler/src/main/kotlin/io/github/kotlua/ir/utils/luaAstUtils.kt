@@ -22,13 +22,16 @@ import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.ast.scope.LuaScope
+import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.transformers.IrElementToLuaExpressionTransformer
 import io.github.kotlua.ir.transformers.IrElementToLuaStatementTransformer
 import io.github.kotlua.ir.transformers.translateLuaCodeIntoStatementList
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.IrClass
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
@@ -42,9 +45,12 @@ import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
+import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.packageFqName
+import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
+import org.jetbrains.kotlin.ir.util.resolveFakeOverrideOrFail
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
@@ -77,18 +83,58 @@ internal fun translateCall(
     }
 
     val function = calledFunction.realOverrideTarget
-    val target =
-        if (function.parent is IrFunction) {
-            data.getNameForValueDeclaration(function)
-        } else {
-            data.getRefForStaticDeclaration(function)
-        }
 
     val args =
         function.nonDispatchParameters.map { param ->
             expression.arguments[param.indexInParameters]
                 ?.accept(exprTransformer, data)
                 ?: LuaExpression.NilLiteral
+        }
+
+    val dispatchParam = function.dispatchReceiverParameter
+    if (dispatchParam != null) {
+        val receiver =
+            expression.arguments[dispatchParam.indexInParameters]
+                ?.accept(exprTransformer, data)
+                ?: compilationException("Member call must have dispatch receiver", expression)
+        val methodName = data.getNameForMemberFunction(function)
+
+        if (function.visibility == DescriptorVisibilities.PRIVATE ||
+            function.visibility == DescriptorVisibilities.PRIVATE_TO_THIS
+        ) {
+            val ownerRef = data.getRefForStaticDeclaration(function.parentAsClass)
+            return LuaExpression.FunctionCall(
+                target = luaElementAccess(methodName, ownerRef),
+                args = listOf(receiver) + args,
+            )
+        }
+
+        expression.superQualifierSymbol?.let { superQualifier ->
+            val superClass =
+                if (superQualifier.owner.isInterface) {
+                    function.resolveFakeOverrideOrFail().parentAsClass
+                } else {
+                    superQualifier.owner
+                }
+            val superRef = data.getRefForStaticDeclaration(superClass)
+            return LuaExpression.FunctionCall(
+                target = luaElementAccess(methodName, superRef),
+                args = listOf(receiver) + args,
+            )
+        }
+
+        return LuaExpression.MethodCall(
+            target = receiver,
+            methodName = methodName.identifier,
+            args = args,
+        )
+    }
+
+    val target =
+        if (function.parent is IrFunction) {
+            data.getNameForValueDeclaration(function)
+        } else {
+            data.getRefForStaticDeclaration(function)
         }
 
     return LuaExpression.FunctionCall(target = target, args = args)
@@ -111,17 +157,36 @@ internal fun translateFunctionToAnonymousFunction(
     val fnContext = data.newLocalContext(declaration, fnScope)
 
     val params =
-        declaration.nonDispatchParameters.map { param ->
-            fnContext.getNameForValueDeclaration(param)
+        buildList {
+            if (declaration is IrConstructor) {
+                fnContext.currentThisName?.let(::add)
+            } else {
+                declaration.dispatchReceiverParameter?.let { add(fnContext.getNameForValueDeclaration(it)) }
+            }
+            declaration.nonDispatchParameters.forEach { param ->
+                add(fnContext.getNameForValueDeclaration(param))
+            }
         }
     val bodyBlock =
         (declaration.body?.accept(IrElementToLuaStatementTransformer(), fnContext) as? LuaBlock)
             ?: LuaBlock(emptyList(), fnScope)
 
+    val finalBlock =
+        if (declaration is IrConstructor) {
+            val thisName = fnContext.currentThisName
+            if (thisName != null && bodyBlock.statements.lastOrNull() !is LuaStatement.Return) {
+                bodyBlock.copy(statements = bodyBlock.statements + LuaStatement.Return(listOf(thisName)))
+            } else {
+                bodyBlock
+            }
+        } else {
+            bodyBlock
+        }
+
     return LuaExpression.AnonymousFunction(
         parameters = params,
         isVararg = false,
-        block = bodyBlock,
+        block = finalBlock,
         scope = fnScope,
     )
 }
@@ -245,4 +310,40 @@ private fun parseLuaFromAnnotation(
             ?: compilationException("Provided Lua code is not a lua function", annotation)
 
     return annotation to parsedLuaFunction
+}
+
+internal fun isIgnoredClass(
+    klass: IrClass,
+    backendContext: LuaIrBackendContext,
+): Boolean {
+    if (klass.isEffectivelyExternal() || klass.isExpect) return true
+    val symbols = backendContext.symbols
+    val irBuiltIns = backendContext.irBuiltIns
+    if (klass.symbol == symbols.genericSharedVariableBox.klass ||
+        klass.symbol == symbols.defaultConstructorMarker
+    ) {
+        return true
+    }
+    val builtInPrimitives =
+        setOf(
+            irBuiltIns.anyClass,
+            irBuiltIns.unitClass,
+            irBuiltIns.nothingClass,
+            irBuiltIns.booleanClass,
+            irBuiltIns.charClass,
+            irBuiltIns.byteClass,
+            irBuiltIns.shortClass,
+            irBuiltIns.intClass,
+            irBuiltIns.longClass,
+            irBuiltIns.floatClass,
+            irBuiltIns.doubleClass,
+            irBuiltIns.stringClass,
+            irBuiltIns.numberClass,
+        )
+    if (klass.symbol in builtInPrimitives) return true
+
+    val pkg = klass.packageFqName
+    val name = klass.name.asString()
+    return (pkg == StandardClassIds.BASE_KOTLIN_PACKAGE && name.startsWith("Function")) ||
+        (pkg == StandardClassIds.BASE_REFLECT_PACKAGE && name.startsWith("KFunction"))
 }

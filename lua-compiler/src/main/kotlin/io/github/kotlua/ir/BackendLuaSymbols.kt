@@ -106,6 +106,23 @@ class BackendLuaSymbols(
     val luaBitShr: IrSimpleFunctionSymbol by LuaCallableIds.bitShr.functionSymbol()
     val luaBitUshr: IrSimpleFunctionSymbol by LuaCallableIds.bitUshr.functionSymbol()
 
+    val luaDefineClass: IrSimpleFunctionSymbol by LuaCallableIds.defineClass.functionSymbol()
+
+    val luaAnyToString: IrSimpleFunctionSymbol by LuaCallableIds.anyToString.functionSymbol()
+    val luaHashCode: IrSimpleFunctionSymbol by LuaCallableIds.hashCode.functionSymbol()
+    val luaAnyHashCode: IrSimpleFunctionSymbol by LuaCallableIds.anyHashCode.functionSymbol()
+
+    val luaTypeOf: IrSimpleFunctionSymbol by LuaCallableIds.luaTypeOf.functionSymbol()
+    val luaIsTypeOf: IrSimpleFunctionSymbol by LuaCallableIds.isTypeOf.functionSymbol()
+    val luaGetMetatable: IrSimpleFunctionSymbol by LuaCallableIds.luaGetMetatable.functionSymbol()
+    val luaSetMetatable: IrSimpleFunctionSymbol by LuaCallableIds.luaSetMetatable.functionSymbol()
+    val luaClass: IrSimpleFunctionSymbol by LuaCallableIds.luaClass.functionSymbol()
+
+    val luaIsInstance: IrSimpleFunctionSymbol by LuaCallableIds.isInstance.functionSymbol()
+    val luaIsInt: IrSimpleFunctionSymbol by LuaCallableIds.isInt.functionSymbol()
+    val luaIsByte: IrSimpleFunctionSymbol by LuaCallableIds.isByte.functionSymbol()
+    val luaIsShort: IrSimpleFunctionSymbol by LuaCallableIds.isShort.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
     override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
@@ -191,4 +208,20 @@ private object LuaCallableIds {
     val bitShl = "bitShl".luaCallableId
     val bitShr = "bitShr".luaCallableId
     val bitUshr = "bitUshr".luaCallableId
+
+    val defineClass = "defineClass".luaCallableId
+    val anyToString = "anyToString".luaCallableId
+    val hashCode = "hashCode".luaCallableId
+    val anyHashCode = "anyHashCode".luaCallableId
+
+    val luaTypeOf = "luaTypeOf".luaCallableId
+    val isTypeOf = "isTypeOf".luaCallableId
+    val luaGetMetatable = "luaGetMetatable".luaCallableId
+    val luaSetMetatable = "luaSetMetatable".luaCallableId
+    val luaClass = "luaClass".luaCallableId
+
+    val isInstance = "isInstance".luaCallableId
+    val isInt = "isInt".luaCallableId
+    val isByte = "isByte".luaCallableId
+    val isShort = "isShort".luaCallableId
 }

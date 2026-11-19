@@ -15,12 +15,10 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class ClassOverloadAndFieldClashBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled("TODO: Classes, member method overloads & LuaNameLinkingNamer")
     fun `overloaded methods in base and subclass`() {
         assertBoxOk(
             """
@@ -48,7 +46,6 @@ class ClassOverloadAndFieldClashBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes & separate naming/storage for fields and methods with the same name")
     fun `field and method with same name in same class`() {
         assertBoxOk(
             """
@@ -66,7 +63,6 @@ class ClassOverloadAndFieldClashBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Classes & private field mangling across inheritance hierarchy")
     fun `private field in base class does not collide with field of same name in subclass`() {
         assertBoxOk(
             """

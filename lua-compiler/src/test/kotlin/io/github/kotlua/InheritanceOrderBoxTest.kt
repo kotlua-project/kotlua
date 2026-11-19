@@ -15,12 +15,10 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class InheritanceOrderBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled("TODO: Classes, interfaces, metatables & topological sorting of supertypes")
     fun `subclass and interface implementations declared before their supertypes`() {
         assertBoxOk(
             """

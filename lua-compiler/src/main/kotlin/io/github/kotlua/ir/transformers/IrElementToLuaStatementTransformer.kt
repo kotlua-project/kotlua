@@ -18,21 +18,27 @@ package io.github.kotlua.ir.transformers
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaCompositeBlock
 import io.github.kotlua.ast.LuaExpression
+import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
+import io.github.kotlua.ir.utils.luaElementAccess
 import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
+import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
 import org.jetbrains.kotlin.ir.types.isUnit
+import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.irError
 import org.jetbrains.kotlin.ir.util.isElseBranch
+import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.parentAsClass
 
 class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
     private val exprTransformer = IrElementToLuaExpressionTransformer()
@@ -61,11 +67,11 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     ): LuaStatement {
         val blockScope = LuaLocalScope(data.currentScope)
         val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
-        val block =
-            LuaBlock(
-                statements = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) }),
-                scope = blockScope,
-            )
+        val normalized = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) })
+        if (expression !is IrReturnableBlock && normalized.isEmpty()) {
+            return LuaStatement.Empty
+        }
+        val block = LuaBlock(statements = normalized, scope = blockScope)
         if (expression is IrReturnableBlock) {
             return LuaStatement.RepeatUntil(
                 body = block,
@@ -170,7 +176,8 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             return LuaStatement.Break
         }
         if (expression.value is IrGetObjectValue && expression.value.type.isUnit()) {
-            return LuaStatement.Return(emptyList())
+            val values = if (data.isConstructor) listOfNotNull(data.currentThisName) else emptyList()
+            return LuaStatement.Return(values)
         }
         return LuaStatement.Return(
             values = listOf(expression.value.accept(exprTransformer, data)),
@@ -257,6 +264,49 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             values = listOf(source),
         )
     }
+
+    override fun visitDynamicOperatorExpression(
+        expression: IrDynamicOperatorExpression,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        if (expression.operator == IrDynamicOperator.EQ) {
+            val dest = expression.left.accept(exprTransformer, data) as LuaLValue
+            val source = expression.right.accept(exprTransformer, data)
+            return LuaStatement.Assignment(targets = listOf(dest), values = listOf(source))
+        }
+        return super.visitDynamicOperatorExpression(expression, data)
+    }
+
+    override fun visitDelegatingConstructorCall(
+        expression: IrDelegatingConstructorCall,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val ctor = expression.symbol.owner
+        if (ctor.constructedClass.symbol == data.staticContext.backendContext.irBuiltIns.anyClass) {
+            return LuaStatement.Empty
+        }
+        val thisName =
+            data.currentThisName
+                ?: compilationException("Delegating constructor call outside constructor", expression)
+        val classRef = data.getRefForStaticDeclaration(ctor.parentAsClass)
+        val ctorName = data.staticContext.irNamer.getNameForConstructor(ctor)
+        val args =
+            listOf(thisName) +
+                ctor.nonDispatchParameters.map { param ->
+                    expression.arguments[param.indexInParameters]
+                        ?.accept(exprTransformer, data)
+                        ?: LuaExpression.NilLiteral
+                }
+        return LuaExpression.FunctionCall(
+            target = luaElementAccess(ctorName, classRef),
+            args = args,
+        )
+    }
+
+    override fun visitInstanceInitializerCall(
+        expression: IrInstanceInitializerCall,
+        data: LuaGenerationContext,
+    ): LuaStatement = LuaStatement.Empty
 
     private fun translateLoopBody(
         body: IrExpression?,

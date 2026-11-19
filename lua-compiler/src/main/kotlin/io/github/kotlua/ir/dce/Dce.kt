@@ -15,14 +15,21 @@
  */
 package io.github.kotlua.ir.dce
 
+import io.github.kotlua.ir.LuaIrBackendContext
+import io.github.kotlua.ir.utils.isIgnoredClass
+import io.github.kotlua.ir.utils.isMethodOfAny
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
+import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.isTopLevel
+import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
@@ -30,8 +37,35 @@ import org.jetbrains.kotlin.ir.visitors.acceptVoid
 fun runSimpleDce(
     modules: Iterable<IrModuleFragment>,
     entryModule: IrModuleFragment?,
+    backendContext: LuaIrBackendContext,
 ) {
     val searchModules = entryModule?.let(::listOf) ?: modules
+
+    val overriddenBy = hashMapOf<IrSimpleFunction, MutableList<IrSimpleFunction>>()
+
+    fun indexClass(klass: IrClass) {
+        for (decl in klass.declarations) {
+            when (decl) {
+                is IrSimpleFunction -> {
+                    for (overridden in decl.overriddenSymbols) {
+                        overriddenBy.getOrPut(overridden.owner) { mutableListOf() }.add(decl)
+                    }
+                }
+
+                is IrClass -> {
+                    indexClass(decl)
+                }
+            }
+        }
+    }
+
+    for (module in modules) {
+        for (file in module.files) {
+            for (decl in file.declarations) {
+                if (decl is IrClass) indexClass(decl)
+            }
+        }
+    }
 
     val mainFunction =
         searchModules
@@ -72,12 +106,33 @@ fun runSimpleDce(
                 expression.type.classOrNull
                     ?.owner
                     ?.let { enqueue(it) }
+                for (typeArg in expression.typeArguments) {
+                    typeArg?.classOrNull?.owner?.let(::enqueue)
+                }
             }
 
             override fun visitConstructorCall(expression: IrConstructorCall) {
                 super.visitConstructorCall(expression)
                 enqueue(expression.symbol.owner)
                 enqueue(expression.symbol.owner.constructedClass)
+            }
+
+            override fun visitDelegatingConstructorCall(expression: IrDelegatingConstructorCall) {
+                super.visitDelegatingConstructorCall(expression)
+                enqueue(expression.symbol.owner)
+                enqueue(expression.symbol.owner.constructedClass)
+            }
+
+            override fun visitGetObjectValue(expression: IrGetObjectValue) {
+                super.visitGetObjectValue(expression)
+                enqueue(expression.symbol.owner)
+            }
+
+            override fun visitTypeOperator(expression: IrTypeOperatorCall) {
+                super.visitTypeOperator(expression)
+                expression.typeOperand.classOrNull
+                    ?.owner
+                    ?.let { enqueue(it) }
             }
 
             override fun visitFieldAccess(expression: IrFieldAccessExpression) {
@@ -88,6 +143,23 @@ fun runSimpleDce(
 
     while (queue.isNotEmpty()) {
         when (val current = queue.removeFirst()) {
+            is IrSimpleFunction -> {
+                current.returnType.classOrNull
+                    ?.owner
+                    ?.let { enqueue(it) }
+                current.parameters.forEach { param ->
+                    param.type.classOrNull
+                        ?.owner
+                        ?.let { enqueue(it) }
+                }
+                overriddenBy[current]?.forEach { overrideFn ->
+                    if (reachable.contains<IrDeclaration?>(overrideFn.parentClassOrNull)) {
+                        enqueue(overrideFn)
+                    }
+                }
+                current.body?.acceptVoid(scanner)
+            }
+
             is IrFunction -> {
                 current.returnType.classOrNull
                     ?.owner
@@ -114,8 +186,18 @@ fun runSimpleDce(
             }
 
             is IrClass -> {
-                current.superTypes.forEach { superType ->
-                    superType.classOrNull?.owner?.let { enqueue(it) }
+                if (!isIgnoredClass(current, backendContext)) {
+                    enqueue(backendContext.symbols.luaDefineClass.owner)
+                    current.superTypes.forEach { superType ->
+                        superType.classOrNull?.owner?.let { enqueue(it) }
+                    }
+                    for (decl in current.declarations) {
+                        if (decl is IrSimpleFunction &&
+                            (decl.isMethodOfAny() || decl.overriddenSymbols.any { it.owner in reachable })
+                        ) {
+                            enqueue(decl)
+                        }
+                    }
                 }
             }
         }

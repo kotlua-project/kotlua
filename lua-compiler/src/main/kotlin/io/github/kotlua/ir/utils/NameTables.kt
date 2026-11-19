@@ -16,18 +16,23 @@
 package io.github.kotlua.ir.utils
 
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
+import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationWithName
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.isNullableAny
 import org.jetbrains.kotlin.ir.types.isUnit
+import org.jetbrains.kotlin.ir.util.fqNameWhenAvailable
 import org.jetbrains.kotlin.ir.util.getPackageFragment
+import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.util.render
 import org.jetbrains.kotlin.ir.util.resolveFakeOverride
 import org.jetbrains.kotlin.ir.util.superTypes
+import org.jetbrains.kotlin.util.OperatorNameConventions
 import kotlin.math.abs
 
 private const val RESERVED_MEMBER_NAME_SUFFIX = "_k"
@@ -62,6 +67,16 @@ fun calculateLuaFunctionSignature(declaration: IrFunction): String {
             nameBuilder.append("_\$m_").append(containingModule.name.asString())
         }
     }
+    if ((
+            declaration.visibility == DescriptorVisibilities.PRIVATE ||
+                declaration.visibility == DescriptorVisibilities.PRIVATE_TO_THIS
+        ) &&
+        declaration.parentClassOrNull != null
+    ) {
+        val ownerClass = declaration.parentClassOrNull!!
+        val ownerId = ownerClass.fqNameWhenAvailable?.asString() ?: ownerClass.name.asString()
+        nameBuilder.append("_\$p_").append(ownerId)
+    }
 
     if (declaration.typeParameters.isNotEmpty()) {
         nameBuilder.append("_\$t")
@@ -90,10 +105,42 @@ fun calculateLuaFunctionSignature(declaration: IrFunction): String {
     return "${sanitizedName}_${signatureHash}$RESERVED_MEMBER_NAME_SUFFIX"
 }
 
+internal fun IrSimpleFunction.isMethodOfAny(): Boolean =
+    dispatchReceiverParameter != null &&
+        when (name) {
+            OperatorNameConventions.TO_STRING -> {
+                nonDispatchParameters.isEmpty()
+            }
+
+            OperatorNameConventions.HASH_CODE -> {
+                nonDispatchParameters.isEmpty()
+            }
+
+            OperatorNameConventions.EQUALS -> {
+                nonDispatchParameters.size == 1 && nonDispatchParameters[0].type.isNullableAny()
+            }
+
+            else -> {
+                false
+            }
+        }
+
 fun luaFunctionSignature(declaration: IrFunction): String {
     require(declaration.dispatchReceiverParameter != null) {
         "Member function '${declaration.name}' must have dispatchReceiverParameter"
     }
     val targetDeclaration = (declaration as? IrSimpleFunction)?.resolveFakeOverride() ?: declaration
+    if (targetDeclaration is IrSimpleFunction && targetDeclaration.isMethodOfAny()) {
+        return "${targetDeclaration.name.asString()}_k"
+    }
     return calculateLuaFunctionSignature(targetDeclaration)
+}
+
+fun calculateLuaConstructorSignature(constructor: IrConstructor): String {
+    val nameBuilder = StringBuilder("_ctor")
+    for (parameter in constructor.parameters) {
+        nameBuilder.append("_").append(parameter.type.render())
+    }
+    val hash = abs(nameBuilder.toString().hashCode()).toString(Character.MAX_RADIX)
+    return "_ctor_$hash"
 }
