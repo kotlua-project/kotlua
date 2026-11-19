@@ -17,6 +17,7 @@ package io.github.kotlua.ir
 
 import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
+import io.github.kotlua.ir.lower.LuaLoopLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
@@ -95,6 +96,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::ForLoopsLowering,
         ::ExpressionBodyTransformer,
         ::LuaBlockDecomposerLowering,
+        ::LuaLoopLowering,
         ::CallsLowering,
     )
 

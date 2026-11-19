@@ -20,6 +20,7 @@ import io.github.kotlua.ast.LuaCompositeBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
+import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
@@ -50,7 +51,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         data: LuaGenerationContext,
     ): LuaStatement =
         LuaBlock(
-            statements = body.statements.map { it.accept(this, data) },
+            statements = normalizeBlockStatements(body.statements.map { it.accept(this, data) }),
             scope = data.currentScope,
         )
 
@@ -62,7 +63,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
         val block =
             LuaBlock(
-                statements = expression.statements.map { it.accept(this, blockContext) },
+                statements = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) }),
                 scope = blockScope,
             )
         if (expression is IrReturnableBlock) {
@@ -72,6 +73,35 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             )
         }
         return block
+    }
+
+    override fun visitWhileLoop(
+        loop: IrWhileLoop,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val condition = loop.condition.accept(exprTransformer, data)
+        val body = translateLoopBody(loop.body, data)
+        return LuaStatement.While(
+            condition = condition,
+            body = body,
+        )
+    }
+
+    override fun visitDoWhileLoop(
+        loop: IrDoWhileLoop,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        val body = translateLoopBody(loop.body, data)
+        val luaCondition = loop.condition.accept(exprTransformer, data)
+        val untilCondition =
+            when (luaCondition) {
+                is LuaExpression.BooleanLiteral -> LuaExpression.BooleanLiteral(!luaCondition.value)
+                else -> LuaExpression.UnaryOp(LuaUnaryOperator.Not, luaCondition)
+            }
+        return LuaStatement.RepeatUntil(
+            body = body,
+            condition = untilCondition,
+        )
     }
 
     override fun visitComposite(
@@ -156,7 +186,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         jump: IrContinue,
         data: LuaGenerationContext,
     ): LuaStatement {
-        irError("Unsupported operation") { withIrEntry("operation", jump) }
+        irError("All IrContinue nodes must be lowered by LuaLoopLowering") { withIrEntry("operation", jump) }
     }
 
     override fun visitCall(
@@ -165,6 +195,9 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     ): LuaStatement {
         if (data.checkIfLuaCode(expression.symbol) || data.checkIfHasAssociatedLuaCode(expression.symbol)) {
             return LuaCallTransformer(expression, data).generateStatement()
+        }
+        data.staticContext.statementIntrinsics[expression.symbol]?.let {
+            return it(expression, data)
         }
         return when (val result = translateCall(expression, data, exprTransformer)) {
             is LuaStatement -> {
@@ -194,12 +227,13 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
 
         return buildLuaIf(expression, data, data.currentScope) { branchResult, parentScope ->
             val blockScope = LuaLocalScope(parentScope)
+            val branchContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
             val stmts =
                 when (branchResult) {
-                    is IrContainerExpression -> branchResult.statements.map { it.accept(this, data) }
-                    else -> listOf(branchResult.accept(this, data))
+                    is IrContainerExpression -> branchResult.statements.map { it.accept(this, branchContext) }
+                    else -> listOf(branchResult.accept(this, branchContext))
                 }
-            LuaBlock(stmts, blockScope)
+            LuaBlock(normalizeBlockStatements(stmts), blockScope)
         }
     }
 
@@ -223,4 +257,54 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             values = listOf(source),
         )
     }
+
+    private fun translateLoopBody(
+        body: IrExpression?,
+        data: LuaGenerationContext,
+    ): LuaBlock {
+        val bodyScope = LuaLocalScope(data.currentScope)
+        val bodyContext = LuaGenerationContext(data.staticContext, bodyScope, data.localNames)
+        val statements =
+            when (body) {
+                null -> emptyList()
+                is IrBlock -> body.statements.map { it.accept(this, bodyContext) }
+                else -> listOf(body.accept(this, bodyContext))
+            }
+        return LuaBlock(
+            statements = normalizeBlockStatements(statements),
+            scope = bodyScope,
+        )
+    }
+
+    private fun normalizeBlockStatements(statements: List<LuaStatement>): List<LuaStatement> {
+        val result = mutableListOf<LuaStatement>()
+        for (stmt in statements) {
+            when (stmt) {
+                LuaStatement.Empty -> {
+                    continue
+                }
+
+                is LuaCompositeBlock -> {
+                    val normalizedInner = normalizeBlockStatements(stmt.statements)
+                    if (normalizedInner.isEmpty()) continue
+                    val terminated = normalizedInner.last().isBlockTerminator()
+                    result +=
+                        if (normalizedInner.size == 1) {
+                            normalizedInner.single()
+                        } else {
+                            LuaCompositeBlock(normalizedInner)
+                        }
+                    if (terminated) break
+                }
+
+                else -> {
+                    result += stmt
+                    if (stmt.isBlockTerminator()) break
+                }
+            }
+        }
+        return result
+    }
+
+    private fun LuaStatement.isBlockTerminator(): Boolean = this is LuaStatement.Break || this is LuaStatement.Return
 }

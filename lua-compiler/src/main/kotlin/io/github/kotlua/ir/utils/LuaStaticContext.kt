@@ -20,14 +20,16 @@ import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.scope.LuaRootScope
 import io.github.kotlua.ast.scope.LuaScope
 import io.github.kotlua.ir.LuaIrBackendContext
-import io.github.kotlua.ir.transformers.LuaIntrinsicTransformers
+import io.github.kotlua.ir.transformers.LuaExpressionIntrinsicTransformers
+import io.github.kotlua.ir.transformers.LuaStatementIntrinsicTransformers
 
 class LuaStaticContext(
     val backendContext: LuaIrBackendContext,
     val irNamer: LuaIrNamer = LuaNameLinkingNamer(),
     val rootScope: LuaScope = LuaRootScope(),
 ) : LuaIrNamer by irNamer {
-    val intrinsics = LuaIntrinsicTransformers(backendContext)
+    val statementIntrinsics = LuaStatementIntrinsicTransformers(backendContext)
+    val expressionIntrinsics = LuaExpressionIntrinsicTransformers(backendContext)
     val initializerBlock = mutableListOf<LuaStatement>()
 
     val moduleTableName = LuaName(LuaModuleReservedScope.MODULE_TABLE_NAME)

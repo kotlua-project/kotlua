@@ -71,7 +71,6 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         data: LuaGenerationContext,
     ): LuaExpression = super.visitMemberAccess(expression, data)
 
-    // TODO: BlockDecomposerLowering
     override fun visitBlock(
         expression: IrBlock,
         data: LuaGenerationContext,
@@ -200,7 +199,12 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitConstructorCall(
         expression: IrConstructorCall,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitConstructorCall(expression, data)
+    ): LuaExpression {
+        data.staticContext.expressionIntrinsics[expression.symbol]?.let { intrinsic ->
+            return intrinsic(expression, data)
+        }
+        return super.visitConstructorCall(expression, data)
+    }
 
     override fun visitCall(
         expression: IrCall,

@@ -150,7 +150,6 @@ class InlineFunctionsBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: Loops (while) & non-local break/continue inside inline lambdas")
     fun `non-local break and continue inside inline lambdas`() {
         assertBoxOk(
             """

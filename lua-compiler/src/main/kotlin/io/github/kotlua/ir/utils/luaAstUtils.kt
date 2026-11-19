@@ -48,7 +48,7 @@ internal fun translateCall(
     data: LuaGenerationContext,
     exprTransformer: IrElementToLuaExpressionTransformer,
 ): LuaExpression {
-    data.staticContext.intrinsics[expression.symbol]?.let { intrinsic ->
+    data.staticContext.expressionIntrinsics[expression.symbol]?.let { intrinsic ->
         return intrinsic(expression, data)
     }
 

@@ -17,7 +17,6 @@ package io.github.kotlua.ir
 
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.ir.BackendKlibSymbols
-import org.jetbrains.kotlin.backend.common.ir.PreSerializationKlibSymbols
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.classSymbol
 import org.jetbrains.kotlin.ir.declarations.StageController
@@ -62,18 +61,6 @@ class BackendLuaSymbols(
     }
 
 //    val enumEntries: IrClassSymbol = StandardClassIds.EnumEntries.classSymbol()
-
-    override val genericSharedVariableBox: PreSerializationKlibSymbols.SharedVariableBoxClassInfo by lazy {
-//        val classSymbol = LuaClassIds.ObjectRef.classSymbol()
-//        val primaryConstructor = classSymbol.owner.primaryConstructorSymbol()
-//        val valueProperty = classSymbol.owner.propertySymbol(Name.identifier("element"))
-//        PreSerializationKlibSymbols.SharedVariableBoxClassInfo(
-//            classSymbol,
-//            primaryConstructor,
-//            valueProperty
-//        )
-        TODO()
-    }
 
     override val continuationClass: IrClassSymbol = LuaClassIds.Continuation.classSymbol()
 

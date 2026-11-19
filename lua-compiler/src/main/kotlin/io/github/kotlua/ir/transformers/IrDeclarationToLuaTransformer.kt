@@ -51,7 +51,12 @@ class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaState
     override fun visitClass(
         declaration: IrClass,
         data: LuaGenerationContext,
-    ): LuaStatement = LuaStatement.Empty
+    ): LuaStatement {
+        if (declaration.symbol == data.staticContext.backendContext.symbols.genericSharedVariableBox.klass) {
+            return LuaStatement.Empty
+        }
+        return LuaStatement.Empty
+    }
 
     override fun visitField(
         declaration: IrField,
