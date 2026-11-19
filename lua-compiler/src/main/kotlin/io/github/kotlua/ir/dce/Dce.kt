@@ -18,6 +18,7 @@ package io.github.kotlua.ir.dce
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.utils.isIgnoredClass
 import io.github.kotlua.ir.utils.isMethodOfAny
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrCall
@@ -187,6 +188,9 @@ fun runSimpleDce(
 
             is IrClass -> {
                 if (!isIgnoredClass(current, backendContext)) {
+                    if (current.kind == ClassKind.OBJECT) {
+                        current.declarations.filterIsInstance<IrConstructor>().forEach(::enqueue)
+                    }
                     enqueue(backendContext.symbols.luaDefineClass.owner)
                     current.superTypes.forEach { superType ->
                         superType.classOrNull?.owner?.let { enqueue(it) }

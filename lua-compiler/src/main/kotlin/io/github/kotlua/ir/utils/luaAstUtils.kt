@@ -15,6 +15,7 @@
  */
 package io.github.kotlua.ir.utils
 
+import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaLValue
@@ -42,6 +43,7 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrWhen
 import org.jetbrains.kotlin.ir.irAttribute
+import org.jetbrains.kotlin.ir.util.constructors
 import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
@@ -50,6 +52,7 @@ import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.packageFqName
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
+import org.jetbrains.kotlin.ir.util.primaryConstructor
 import org.jetbrains.kotlin.ir.util.resolveFakeOverrideOrFail
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
@@ -269,6 +272,73 @@ internal inline fun buildLuaIf(
         thenBlock = thenBlock,
         elseIfs = elseIfs,
         elseBlock = elseBlock,
+    )
+}
+
+internal fun buildObjectGetInstanceStatement(
+    context: LuaStaticContext,
+    genContext: LuaGenerationContext,
+    klass: IrClass,
+): LuaStatement {
+    val classRef = genContext.getRefForStaticDeclaration(klass)
+    val instanceField = luaElementAccess("_instance", classRef)
+    val getInstanceField = luaElementAccess("_getInstance", classRef)
+
+    val primaryCtor = klass.primaryConstructor ?: klass.constructors.firstOrNull()
+    val ctorName = primaryCtor?.let { context.irNamer.getNameForConstructor(it) }
+
+    val fnScope = LuaFunctionScope(context.rootScope, "${klass.name.asString()}_getInstance")
+    val instName = LuaName("inst")
+
+    val setmetatableCall =
+        LuaExpression.FunctionCall(
+            target = LuaName("setmetatable"),
+            args = listOf(LuaExpression.TableConstructor(emptyList()), classRef),
+        )
+
+    val ifBodyStatements =
+        mutableListOf(
+            LuaStatement.LocalVarDeclaration(
+                names = listOf(instName),
+                initializers = listOf(setmetatableCall),
+            ),
+            LuaStatement.Assignment(
+                targets = listOf(instanceField),
+                values = listOf(instName),
+            ),
+        )
+
+    if (ctorName != null) {
+        ifBodyStatements +=
+            LuaExpression.FunctionCall(
+                target = luaElementAccess(ctorName, classRef),
+                args = listOf(instName),
+            )
+    }
+
+    val ifStmt =
+        LuaStatement.If(
+            condition =
+                LuaExpression.BinaryOp(
+                    instanceField,
+                    LuaBinaryOperator.Eq,
+                    LuaExpression.NilLiteral,
+                ),
+            thenBlock = LuaBlock(ifBodyStatements, fnScope),
+        )
+
+    val returnStmt = LuaStatement.Return(listOf(instanceField))
+
+    return LuaStatement.FunctionDeclaration(
+        target = getInstanceField,
+        methodName = null,
+        function =
+            LuaExpression.AnonymousFunction(
+                parameters = emptyList(),
+                isVararg = false,
+                block = LuaBlock(listOf(ifStmt, returnStmt), fnScope),
+                scope = fnScope,
+            ),
     )
 }
 

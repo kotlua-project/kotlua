@@ -169,7 +169,16 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         data: LuaGenerationContext,
     ): LuaExpression {
         if (expression.type.isUnit()) return LuaExpression.NilLiteral
-        return super.visitGetObjectValue(expression, data)
+        val klass = expression.symbol.owner
+        val classRef = data.getRefForStaticDeclaration(klass)
+        if (klass.isEffectivelyExternal()) {
+            return classRef
+        }
+
+        return LuaExpression.FunctionCall(
+            target = luaElementAccess("_getInstance", classRef),
+            args = emptyList(),
+        )
     }
 
     override fun visitSetField(
