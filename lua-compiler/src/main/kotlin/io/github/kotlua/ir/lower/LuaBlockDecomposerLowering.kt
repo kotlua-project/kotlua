@@ -23,76 +23,15 @@ import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.declarations.buildFun
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationContainer
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationOriginImpl
-import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
-import org.jetbrains.kotlin.ir.declarations.IrField
-import org.jetbrains.kotlin.ir.declarations.IrFunction
-import org.jetbrains.kotlin.ir.declarations.IrScript
-import org.jetbrains.kotlin.ir.declarations.IrVariable
-import org.jetbrains.kotlin.ir.declarations.createBlockBody
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.declarations.impl.IrVariableImpl
-import org.jetbrains.kotlin.ir.expressions.IrBlock
-import org.jetbrains.kotlin.ir.expressions.IrBlockBody
-import org.jetbrains.kotlin.ir.expressions.IrBody
-import org.jetbrains.kotlin.ir.expressions.IrBreak
-import org.jetbrains.kotlin.ir.expressions.IrBreakContinue
-import org.jetbrains.kotlin.ir.expressions.IrComposite
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrContainerExpression
-import org.jetbrains.kotlin.ir.expressions.IrContinue
-import org.jetbrains.kotlin.ir.expressions.IrDoWhileLoop
-import org.jetbrains.kotlin.ir.expressions.IrDynamicMemberExpression
-import org.jetbrains.kotlin.ir.expressions.IrDynamicOperator
-import org.jetbrains.kotlin.ir.expressions.IrDynamicOperatorExpression
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrExpressionBody
-import org.jetbrains.kotlin.ir.expressions.IrGetClass
-import org.jetbrains.kotlin.ir.expressions.IrGetField
-import org.jetbrains.kotlin.ir.expressions.IrGetValue
-import org.jetbrains.kotlin.ir.expressions.IrLoop
-import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
-import org.jetbrains.kotlin.ir.expressions.IrReturn
-import org.jetbrains.kotlin.ir.expressions.IrSetField
-import org.jetbrains.kotlin.ir.expressions.IrSetValue
-import org.jetbrains.kotlin.ir.expressions.IrSpreadElement
-import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
-import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
-import org.jetbrains.kotlin.ir.expressions.IrThrow
-import org.jetbrains.kotlin.ir.expressions.IrTry
-import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
-import org.jetbrains.kotlin.ir.expressions.IrVararg
-import org.jetbrains.kotlin.ir.expressions.IrWhen
-import org.jetbrains.kotlin.ir.expressions.IrWhileLoop
-import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrBranchImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrBreakImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrCatchImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrDoWhileLoopImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrElseBranchImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetClassImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetFieldImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrGetValueImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrReturnImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrSetFieldImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrSetValueImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrSpreadElementImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrStringConcatenationImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrThrowImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrTryImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrVarargImpl
-import org.jetbrains.kotlin.ir.expressions.impl.IrWhenImpl
-import org.jetbrains.kotlin.ir.expressions.isAssignmentOperator
-import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.*
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.transformStatement
 import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.types.isNothing
+import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.isElseBranch
 import org.jetbrains.kotlin.ir.util.patchDeclarationParents
 import org.jetbrains.kotlin.ir.util.transformFlat
@@ -365,6 +304,14 @@ private class LuaBlockDecomposerTransformer(
 
         override fun visitExpression(expression: IrExpression) = expression.transform(expressionTransformer, null)
 
+        override fun visitFunction(declaration: IrFunction): IrStatement {
+            if (declaration !== function) {
+                LuaBlockDecomposerTransformer(context, unreachableExpression).visitFunction(declaration)
+                return declaration
+            }
+            return super.visitFunction(declaration)
+        }
+
         override fun visitReturn(expression: IrReturn): IrExpression {
             expression.transformChildrenVoid(expressionTransformer)
 
@@ -633,6 +580,11 @@ private class LuaBlockDecomposerTransformer(
             }
         }
 
+        override fun visitFunctionExpression(expression: IrFunctionExpression): IrExpression {
+            LuaBlockDecomposerTransformer(context, unreachableExpression).visitFunction(expression.function)
+            return expression
+        }
+
         override fun visitLoop(loop: IrLoop) = loop.asExpression(unitValue)
 
         override fun visitSetValue(expression: IrSetValue) = expression.asExpression(unitValue)
@@ -856,12 +808,57 @@ private class LuaBlockDecomposerTransformer(
                     Triple(it, transformedCondition, transformedResult)
                 }
 
-            if (hasComposites) {
+            val isLogicalShortCircuit =
+                expression.origin == IrStatementOrigin.ANDAND || expression.origin == IrStatementOrigin.OROR
+            val shouldDecompose = hasComposites || !isLogicalShortCircuit
+
+            if (shouldDecompose) {
+                if (expression.type.isNothing()) {
+                    val newBranches =
+                        decomposedResults.memoryOptimizedMap { (branch, condition, result) ->
+                            val newResult = wrap(result)
+                            when {
+                                isElseBranch(branch) -> IrElseBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)
+                                else -> IrBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)
+                            }
+                        }
+
+                    val newWhen =
+                        expression
+                            .run { IrWhenImpl(startOffset, endOffset, unitType, origin, newBranches) }
+                            .transform(statementTransformer, null)
+
+                    return buildComposite(expression.type, listOf(newWhen, unreachableExpression()))
+                }
+
+                if (expression.type.isUnit()) {
+                    val newBranches =
+                        decomposedResults.memoryOptimizedMap { (branch, condition, result) ->
+                            val newResult = wrap(result)
+                            when {
+                                isElseBranch(branch) -> IrElseBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)
+                                else -> IrBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)
+                            }
+                        }
+
+                    val newWhen =
+                        expression
+                            .run { IrWhenImpl(startOffset, endOffset, unitType, origin, newBranches) }
+                            .transform(statementTransformer, null)
+
+                    return buildComposite(expression.type, listOf(newWhen, unitValue))
+                }
+
                 val irVar = makeTempVar(expression.type)
 
                 val newBranches =
                     decomposedResults.memoryOptimizedMap { (branch, condition, result) ->
-                        val newResult = wrap(result, irVar)
+                        val newResult =
+                            if (result.type.isNothing()) {
+                                wrap(result)
+                            } else {
+                                wrap(result, irVar)
+                            }
                         when {
                             isElseBranch(branch) -> IrElseBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)
                             else -> IrBranchImpl(branch.startOffset, branch.endOffset, condition, newResult)

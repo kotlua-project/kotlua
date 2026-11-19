@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class ClosuresBoxTest : AbstractKotluaTest() {
@@ -353,7 +352,6 @@ class ClosuresBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: non-inline lambdas / IrRichFunctionReference")
     fun `returning closure factory with independent counters`() {
         assertBoxOk(
             """
@@ -376,7 +374,6 @@ class ClosuresBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: non-inline lambdas / IrRichFunctionReference")
     fun `non-inline lambda passed to higher-order function mutating outer var`() {
         assertBoxOk(
             """

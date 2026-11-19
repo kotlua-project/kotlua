@@ -20,8 +20,10 @@ import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
+import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.ast.scope.LuaScope
 import io.github.kotlua.ir.transformers.IrElementToLuaExpressionTransformer
+import io.github.kotlua.ir.transformers.IrElementToLuaStatementTransformer
 import io.github.kotlua.ir.transformers.translateLuaCodeIntoStatementList
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.compilationException
@@ -29,6 +31,7 @@ import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.IrAnnotation
 import org.jetbrains.kotlin.ir.expressions.IrBranch
 import org.jetbrains.kotlin.ir.expressions.IrCall
@@ -40,8 +43,11 @@ import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
+import org.jetbrains.kotlin.ir.util.packageFqName
+import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.Name
+import org.jetbrains.kotlin.name.StandardClassIds
 
 internal fun translateCall(
     expression: IrCall,
@@ -52,7 +58,25 @@ internal fun translateCall(
         return intrinsic(expression, data)
     }
 
-    val function = expression.symbol.owner.realOverrideTarget
+    val calledFunction = expression.symbol.owner
+    if (calledFunction.isFunctionalInvoke()) {
+        val dispatchParam = calledFunction.dispatchReceiverParameter
+        if (dispatchParam != null) {
+            val target =
+                expression.arguments[dispatchParam.indexInParameters]
+                    ?.accept(exprTransformer, data)
+                    ?: compilationException("Functional invoke must have dispatch receiver", expression)
+            val args =
+                calledFunction.nonDispatchParameters.map { param ->
+                    expression.arguments[param.indexInParameters]
+                        ?.accept(exprTransformer, data)
+                        ?: LuaExpression.NilLiteral
+                }
+            return LuaExpression.FunctionCall(target = target, args = args)
+        }
+    }
+
+    val function = calledFunction.realOverrideTarget
     val target =
         if (function.parent is IrFunction) {
             data.getNameForValueDeclaration(function)
@@ -68,6 +92,38 @@ internal fun translateCall(
         }
 
     return LuaExpression.FunctionCall(target = target, args = args)
+}
+
+private fun IrSimpleFunction.isFunctionalInvoke(): Boolean {
+    if (name.asString() != "invoke") return false
+    val parentClass = parentClassOrNull ?: return false
+    val packageFqName = parentClass.packageFqName
+    val className = parentClass.name.asString()
+    return (packageFqName == StandardClassIds.BASE_KOTLIN_PACKAGE && className.startsWith("Function")) ||
+        (packageFqName == StandardClassIds.BASE_REFLECT_PACKAGE && className.startsWith("KFunction"))
+}
+
+internal fun translateFunctionToAnonymousFunction(
+    declaration: IrFunction,
+    data: LuaGenerationContext,
+): LuaExpression.AnonymousFunction {
+    val fnScope = LuaFunctionScope(data.currentScope, declaration.name.asString())
+    val fnContext = data.newLocalContext(declaration, fnScope)
+
+    val params =
+        declaration.nonDispatchParameters.map { param ->
+            fnContext.getNameForValueDeclaration(param)
+        }
+    val bodyBlock =
+        (declaration.body?.accept(IrElementToLuaStatementTransformer(), fnContext) as? LuaBlock)
+            ?: LuaBlock(emptyList(), fnScope)
+
+    return LuaExpression.AnonymousFunction(
+        parameters = params,
+        isVararg = false,
+        block = bodyBlock,
+        scope = fnScope,
+    )
 }
 
 internal fun luaElementAccess(

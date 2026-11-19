@@ -48,13 +48,7 @@ class BackendLuaSymbols(
     override val throwUnsupportedOperationException: IrSimpleFunctionSymbol by CallableIds.throwUnsupportedOperationException
         .functionSymbol()
 
-    override val defaultConstructorMarker: IrClassSymbol by lazy {
-        LuaClassIds.DefaultConstructorMarker.classSymbol()
-    }
-
-    override val syntheticConstructorMarker: IrClassSymbol by lazy {
-        LuaClassIds.DefaultConstructorMarker.classSymbol()
-    }
+    override val defaultConstructorMarker: IrClassSymbol = LuaClassIds.DefaultConstructorMarker.classSymbol()
 
     override val functionAdapter: IrClassSymbol by lazy {
         LuaClassIds.FunctionAdapter.classSymbol()
@@ -102,6 +96,16 @@ class BackendLuaSymbols(
     val luaIntDiv: IrSimpleFunctionSymbol by LuaCallableIds.intDiv.functionSymbol()
     val luaRem: IrSimpleFunctionSymbol by LuaCallableIds.rem.functionSymbol()
 
+    val ensureNotNull: IrSimpleFunctionSymbol by CallableIds.ensureNotNull.functionSymbol()
+
+    val luaBitAnd: IrSimpleFunctionSymbol by LuaCallableIds.bitAnd.functionSymbol()
+    val luaBitOr: IrSimpleFunctionSymbol by LuaCallableIds.bitOr.functionSymbol()
+    val luaBitXor: IrSimpleFunctionSymbol by LuaCallableIds.bitXor.functionSymbol()
+    val luaBitNot: IrSimpleFunctionSymbol by LuaCallableIds.bitNot.functionSymbol()
+    val luaBitShl: IrSimpleFunctionSymbol by LuaCallableIds.bitShl.functionSymbol()
+    val luaBitShr: IrSimpleFunctionSymbol by LuaCallableIds.bitShr.functionSymbol()
+    val luaBitUshr: IrSimpleFunctionSymbol by LuaCallableIds.bitUshr.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
     override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
@@ -126,6 +130,7 @@ private object CallableIds {
     private val String.kotlinCallableId get() = CallableId(StandardClassIds.BASE_KOTLIN_PACKAGE, Name.identifier(this))
     private val String.coroutinesIntrinsicsId get() = CallableId(StandardClassIds.BASE_COROUTINES_INTRINSICS_PACKAGE, Name.identifier(this))
 
+    val ensureNotNull = "ensureNotNull".kotlinCallableId
     val throwNpe = "THROW_NPE".kotlinCallableId
     val throwCce = "THROW_CCE".kotlinCallableId
     val throwKotlinNothingValueException = "throwKotlinNothingValueException".kotlinCallableId
@@ -178,4 +183,12 @@ private object LuaCallableIds {
     val intDiv = "intDiv".luaCallableId
     val rem = "rem".luaCallableId
     val toString = "toString".luaCallableId
+
+    val bitAnd = "bitAnd".luaCallableId
+    val bitOr = "bitOr".luaCallableId
+    val bitXor = "bitXor".luaCallableId
+    val bitNot = "bitNot".luaCallableId
+    val bitShl = "bitShl".luaCallableId
+    val bitShr = "bitShr".luaCallableId
+    val bitUshr = "bitUshr".luaCallableId
 }

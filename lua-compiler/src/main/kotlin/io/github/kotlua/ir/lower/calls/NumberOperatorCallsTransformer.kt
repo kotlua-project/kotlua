@@ -97,6 +97,34 @@ class NumberOperatorCallsTransformer(
                             makeBinaryIntrinsic(call, symbols.luaMinus, isFloating)
                         }
                     }
+
+                    OperatorNameConventions.AND if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitAnd)
+                    }
+
+                    OperatorNameConventions.OR if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitOr)
+                    }
+
+                    OperatorNameConventions.XOR if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitXor)
+                    }
+
+                    OperatorNameConventions.SHL if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitShl)
+                    }
+
+                    OperatorNameConventions.SHR if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitShr)
+                    }
+
+                    OperatorNameConventions.USHR if klass == irBuiltIns.intClass && paramCount == 2 -> {
+                        add(fn.symbol, symbols.luaBitUshr)
+                    }
+
+                    OperatorNameConventions.INV if klass == irBuiltIns.intClass && paramCount == 1 -> {
+                        add(fn.symbol, symbols.luaBitNot)
+                    }
                 }
             }
         }

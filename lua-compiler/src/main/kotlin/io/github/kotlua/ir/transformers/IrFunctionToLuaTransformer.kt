@@ -15,42 +15,19 @@
  */
 package io.github.kotlua.ir.transformers
 
-import io.github.kotlua.ast.LuaBlock
-import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaStatement
-import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.getLuaCode
+import io.github.kotlua.ir.utils.translateFunctionToAnonymousFunction
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
-import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 
 class IrFunctionToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
     override fun visitSimpleFunction(
         declaration: IrSimpleFunction,
         data: LuaGenerationContext,
     ): LuaStatement {
-        val fnScope = LuaFunctionScope(data.currentScope, declaration.name.asString())
-
-        val fnExpr =
-            declaration.getLuaCode() ?: run {
-                val fnContext = data.newLocalContext(declaration, fnScope)
-
-                val params =
-                    declaration.nonDispatchParameters.map { param ->
-                        fnContext.getNameForValueDeclaration(param)
-                    }
-                val bodyBlock =
-                    (declaration.body?.accept(IrElementToLuaStatementTransformer(), fnContext) as? LuaBlock)
-                        ?: LuaBlock(emptyList(), fnScope)
-
-                LuaExpression.AnonymousFunction(
-                    parameters = params,
-                    isVararg = false,
-                    block = bodyBlock,
-                    scope = fnScope,
-                )
-            }
+        val fnExpr = declaration.getLuaCode() ?: translateFunctionToAnonymousFunction(declaration, data)
 
         return if (declaration.parent is IrFunction) {
             LuaStatement.LocalFunctionDeclaration(

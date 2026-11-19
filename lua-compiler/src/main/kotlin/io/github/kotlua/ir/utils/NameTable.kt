@@ -94,7 +94,8 @@ class NameTable<T>(
     private val names = hashMapOf<T, String>()
     private val suggestedNameLastIdx = mutableMapOf<String, Int>()
 
-    operator fun get(declaration: T): String? = names[declaration]
+    @Suppress("UNCHECKED_CAST")
+    operator fun get(declaration: T): String? = names[declaration] ?: (parent as? NameTable<T>)?.get(declaration)
 
     override fun isReserved(name: String): Boolean = parent.isReserved(name) || name in reserved
 

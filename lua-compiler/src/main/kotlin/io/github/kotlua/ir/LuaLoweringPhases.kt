@@ -16,10 +16,12 @@
 package io.github.kotlua.ir
 
 import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
+import io.github.kotlua.ir.lower.LuaCallableReferenceLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
 import io.github.kotlua.ir.lower.LuaLoopLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
+import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
 import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
 import io.github.kotlua.ir.lower.inline.LuaAllFunctionInlining
@@ -27,6 +29,9 @@ import io.github.kotlua.ir.lower.inline.LuaPrivateFunctionInlining
 import io.github.kotlua.ir.lower.inline.RemoveInlineDeclarationsWithReifiedTypeParametersLowering
 import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
+import org.jetbrains.kotlin.backend.common.lower.DefaultArgumentStubGenerator
+import org.jetbrains.kotlin.backend.common.lower.DefaultParameterCleaner
+import org.jetbrains.kotlin.backend.common.lower.DefaultParameterInjector
 import org.jetbrains.kotlin.backend.common.lower.EnumWhenLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpectDeclarationsRemoveLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpressionBodyTransformer
@@ -36,6 +41,7 @@ import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationPopupLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationsLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDelegatedPropertiesLowering
+import org.jetbrains.kotlin.backend.common.lower.MaskedDefaultArgumentFunctionFactory
 import org.jetbrains.kotlin.backend.common.lower.PropertiesLowering
 import org.jetbrains.kotlin.backend.common.lower.RangeContainsLowering
 import org.jetbrains.kotlin.backend.common.lower.RedundantCastsRemoverLowering
@@ -64,6 +70,22 @@ private fun createLuaCodeOutliningPhaseOnSecondStage(context: LoweringContext): 
 
 private fun createSyntheticAccessorGenerationPhase(context: LoweringContext): SyntheticAccessorLowering = SyntheticAccessorLowering(context)
 
+private fun createDefaultArgumentStubGenerator(context: LuaIrBackendContext) =
+    DefaultArgumentStubGenerator(
+        context = context,
+        factory = MaskedDefaultArgumentFunctionFactory(context),
+        skipInlineMethods = true,
+        skipExternalMethods = true,
+    )
+
+private fun createDefaultParameterInjector(context: LuaIrBackendContext) =
+    DefaultParameterInjector(
+        context = context,
+        factory = MaskedDefaultArgumentFunctionFactory(context),
+        skipInline = true,
+        skipExternalMethods = true,
+    )
+
 val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment, IrModuleFragment>> =
     createModulePhases(
         ::InlineCallCycleCheckerLowering,
@@ -84,6 +106,10 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::TailrecLowering,
         ::LocalDeclarationsLowering,
         ::LocalDeclarationPopupLowering,
+        ::createDefaultArgumentStubGenerator,
+        ::createDefaultParameterInjector,
+        ::DefaultParameterCleaner,
+        ::LuaCallableReferenceLowering,
         ::InnerClassesLowering,
         ::PropertiesLowering,
         ::InitializersLowering,
@@ -95,6 +121,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::RangeContainsLowering,
         ::ForLoopsLowering,
         ::ExpressionBodyTransformer,
+        ::LuaTypeOperatorLowering,
         ::LuaBlockDecomposerLowering,
         ::LuaLoopLowering,
         ::CallsLowering,

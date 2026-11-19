@@ -29,6 +29,7 @@ import io.github.kotlua.ir.utils.buildLuaIf
 import io.github.kotlua.ir.utils.luaElementAccess
 import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
+import io.github.kotlua.ir.utils.translateFunctionToAnonymousFunction
 import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.expressions.IrBlock
@@ -115,7 +116,7 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitFunctionExpression(
         expression: IrFunctionExpression,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitFunctionExpression(expression, data)
+    ): LuaExpression = translateFunctionToAnonymousFunction(expression.function, data)
 
     override fun visitConst(
         expression: IrConst,

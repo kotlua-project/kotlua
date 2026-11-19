@@ -1,0 +1,6 @@
+package kotlin.lua.internal
+
+import kotlin.internal.UsedFromCompilerGeneratedCode
+
+@UsedFromCompilerGeneratedCode
+internal object DefaultConstructorMarker
