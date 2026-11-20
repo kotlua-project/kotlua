@@ -17,6 +17,7 @@ package io.github.kotlua.ir
 
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.ir.BackendKlibSymbols
+import org.jetbrains.kotlin.builtins.PrimitiveType
 import org.jetbrains.kotlin.ir.IrBuiltIns
 import org.jetbrains.kotlin.ir.classSymbol
 import org.jetbrains.kotlin.ir.declarations.StageController
@@ -73,6 +74,20 @@ class BackendLuaSymbols(
     override val getContinuation: IrSimpleFunctionSymbol by CallableIds.getContinuation.functionSymbol()
 
     override val returnIfSuspended: IrSimpleFunctionSymbol by CallableIds.returnIfSuspended.functionSymbol()
+
+    val primitiveCompanionObjects =
+        primitivesWithImplicitCompanionObject().associateWith {
+            ClassId(LuaStandardClassIds.BASE_LUA_INTERNAL_PACKAGE, Name.identifier("${it.identifier}CompanionObject")).classSymbol()
+        }
+
+    private fun primitivesWithImplicitCompanionObject(): List<Name> {
+        val numbers =
+            PrimitiveType.NUMBER_TYPES
+                .filter { it.name != "LONG" && it.name != "CHAR" } // skip due to they have own explicit companions
+                .map { it.typeName }
+
+        return numbers + listOf(Name.identifier("String"), Name.identifier("Boolean"))
+    }
 
     val luaEq: IrSimpleFunctionSymbol by LuaCallableIds.luaEq.functionSymbol()
     val luaNeq: IrSimpleFunctionSymbol by LuaCallableIds.luaNeq.functionSymbol()

@@ -31,6 +31,7 @@ import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.LuaVarargLowering
+import io.github.kotlua.ir.lower.PrimitiveCompanionLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
 import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
 import io.github.kotlua.ir.lower.inline.LuaAllFunctionInlining
@@ -138,6 +139,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::LuaReturnableBlockLowering,
         ::RangeContainsLowering,
         ::ForLoopsLowering,
+        ::PrimitiveCompanionLowering,
         ::ExpressionBodyTransformer,
         ::LuaTypeOperatorLowering,
         ::LuaBlockDecomposerLowering,
