@@ -215,14 +215,13 @@ fun runSimpleDce(
                         superType.classOrNull?.owner?.let(::enqueue)
                     }
 
-                    val isObject = current.kind == ClassKind.OBJECT
                     val isEnum = current.kind == ClassKind.ENUM_CLASS
 
                     for (decl in current.declarations) {
                         val shouldKeep =
                             when (decl) {
                                 is IrConstructor -> {
-                                    isObject || isEnum
+                                    isEnum
                                 }
 
                                 is IrEnumEntry -> {

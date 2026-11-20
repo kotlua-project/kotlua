@@ -31,6 +31,8 @@ import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.LuaVarargLowering
+import io.github.kotlua.ir.lower.ObjectDeclarationLowering
+import io.github.kotlua.ir.lower.ObjectUsageLowering
 import io.github.kotlua.ir.lower.PrimitiveCompanionLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
 import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
@@ -131,6 +133,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::PropertiesLowering,
         ::InitializersLowering,
         ::EnumSyntheticFunctionsAndPropertiesLowering,
+        ::ObjectDeclarationLowering,
         ::LuaStringConcatenationLowering,
         ::EnumWhenLowering,
         ::EnumUsageLowering,
@@ -140,6 +143,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::RangeContainsLowering,
         ::ForLoopsLowering,
         ::PrimitiveCompanionLowering,
+        ::ObjectUsageLowering,
         ::ExpressionBodyTransformer,
         ::LuaTypeOperatorLowering,
         ::LuaBlockDecomposerLowering,

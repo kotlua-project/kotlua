@@ -25,7 +25,6 @@ import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.dce.runSimpleDce
 import io.github.kotlua.ir.utils.*
-import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.IrSimpleType
@@ -165,14 +164,7 @@ class IrModuleToLuaTransformer(
                     }
                 }
 
-            val objectInstanceStatements =
-                if (klass.kind == ClassKind.OBJECT) {
-                    listOf(buildObjectGetInstanceStatement(context, genContext, klass))
-                } else {
-                    emptyList()
-                }
-
-            listOf(classDef) + memberStatements + objectInstanceStatements
+            listOf(classDef) + memberStatements
         }
     }
 }
