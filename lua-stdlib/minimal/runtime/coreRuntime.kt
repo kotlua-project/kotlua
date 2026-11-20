@@ -114,11 +114,11 @@ internal fun anyHashCode(o: Any?): Int {
         objectHashCodes = lua("setmetatable({}, { __mode = 'k' })")
         nextObjectHashCode = 1
     }
-    var h: dynamic = lua("objectHashCodes[o]")
+    var h: dynamic = luaTableGet(objectHashCodes, o)
     if (luaEq(h, null)) {
         h = nextObjectHashCode
         nextObjectHashCode = luaPlus(nextObjectHashCode, 1).unsafeCast<Int>()
-        lua("objectHashCodes[o] = h")
+        luaTableSet(objectHashCodes, o, h)
     }
     return h
 }

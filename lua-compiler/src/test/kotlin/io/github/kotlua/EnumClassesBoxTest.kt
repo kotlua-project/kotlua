@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test
 
 class EnumClassesBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled
     fun `basic enum properties ordinal name and reference equality`() {
         assertBoxOk(
             """
@@ -59,7 +58,6 @@ class EnumClassesBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled
     fun `enum with constructor arguments methods and interface implementation`() {
         assertBoxOk(
             """
@@ -111,7 +109,6 @@ class EnumClassesBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled
     fun `exhaustive when on enum without else branch`() {
         assertBoxOk(
             """
@@ -160,7 +157,6 @@ class EnumClassesBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled
     fun `enum values and valueOf methods`() {
         assertBoxOk(
             """

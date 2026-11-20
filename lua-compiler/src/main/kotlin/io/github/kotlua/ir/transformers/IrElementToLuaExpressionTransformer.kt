@@ -15,53 +15,15 @@
  */
 package io.github.kotlua.ir.transformers
 
-import io.github.kotlua.ast.LuaBinaryOperator
-import io.github.kotlua.ast.LuaBlock
-import io.github.kotlua.ast.LuaExpression
-import io.github.kotlua.ast.LuaLValue
-import io.github.kotlua.ast.LuaName
-import io.github.kotlua.ast.LuaStatement
-import io.github.kotlua.ast.LuaUnaryOperator
+import io.github.kotlua.ast.*
 import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.ast.scope.LuaLocalScope
 import io.github.kotlua.ast.scope.LuaScope
-import io.github.kotlua.ir.utils.LuaGenerationContext
-import io.github.kotlua.ir.utils.buildLuaIf
-import io.github.kotlua.ir.utils.luaElementAccess
-import io.github.kotlua.ir.utils.resolveFieldAccess
-import io.github.kotlua.ir.utils.translateCall
-import io.github.kotlua.ir.utils.translateFunctionToAnonymousFunction
+import io.github.kotlua.ir.lower.findRawArrayConstructor
+import io.github.kotlua.ir.utils.*
 import org.jetbrains.kotlin.backend.common.compilationException
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.expressions.IrBlock
-import org.jetbrains.kotlin.ir.expressions.IrCall
-import org.jetbrains.kotlin.ir.expressions.IrComposite
-import org.jetbrains.kotlin.ir.expressions.IrConst
-import org.jetbrains.kotlin.ir.expressions.IrConstKind
-import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrContainerExpression
-import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
-import org.jetbrains.kotlin.ir.expressions.IrDynamicMemberExpression
-import org.jetbrains.kotlin.ir.expressions.IrDynamicOperator
-import org.jetbrains.kotlin.ir.expressions.IrDynamicOperatorExpression
-import org.jetbrains.kotlin.ir.expressions.IrExpression
-import org.jetbrains.kotlin.ir.expressions.IrExpressionBody
-import org.jetbrains.kotlin.ir.expressions.IrFunctionExpression
-import org.jetbrains.kotlin.ir.expressions.IrGetField
-import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
-import org.jetbrains.kotlin.ir.expressions.IrGetValue
-import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
-import org.jetbrains.kotlin.ir.expressions.IrRawFunctionReference
-import org.jetbrains.kotlin.ir.expressions.IrSetField
-import org.jetbrains.kotlin.ir.expressions.IrSetValue
-import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
-import org.jetbrains.kotlin.ir.expressions.IrStringConcatenation
-import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
-import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
-import org.jetbrains.kotlin.ir.expressions.IrVararg
-import org.jetbrains.kotlin.ir.expressions.IrWhen
-import org.jetbrains.kotlin.ir.expressions.left
-import org.jetbrains.kotlin.ir.expressions.right
+import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
@@ -109,7 +71,42 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     override fun visitVararg(
         expression: IrVararg,
         data: LuaGenerationContext,
-    ): LuaExpression = super.visitVararg(expression, data)
+    ): LuaExpression {
+        val tableExpr =
+            LuaExpression.TableConstructor(
+                expression.elements.map { element ->
+                    val expr =
+                        when (element) {
+                            is IrExpression -> element.accept(this, data)
+                            else -> LuaExpression.NilLiteral
+                        }
+                    LuaField.Positional(expr)
+                },
+            )
+        val arrayClass =
+            expression.type.classOrNull?.owner
+                ?: compilationException("IrVararg must have an array class type", expression)
+        val rawCtor =
+            arrayClass.findRawArrayConstructor()
+                ?: compilationException("Raw array constructor not found on ${arrayClass.name}", expression)
+        val classRef = data.getRefForStaticDeclaration(arrayClass)
+        val ctorName = data.staticContext.irNamer.getNameForConstructor(rawCtor)
+        val instanceExpr =
+            LuaExpression.FunctionCall(
+                target = LuaName("setmetatable"),
+                args = listOf(LuaExpression.TableConstructor(emptyList()), classRef),
+            )
+        return LuaExpression.FunctionCall(
+            target = luaElementAccess(ctorName, classRef),
+            args =
+                listOf(
+                    instanceExpr,
+                    tableExpr,
+                    LuaExpression.IntLiteral(expression.elements.size),
+                    LuaExpression.BooleanLiteral(true),
+                ),
+        )
+    }
 
     override fun visitExpressionBody(
         body: IrExpressionBody,
@@ -208,6 +205,18 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         expression: IrDelegatingConstructorCall,
         data: LuaGenerationContext,
     ): LuaExpression = super.visitDelegatingConstructorCall(expression, data)
+
+    override fun visitGetEnumValue(
+        expression: IrGetEnumValue,
+        data: LuaGenerationContext,
+    ): LuaExpression {
+        val enumEntry = expression.symbol.owner
+        val klass = enumEntry.parentAsClass
+        if (klass.isEffectivelyExternal()) {
+            return luaElementAccess(enumEntry.name.asString(), data.getRefForStaticDeclaration(klass))
+        }
+        return super.visitGetEnumValue(expression, data)
+    }
 
     override fun visitConstructorCall(
         expression: IrConstructorCall,

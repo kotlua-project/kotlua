@@ -15,6 +15,14 @@
  */
 package io.github.kotlua.ir
 
+import io.github.kotlua.ir.lower.EnumClassConstructorBodyTransformer
+import io.github.kotlua.ir.lower.EnumClassConstructorLowering
+import io.github.kotlua.ir.lower.EnumClassRemoveEntriesLowering
+import io.github.kotlua.ir.lower.EnumEntryCreateGetInstancesFunsLowering
+import io.github.kotlua.ir.lower.EnumEntryInstancesBodyLowering
+import io.github.kotlua.ir.lower.EnumEntryInstancesLowering
+import io.github.kotlua.ir.lower.EnumSyntheticFunctionsAndPropertiesLowering
+import io.github.kotlua.ir.lower.EnumUsageLowering
 import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
 import io.github.kotlua.ir.lower.LuaCallableReferenceLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
@@ -22,6 +30,7 @@ import io.github.kotlua.ir.lower.LuaLoopLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
+import io.github.kotlua.ir.lower.LuaVarargLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
 import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
 import io.github.kotlua.ir.lower.inline.LuaAllFunctionInlining
@@ -29,6 +38,7 @@ import io.github.kotlua.ir.lower.inline.LuaPrivateFunctionInlining
 import io.github.kotlua.ir.lower.inline.RemoveInlineDeclarationsWithReifiedTypeParametersLowering
 import org.jetbrains.kotlin.backend.common.LoweringContext
 import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
+import org.jetbrains.kotlin.backend.common.lower.ArrayConstructorLowering
 import org.jetbrains.kotlin.backend.common.lower.DefaultArgumentStubGenerator
 import org.jetbrains.kotlin.backend.common.lower.DefaultParameterCleaner
 import org.jetbrains.kotlin.backend.common.lower.DefaultParameterInjector
@@ -94,6 +104,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::LateinitLowering,
         ::SharedVariablesLowering,
         ::LocalClassesInInlineLambdasLowering,
+        ::ArrayConstructorLowering,
         ::LuaPrivateFunctionInlining,
         ::OuterThisInInlineFunctionsSpecialAccessorLowering,
         ::createSyntheticAccessorGenerationPhase,
@@ -104,6 +115,11 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::ExpectDeclarationsRemoveLowering,
         ::StripTypeAliasDeclarationsLowering,
         ::TailrecLowering,
+        ::EnumClassConstructorLowering,
+        ::EnumClassConstructorBodyTransformer,
+        ::EnumEntryInstancesLowering,
+        ::EnumEntryInstancesBodyLowering,
+        ::EnumEntryCreateGetInstancesFunsLowering,
         ::LocalDeclarationsLowering,
         ::LocalDeclarationPopupLowering,
         ::createDefaultArgumentStubGenerator,
@@ -113,9 +129,11 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::InnerClassesLowering,
         ::PropertiesLowering,
         ::InitializersLowering,
+        ::EnumSyntheticFunctionsAndPropertiesLowering,
         ::LuaStringConcatenationLowering,
-//        ::KotlinNothingValueExceptionLowering,
         ::EnumWhenLowering,
+        ::EnumUsageLowering,
+        ::EnumClassRemoveEntriesLowering,
         ::LocalDelegatedPropertiesLowering,
         ::LuaReturnableBlockLowering,
         ::RangeContainsLowering,
@@ -123,6 +141,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::ExpressionBodyTransformer,
         ::LuaTypeOperatorLowering,
         ::LuaBlockDecomposerLowering,
+        ::LuaVarargLowering,
         ::LuaLoopLowering,
         ::CallsLowering,
     )

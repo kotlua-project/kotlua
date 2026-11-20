@@ -17,38 +17,19 @@ package io.github.kotlua.ir.transformers
 
 import io.github.kotlua.LuaTextOutput
 import io.github.kotlua.LuaToStringGenerator
-import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaField
-import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
-import io.github.kotlua.ast.scope.LuaFunctionScope
 import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.dce.runSimpleDce
-import io.github.kotlua.ir.utils.LuaGenerationContext
-import io.github.kotlua.ir.utils.LuaModuleReservedScope
-import io.github.kotlua.ir.utils.LuaStaticContext
-import io.github.kotlua.ir.utils.NameTable
-import io.github.kotlua.ir.utils.buildObjectGetInstanceStatement
-import io.github.kotlua.ir.utils.isIgnoredClass
-import io.github.kotlua.ir.utils.luaElementAccess
+import io.github.kotlua.ir.utils.*
 import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.ir.declarations.IrClass
-import org.jetbrains.kotlin.ir.declarations.IrConstructor
-import org.jetbrains.kotlin.ir.declarations.IrDeclaration
-import org.jetbrains.kotlin.ir.declarations.IrField
-import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
-import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.IrSimpleType
-import org.jetbrains.kotlin.ir.util.constructors
-import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isInterface
-import org.jetbrains.kotlin.ir.util.packageFqName
-import org.jetbrains.kotlin.ir.util.primaryConstructor
-import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.utils.DFS
 
 class IrModuleToLuaTransformer(
@@ -107,6 +88,8 @@ class IrModuleToLuaTransformer(
             if (decl is IrClass && !isIgnoredClass(decl, backendContext)) {
                 allClasses += decl
                 decl.declarations.forEach(::collect)
+            } else if (decl is IrEnumEntry) {
+                decl.correspondingClass?.let(::collect)
             }
         }
 

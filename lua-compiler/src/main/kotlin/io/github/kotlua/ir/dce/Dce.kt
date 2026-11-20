@@ -25,8 +25,10 @@ import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrDelegatingConstructorCall
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
 import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
+import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.isTopLevel
@@ -112,6 +114,12 @@ fun runSimpleDce(
                 }
             }
 
+            override fun visitGetEnumValue(expression: IrGetEnumValue) {
+                super.visitGetEnumValue(expression)
+                enqueue(expression.symbol.owner)
+                enqueue(expression.symbol.owner.parentClassOrNull)
+            }
+
             override fun visitConstructorCall(expression: IrConstructorCall) {
                 super.visitConstructorCall(expression)
                 enqueue(expression.symbol.owner)
@@ -134,6 +142,13 @@ fun runSimpleDce(
                 expression.typeOperand.classOrNull
                     ?.owner
                     ?.let { enqueue(it) }
+            }
+
+            override fun visitVararg(expression: IrVararg) {
+                super.visitVararg(expression)
+                val arrayClass = expression.type.classOrNull?.owner ?: return
+                enqueue(arrayClass)
+                arrayClass.declarations.filterIsInstance<IrConstructor>().forEach(::enqueue)
             }
 
             override fun visitFieldAccess(expression: IrFieldAccessExpression) {
@@ -186,19 +201,46 @@ fun runSimpleDce(
                 current.initializer?.acceptVoid(scanner)
             }
 
+            is IrEnumEntry -> {
+                enqueue(current.parentClassOrNull)
+                current.initializerExpression?.acceptVoid(scanner)
+                current.correspondingClass?.let { enqueue(it) }
+            }
+
             is IrClass -> {
                 if (!isIgnoredClass(current, backendContext)) {
-                    if (current.kind == ClassKind.OBJECT) {
-                        current.declarations.filterIsInstance<IrConstructor>().forEach(::enqueue)
-                    }
                     enqueue(backendContext.symbols.luaDefineClass.owner)
+
                     current.superTypes.forEach { superType ->
-                        superType.classOrNull?.owner?.let { enqueue(it) }
+                        superType.classOrNull?.owner?.let(::enqueue)
                     }
+
+                    val isObject = current.kind == ClassKind.OBJECT
+                    val isEnum = current.kind == ClassKind.ENUM_CLASS
+
                     for (decl in current.declarations) {
-                        if (decl is IrSimpleFunction &&
-                            (decl.isMethodOfAny() || decl.overriddenSymbols.any { it.owner in reachable })
-                        ) {
+                        val shouldKeep =
+                            when (decl) {
+                                is IrConstructor -> {
+                                    isObject || isEnum
+                                }
+
+                                is IrEnumEntry -> {
+                                    isEnum
+                                }
+
+                                is IrSimpleFunction -> {
+                                    decl.isMethodOfAny() ||
+                                        decl.overriddenSymbols.any { it.owner in reachable } ||
+                                        (isEnum && (decl.name.asString() == "values" || decl.name.asString() == "valueOf"))
+                                }
+
+                                else -> {
+                                    false
+                                }
+                            }
+
+                        if (shouldKeep) {
                             enqueue(decl)
                         }
                     }

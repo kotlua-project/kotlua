@@ -8,7 +8,11 @@
 
 @file:Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY", "UNUSED_PARAMETER", "MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
 
+@file:OptIn(LuaIntrinsic::class)
+
 package kotlin
+
+import kotlin.lua.*
 
 /**
  * An array of bytes.
@@ -31,8 +35,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Byte)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Byte) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -44,8 +80,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Byte
+    public actual operator fun get(index: Int): Byte {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Byte>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -57,18 +95,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Byte): Unit
+    public actual operator fun set(index: Int, value: Byte): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [ByteIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): ByteIterator
+    public actual operator fun iterator(): ByteIterator =
+        ByteArrayIterator(this)
+}
+
+private class ByteArrayIterator constructor(val array: ByteArray) : ByteIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextByte() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -92,8 +139,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Char)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Char) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, '\u0000')
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -105,8 +184,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Char
+    public actual operator fun get(index: Int): Char {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Char>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -118,18 +199,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Char): Unit
+    public actual operator fun set(index: Int, value: Char): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [CharIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): CharIterator
+    public actual operator fun iterator(): CharIterator =
+        CharArrayIterator(this)
+}
+
+private class CharArrayIterator constructor(val array: CharArray) : CharIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextChar() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -153,8 +243,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Short)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Short) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -166,8 +288,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Short
+    public actual operator fun get(index: Int): Short {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Short>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -179,18 +303,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Short): Unit
+    public actual operator fun set(index: Int, value: Short): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [ShortIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): ShortIterator
+    public actual operator fun iterator(): ShortIterator =
+        ShortArrayIterator(this)
+}
+
+private class ShortArrayIterator constructor(val array: ShortArray) : ShortIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextShort() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -214,8 +347,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Int)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Int) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -227,8 +392,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Int
+    public actual operator fun get(index: Int): Int {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Int>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -240,18 +407,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Int): Unit
+    public actual operator fun set(index: Int, value: Int): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [IntIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): IntIterator
+    public actual operator fun iterator(): IntIterator =
+        IntArrayIterator(this)
+}
+
+private class IntArrayIterator constructor(val array: IntArray) : IntIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextInt() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -275,8 +451,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Long)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Long) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0L)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -288,8 +496,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Long
+    public actual operator fun get(index: Int): Long {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Long>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -301,18 +511,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Long): Unit
+    public actual operator fun set(index: Int, value: Long): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [LongIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): LongIterator
+    public actual operator fun iterator(): LongIterator =
+        LongArrayIterator(this)
+}
+
+private class LongArrayIterator constructor(val array: LongArray) : LongIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextLong() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -336,8 +555,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Float)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Float) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0.0f)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -349,8 +600,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Float
+    public actual operator fun get(index: Int): Float {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Float>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -362,18 +615,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Float): Unit
+    public actual operator fun set(index: Int, value: Float): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [FloatIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): FloatIterator
+    public actual operator fun iterator(): FloatIterator =
+        FloatArrayIterator(this)
+}
+
+private class FloatArrayIterator constructor(val array: FloatArray) : FloatIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextFloat() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -397,8 +659,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Double)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Double) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, 0.0)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -410,8 +704,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Double
+    public actual operator fun get(index: Int): Double {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Double>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -423,18 +719,27 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Double): Unit
+    public actual operator fun set(index: Int, value: Double): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [DoubleIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): DoubleIterator
+    public actual operator fun iterator(): DoubleIterator =
+        DoubleArrayIterator(this)
+}
+
+private class DoubleArrayIterator constructor(val array: DoubleArray) : DoubleIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextDouble() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
 
 /**
@@ -458,8 +763,40 @@ public actual constructor(size: Int) {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> Boolean)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> Boolean) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        var i = 1
+        while (i <= size) {
+            luaTableSet(storage, i, false)
+            i++
+        }
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -471,8 +808,10 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): Boolean
+    public actual operator fun get(index: Int): Boolean {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<Boolean>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -484,16 +823,25 @@ public actual constructor(size: Int) {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: Boolean): Unit
+    public actual operator fun set(index: Int, value: Boolean): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates a specialized [BooleanIterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): BooleanIterator
+    public actual operator fun iterator(): BooleanIterator =
+        BooleanArrayIterator(this)
+}
+
+private class BooleanArrayIterator constructor(val array: BooleanArray) : BooleanIterator() {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun nextBoolean() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }

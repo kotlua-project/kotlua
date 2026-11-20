@@ -1,38 +1,33 @@
-@file:Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY", "MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
-
 package kotlin
+
+import kotlin.lua.anyHashCode
+import kotlin.lua.luaEq
 
 /**
  * The common base class of all enum classes.
  * See the [Kotlin language documentation](https://kotlinlang.org/docs/reference/enum-classes.html) for more
  * information on enum classes.
  */
-public actual abstract class Enum<E : Enum<E>> actual constructor(name: String, ordinal: Int): Comparable<E> {
-    public actual companion object {}
-
+@OptIn(LuaIntrinsic::class)
+actual abstract class Enum<E : Enum<E>> actual constructor(
     /**
      * Returns the name of this enum constant, exactly as declared in its enum declaration.
      */
-    @kotlin.internal.IntrinsicConstEvaluation
-    public actual final val name: String
-
+    @kotlin.internal.IntrinsicConstEvaluation actual val name: String,
     /**
      * Returns the ordinal of this enumeration constant (its position in its enum declaration, where the initial constant
      * is assigned an ordinal of zero).
      */
-    public actual final val ordinal: Int
+    actual val ordinal: Int
+): Comparable<E> {
+    actual companion object;
 
-    public actual override final fun compareTo(other: E): Int
+    actual final override fun compareTo(other: E): Int =
+        if (ordinal < other.ordinal) -1 else if (ordinal > other.ordinal) 1 else 0
 
-    /**
-     * Throws an exception since enum constants cannot be cloned.
-     * This method prevents enum classes from inheriting from `Cloneable`.
-     */
-    protected final fun clone(): Any
+    actual final override fun equals(other: Any?): Boolean = luaEq(this, other)
 
-    public actual override final fun equals(other: Any?): Boolean
+    actual final override fun hashCode(): Int = anyHashCode(this)
 
-    public actual override final fun hashCode(): Int
-
-    public actual override fun toString(): String
+    actual override fun toString(): String = name
 }

@@ -11,6 +11,12 @@ internal fun THROW_NPE(): Nothing {
     unreachable()
 }
 
+@PublishedApi
+@UsedFromCompilerGeneratedCode
+internal fun THROW_IAE(msg: String): Nothing {
+    lua("error('IllegalArgumentException: ' .. msg)")
+    unreachable()
+}
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode
@@ -18,6 +24,10 @@ internal fun THROW_CCE(): Nothing {
     lua("error('ClassCastException')")
     unreachable()
 }
+
+@UsedFromCompilerGeneratedCode
+internal fun noWhenBranchMatchedException(): Nothing =
+    lua("error('NoWhenBranchMatchedException')")
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode

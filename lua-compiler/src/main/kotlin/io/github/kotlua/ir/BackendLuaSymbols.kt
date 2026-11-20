@@ -48,13 +48,23 @@ class BackendLuaSymbols(
     override val throwUnsupportedOperationException: IrSimpleFunctionSymbol by CallableIds.throwUnsupportedOperationException
         .functionSymbol()
 
+    val throwIllegalArgumentException: IrSimpleFunctionSymbol by CallableIds.throwIae.functionSymbol()
+
     override val defaultConstructorMarker: IrClassSymbol = LuaClassIds.DefaultConstructorMarker.classSymbol()
 
     override val functionAdapter: IrClassSymbol by lazy {
         LuaClassIds.FunctionAdapter.classSymbol()
     }
 
-//    val enumEntries: IrClassSymbol = StandardClassIds.EnumEntries.classSymbol()
+    private val createEnumEntriesDelegate: IrSimpleFunctionSymbol by CallableIds.createEnumEntries.functionSymbol()
+
+    val enumEntriesOrNull: IrClassSymbol? by lazy {
+        runCatching { LuaClassIds.EnumEntries.classSymbol() }.getOrNull()
+    }
+
+    val createEnumEntriesOrNull: IrSimpleFunctionSymbol? by lazy {
+        runCatching { createEnumEntriesDelegate }.getOrNull()
+    }
 
     override val continuationClass: IrClassSymbol = LuaClassIds.Continuation.classSymbol()
 
@@ -136,6 +146,7 @@ private object LuaClassIds {
 
     private val String.luaInternalClassId get() = ClassId(BASE_LUA_INTERNAL_PACKAGE, Name.identifier(this))
 
+    val EnumEntries = "EnumEntries".luaInternalClassId
     val FunctionAdapter = "FunctionAdapter".luaInternalClassId
     val DefaultConstructorMarker = "DefaultConstructorMarker".luaInternalClassId
 
@@ -154,6 +165,8 @@ private object CallableIds {
     val noWhenBranchMatchedException = "noWhenBranchMatchedException".kotlinCallableId
     val throwIse = "THROW_ISE".kotlinCallableId
     val throwIae = "THROW_IAE".kotlinCallableId
+
+    val createEnumEntries = "createEnumEntries".kotlinCallableId
 
     val throwUninitializedPropertyAccessException = "throwUninitializedPropertyAccessException".internalCallableId
     val throwUnsupportedOperationException = "throwUnsupportedOperationException".kotlinCallableId

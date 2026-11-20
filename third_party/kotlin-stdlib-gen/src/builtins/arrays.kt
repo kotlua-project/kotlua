@@ -95,7 +95,7 @@ abstract class GenerateArrays(val writer: PrintWriter, val primitiveArrays: Bool
                     private var index = 0
                     override fun hasNext() = index < array.size
                     override fun next${kind?.capitalized ?: ""}() = if (index < array.size) array[index++] else throw NoSuchElementException("${'$'}index")
-                """.trimIndent()
+                """.trimIndent(),
                 )
             }
         }
@@ -225,7 +225,7 @@ class GenerateCommonArrays(writer: PrintWriter, primitiveArrays: Boolean) : Gene
                 appendDoc("If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException] except in Kotlin/JS")
                 appendDoc("where the behavior is unspecified, and in Kotlin/Wasm where a [trap](https://webassembly.github.io/spec/core/intro/overview.html#trap) will be raised instead,")
                 appendDoc("unless `-Xwasm-enable-array-range-checks` compiler flag was specified when linking an executable.")
-            }
+            },
         ) {
             override fun ClassBuilder.modifyGeneratedClass() {
                 expectActual = ExpectActualModifier.Expect
@@ -252,33 +252,135 @@ class GenerateJvmArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
 
 class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : GenerateArrays(writer, primitiveArrays) {
     override fun FileBuilder.modifyGeneratedFile() {
+        import("kotlin.lua.*")
+        annotate("OptIn(LuaIntrinsic::class)")
         suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
         suppress("UNUSED_PARAMETER")
         suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     }
+
     override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(kind) {
+        private val defaultElementExpr: String? = when (kind) {
+            null -> null
+            PrimitiveType.BOOLEAN -> "false"
+            PrimitiveType.CHAR -> "'\\u0000'"
+            PrimitiveType.LONG -> "0L"
+            PrimitiveType.FLOAT -> "0.0f"
+            PrimitiveType.DOUBLE -> "0.0"
+            else -> "0"
+        }
+
+        override fun ClassBuilder.modifyGeneratedClass() {
+            if (kind == null) {
+                primaryConstructor {
+                    annotations += "PublishedApi"
+                    visibility = MethodVisibility.INTERNAL
+                    parameter {
+                        name = "size"
+                        type = PrimitiveType.INT.capitalized
+                    }
+                }
+            }
+        }
+
+        override fun ClassBuilder.generatePropertiesAndInit() {
+            val fillLoop = if (defaultElementExpr != null) {
+                """
+                    var i = 1
+                    while (i <= size) {
+                        luaTableSet(storage, i, $defaultElementExpr)
+                        i++
+                    }
+                """.trim()
+            } else {
+                ""
+            }
+
+            classBody("""
+               	private var storage: dynamic
+    
+               	private var _size: Int
+    
+               	init {
+               	    if (size < 0) lua("error('Negative array size')")
+               	    storage = luaEmptyTable()
+               	    _size = size
+               	    $fillLoop
+               	}
+    
+               	@PublishedApi
+               	@kotlin.internal.UsedFromCompilerGeneratedCode
+               	internal constructor(
+               	    table: dynamic,
+               	    count: Int,
+               	    @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+               	) : this(0) {
+               	    storage = table
+               	    _size = count
+               	}
+            """.trimIndent(),
+            )
+        }
+
         override fun SecondaryConstructorBuilder.modifySecondaryConstructor() {
             annotations.removeAll { it.startsWith("Suppress") }
-            annotations += """Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")"""
+            annotations += """Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")"""
+            primaryConstructorCall("size")
+            """
+                var i = 0
+                while (i < size) {
+                    this[i] = init(i)
+                    i++
+                }
+            """.trimIndent().setAsBlockBody()
         }
 
         override fun MethodBuilder.modifyGetOperator() {
-            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+            """
+                if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+                return luaTableGet(storage, index + 1).unsafeCast<$elementTypeName>()
+            """.trimIndent().setAsBlockBody()
         }
 
         override fun MethodBuilder.modifySetOperator() {
-            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+            """
+                if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+                luaTableSet(storage, index + 1, value)
+            """.trimIndent().setAsBlockBody()
         }
 
         override fun PropertyBuilder.modifySizeProperty() {
-            annotations += """Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")"""
+            "_size".setAsExpressionGetterBody()
         }
 
         override fun MethodBuilder.modifyIterator() {
-            annotations += """Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")"""
+            "$arrayIteratorImplClassName(this)".setAsExpressionBody()
+        }
+
+        override fun FileBuilder.modifyGeneratedFileAfterClass() {
+            klass {
+                visibility = MethodVisibility.PRIVATE
+                name = arrayIteratorImplClassName
+                if (kind == null) typeParam("T")
+                superType(iteratorClassName + if (kind == null) "<T>" else "()")
+                primaryConstructor {
+                    parameter {
+                        visibility = null
+                        name = "val array"
+                        type = arrayTypeName
+                    }
+                }
+                classBody(
+                    """
+                    private var index = 0
+                    override fun hasNext() = index < array.size
+                    override fun next${kind?.capitalized ?: ""}() =
+                        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
+                    """.trimIndent(),
+                )
+            }
         }
     }
-
 }
 
 class GenerateJsArrays(writer: PrintWriter, primitiveArrays: Boolean) : GenerateArrays(writer, primitiveArrays) {
@@ -286,9 +388,12 @@ class GenerateJsArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generate
         suppress("UNUSED_PARAMETER")
     }
 
-    override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(kind, generateOutOfBoundsBehaviorNote = {
-        appendDoc("If the [index] is out of bounds of this array, the behavior is unspecified")
-    }) {
+    override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(
+        kind,
+        generateOutOfBoundsBehaviorNote = {
+            appendDoc("If the [index] is out of bounds of this array, the behavior is unspecified")
+        },
+    ) {
         override fun SecondaryConstructorBuilder.modifySecondaryConstructor() {
             annotations.removeAll { it.startsWith("Suppress") }
             annotations += """Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")"""
@@ -319,11 +424,14 @@ class GenerateWasmArrays(writer: PrintWriter, primitiveArrays: Boolean) : Genera
         suppress("UNUSED_PARAMETER")
     }
 
-    override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(kind, generateOutOfBoundsBehaviorNote = {
-        appendDoc("If the [index] is out of bounds of this array, a [trap](https://webassembly.github.io/spec/core/intro/overview.html#trap) will be raised")
-        appendDoc("unless `-Xwasm-enable-array-range-checks` compiler flag was specified when linking an executable.")
-        appendDoc("With the `-Xwasm-enable-array-range-checks` an [IndexOutOfBoundsException] will be thrown.")
-    }) {
+    override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(
+        kind,
+        generateOutOfBoundsBehaviorNote = {
+            appendDoc("If the [index] is out of bounds of this array, a [trap](https://webassembly.github.io/spec/core/intro/overview.html#trap) will be raised")
+            appendDoc("unless `-Xwasm-enable-array-range-checks` compiler flag was specified when linking an executable.")
+            appendDoc("With the `-Xwasm-enable-array-range-checks` an [IndexOutOfBoundsException] will be thrown.")
+        },
+    ) {
         private val storageArrayType = when (kind) {
             null -> "WasmAnyArray"
             PrimitiveType.BOOLEAN -> "WasmByteArray"
@@ -377,7 +485,7 @@ class GenerateWasmArrays(writer: PrintWriter, primitiveArrays: Boolean) : Genera
                 internal fun setWithoutBoundCheck(index: Int, value: $elementTypeName) {
                     $uncheckedSetBody
                 }
-            """.trimIndent()
+            """.trimIndent(),
             )
         }
 
@@ -469,7 +577,7 @@ class GenerateNativeArrays(writer: PrintWriter, primitiveArrays: Boolean) : Gene
                         @PublishedApi
                         @ExportForCompiler
                         internal constructor(@Suppress("UNUSED_PARAMETER") size: Int) {}
-                    """.trimIndent()
+                    """.trimIndent(),
                 )
             }
         }

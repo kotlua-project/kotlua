@@ -8,7 +8,11 @@
 
 @file:Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY", "UNUSED_PARAMETER", "MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
 
+@file:OptIn(LuaIntrinsic::class)
+
 package kotlin
+
+import kotlin.lua.*
 
 /**
  * A generic array of objects.
@@ -18,7 +22,9 @@ package kotlin
  * See [Kotlin language documentation](https://kotlinlang.org/docs/arrays.html)
  * for more information on arrays.
  */
-public actual class Array<T> {
+public actual class Array<T>
+@PublishedApi
+internal constructor(size: Int) {
     /**
      * Creates a new array of the specified [size], where each element is calculated by calling the specified
      * [init] function.
@@ -28,8 +34,36 @@ public actual class Array<T> {
      *
      * @throws RuntimeException if the specified [size] is negative.
      */
-    @Suppress("WRONG_MODIFIER_TARGET", "PRIMARY_CONSTRUCTOR_DELEGATION_CALL_EXPECTED")
-    public actual inline constructor(size: Int, init: (Int) -> T)
+    @Suppress("WRONG_MODIFIER_TARGET", "TYPE_PARAMETER_AS_REIFIED")
+    public actual inline constructor(size: Int, init: (Int) -> T) : this(size) {
+        var i = 0
+        while (i < size) {
+            this[i] = init(i)
+            i++
+        }
+    }
+
+    private var storage: dynamic
+
+    private var _size: Int
+
+    init {
+        if (size < 0) lua("error('Negative array size')")
+        storage = luaEmptyTable()
+        _size = size
+        
+    }
+
+    @PublishedApi
+    @kotlin.internal.UsedFromCompilerGeneratedCode
+    internal constructor(
+        table: dynamic,
+        count: Int,
+        @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+    ) : this(0) {
+        storage = table
+        _size = count
+    }
 
     /**
      * Returns the array element at the given [index].
@@ -41,8 +75,10 @@ public actual class Array<T> {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun get(index: Int): T
+    public actual operator fun get(index: Int): T {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        return luaTableGet(storage, index + 1).unsafeCast<T>()
+    }
 
     /**
      * Sets the array element at the given [index] to the given [value].
@@ -54,16 +90,25 @@ public actual class Array<T> {
      *
      * If the [index] is out of bounds of this array, throws an [IndexOutOfBoundsException].
      */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun set(index: Int, value: T): Unit
+    public actual operator fun set(index: Int, value: T): Unit {
+        if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+        luaTableSet(storage, index + 1, value)
+    }
 
     /**
      * Returns the number of elements in the array.
      */
-    @Suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     public actual val size: Int
+        get() = _size
 
     /** Creates an [Iterator] for iterating over the elements of the array. */
-    @Suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
-    public actual operator fun iterator(): Iterator<T>
+    public actual operator fun iterator(): Iterator<T> =
+        ArrayIterator(this)
+}
+
+private class ArrayIterator<T> constructor(val array: Array<T>) : Iterator<T> {
+    private var index = 0
+    override fun hasNext() = index < array.size
+    override fun next() =
+        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
 }
