@@ -33,6 +33,7 @@ import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.LuaTryCatchLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.LuaVarargLowering
+import io.github.kotlua.ir.lower.MainFunctionCallWrapperLowering
 import io.github.kotlua.ir.lower.MultipleCatchesLowering
 import io.github.kotlua.ir.lower.ObjectDeclarationLowering
 import io.github.kotlua.ir.lower.ObjectUsageLowering
@@ -155,6 +156,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::LuaVarargLowering,
         ::LuaLoopLowering,
         ::LuaMultiReturnLowering,
+        ::MainFunctionCallWrapperLowering,
         ::CallsLowering,
     )
 

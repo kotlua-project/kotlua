@@ -353,3 +353,25 @@ internal fun isShort(o: Any?): Boolean =
 internal class LuaInternalError(
     val rawError: Any?,
 ) : Error(anyToString(rawError))
+
+@UsedFromCompilerGeneratedCode
+internal fun luaMainArgs(): Array<String> {
+    val tbl: dynamic =
+        lua(
+            """
+            (function()
+                if type(arg) == 'table' then
+                    local t = {}
+                    local n = #arg
+                    for i = 1, n do
+                        t[i] = tostring(arg[i])
+                    end
+                    return t
+                end
+                return {}
+            end)()
+            """,
+        )
+    val count: Int = lua("#tbl")
+    return Array(tbl, count, true)
+}

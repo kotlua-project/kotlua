@@ -21,6 +21,7 @@ package io.github.kotlua.cli.pipeline
 import io.github.kotlua.cli.LuaCliDiagnostics.LUA_ARGUMENT_ERROR
 import io.github.kotlua.cli.LuaCliDiagnostics.LUA_ARGUMENT_WARNING
 import io.github.kotlua.cli.compiler.K2LuaCompilerArguments
+import io.github.kotlua.config.callMain
 import io.github.kotlua.config.includes
 import io.github.kotlua.config.libraries
 import io.github.kotlua.config.nopack
@@ -87,6 +88,23 @@ object LuaConfigurationUpdater : ConfigurationUpdater<K2LuaCompilerArguments>() 
                 } catch (_: IOException) {
                     configuration.report(LUA_ARGUMENT_ERROR, "Could not resolve output directory")
                 }
+            }
+        }
+
+        when (arguments.main) {
+            "call", null -> {
+                configuration.callMain = true
+            }
+
+            "noCall" -> {
+                configuration.callMain = false
+            }
+
+            else -> {
+                configuration.report(
+                    LUA_ARGUMENT_ERROR,
+                    "Invalid value of '${K2LuaCompilerArguments::main.cliArgument}'. Valid values are 'call' or 'noCall'.",
+                )
             }
         }
 

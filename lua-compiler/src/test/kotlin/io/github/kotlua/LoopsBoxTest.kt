@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class LoopsBoxTest : AbstractKotluaTest() {
@@ -109,7 +108,6 @@ class LoopsBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: ForLoopsLowering + IntRange / IntProgression in stdlib")
     fun `for loops over IntRange until downTo and step`() {
         assertBoxOk(
             """

@@ -15,6 +15,7 @@
  */
 package io.github.kotlua.ir
 
+import io.github.kotlua.config.callMain
 import io.github.kotlua.ir.lower.LuaInnerClassesSupport
 import io.github.kotlua.ir.utils.LuaInlineClassesUtils
 import org.jetbrains.kotlin.backend.common.CommonBackendContext
@@ -41,6 +42,7 @@ class LuaIrBackendContext(
     override val configuration: CompilerConfiguration,
 ) : CommonBackendContext {
     val phaseConfig = configuration.phaseConfig ?: PhaseConfig()
+    val callMain = configuration.callMain
     override val typeSystem: IrTypeSystemContext = IrTypeSystemContextImpl(irBuiltIns)
     override val inlineClassesUtils = LuaInlineClassesUtils(this)
     override val innerClassesSupport = LuaInnerClassesSupport()

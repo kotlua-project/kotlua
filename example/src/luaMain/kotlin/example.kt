@@ -9,7 +9,10 @@ fun addFive(value: Int): Int {
     return lua("5 + value")
 }
 
-fun main() {
+fun main(args: Array<String>) {
+    for (string in args) {
+        println("Arg = $string")
+    }
     greet("Lua!")
     val c = 4
     val b = addFive(c)

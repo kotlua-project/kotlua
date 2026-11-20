@@ -16,6 +16,8 @@
 package io.github.kotlua.ir.dce
 
 import io.github.kotlua.ir.LuaIrBackendContext
+import io.github.kotlua.ir.lower.mainFunctionWrapper
+import io.github.kotlua.ir.utils.LuaMainFunctionDetector
 import io.github.kotlua.ir.utils.isIgnoredClass
 import io.github.kotlua.ir.utils.isMethodOfAny
 import io.github.kotlua.name.LuaStandardClassIds
@@ -73,15 +75,16 @@ fun runSimpleDce(
     }
 
     val mainFunction =
-        searchModules
-            .flatMap { it.files }
-            .flatMap { it.declarations }
-            .filterIsInstance<IrSimpleFunction>()
-            .firstOrNull { it.isTopLevel && it.name.asString() == "main" }
+        if (backendContext.callMain) {
+            LuaMainFunctionDetector(backendContext).getMainFunctionOrNull(entryModule ?: modules.first())
+        } else {
+            null
+        }
+    val mainRoot = mainFunction?.mainFunctionWrapper ?: mainFunction
 
     val roots: List<IrDeclaration> =
-        if (mainFunction != null) {
-            listOf(mainFunction)
+        if (mainRoot != null) {
+            listOf(mainRoot)
         } else {
             searchModules
                 .flatMap { it.files }

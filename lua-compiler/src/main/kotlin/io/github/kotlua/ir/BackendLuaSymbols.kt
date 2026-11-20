@@ -149,7 +149,6 @@ class BackendLuaSymbols(
     val luaIsShort: IrSimpleFunctionSymbol by LuaCallableIds.isShort.functionSymbol()
 
     val luaError: IrSimpleFunctionSymbol by LuaCallableIds.luaError.functionSymbol()
-    val luaPairTable: IrSimpleFunctionSymbol by LuaCallableIds.luaPairTable.functionSymbol()
     val luaPCall: IrSimpleFunctionSymbol by LuaCallableIds.luaPCall.functionSymbol()
     val luaInternalError: IrClassSymbol by lazy {
         LuaClassIds.LuaInternalError.classSymbol()
@@ -157,6 +156,8 @@ class BackendLuaSymbols(
 
     val luaMultiReturn: IrSimpleFunctionSymbol by LuaCallableIds.luaMultiReturn.functionSymbol()
     val luaPackToTable: IrSimpleFunctionSymbol by LuaCallableIds.luaPackToTable.functionSymbol()
+
+    val luaMainArgs: IrSimpleFunctionSymbol by LuaCallableIds.luaMainArgs.functionSymbol()
 
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
@@ -267,9 +268,10 @@ private object LuaCallableIds {
     val isShort = "isShort".luaCallableId
 
     val luaError = "luaError".luaCallableId
-    val luaPairTable = "luaPairTable".luaCallableId
     val luaPCall = "luaPCall".luaCallableId
 
     val luaMultiReturn = "luaMultiReturn".luaCallableId
     val luaPackToTable = "luaPackToTable".luaCallableId
+
+    val luaMainArgs = "luaMainArgs".luaCallableId
 }

@@ -34,6 +34,9 @@ object LuaConfigurationKeys {
 
     @JvmField
     val NO_PACK = CompilerConfigurationKey.create<Boolean>("NO_PACK")
+
+    @JvmField
+    val CALL_MAIN = CompilerConfigurationKey.create<Boolean>("CALL_MAIN")
 }
 
 var CompilerConfiguration.includes: String?
@@ -64,4 +67,9 @@ var CompilerConfiguration.nopack: Boolean
     get() = getBoolean(LuaConfigurationKeys.NO_PACK)
     set(value) {
         put(LuaConfigurationKeys.NO_PACK, value)
+    }
+var CompilerConfiguration.callMain: Boolean
+    get() = get(LuaConfigurationKeys.CALL_MAIN, true)
+    set(value) {
+        put(LuaConfigurationKeys.CALL_MAIN, value)
     }

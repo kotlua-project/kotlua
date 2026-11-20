@@ -24,6 +24,7 @@ import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.dce.runSimpleDce
+import io.github.kotlua.ir.lower.mainFunctionWrapper
 import io.github.kotlua.ir.utils.*
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
@@ -60,9 +61,32 @@ class IrModuleToLuaTransformer(
                 }
             }
 
+        val mainCallStatements =
+            if (backendContext.callMain) {
+                LuaMainFunctionDetector(backendContext)
+                    .getMainFunctionOrNull(mainModule)
+                    ?.mainFunctionWrapper
+                    ?.let { wrapper ->
+                        val genContext =
+                            LuaGenerationContext(
+                                staticContext = context,
+                                currentScope = context.rootScope,
+                                localNames = NameTable(LuaModuleReservedScope),
+                            )
+                        listOf(
+                            LuaExpression.FunctionCall(
+                                target = genContext.getRefForStaticDeclaration(wrapper),
+                                args = emptyList(),
+                            ),
+                        )
+                    }.orEmpty()
+            } else {
+                emptyList()
+            }
+
         val classStatements = generateClassesInTopologicalOrder(modules, context)
         val footer = listOf(LuaStatement.Return(listOf(context.moduleTableName)))
-        val statements = header + fileDeclarations + classStatements + context.initializerBlock + footer
+        val statements = header + fileDeclarations + classStatements + context.initializerBlock + mainCallStatements + footer
 
         val textOutput = LuaTextOutput()
         val luaCode =
