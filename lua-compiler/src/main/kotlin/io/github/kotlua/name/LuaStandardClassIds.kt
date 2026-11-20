@@ -34,6 +34,9 @@ object LuaStandardClassIds {
 
         @JvmField
         val LuaIntrinsic = "LuaIntrinsic".luaId()
+
+        @JvmField
+        val LuaMultiReturn = "LuaMultiReturn".luaId()
     }
 
     object Callables {

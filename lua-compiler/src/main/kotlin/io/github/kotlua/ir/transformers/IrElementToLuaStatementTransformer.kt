@@ -23,6 +23,7 @@ import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.ast.LuaUnaryOperator
 import io.github.kotlua.ast.scope.LuaLocalScope
+import io.github.kotlua.ir.lower.LuaMultiReturnLowering
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
 import io.github.kotlua.ir.utils.luaElementAccess
@@ -114,6 +115,21 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         expression: IrComposite,
         data: LuaGenerationContext,
     ): LuaStatement {
+        if (expression.origin == LuaMultiReturnLowering.LUA_MULTI_ASSIGN_ORIGIN) {
+            val call = expression.statements.last() as IrExpression
+            val names =
+                expression.statements.dropLast(1).map { stmt ->
+                    when (stmt) {
+                        is IrVariable -> data.getNameForValueDeclaration(stmt)
+                        else -> LuaName("_")
+                    }
+                }
+            return LuaStatement.LocalVarDeclaration(
+                names = names,
+                initializers = listOf(call.accept(exprTransformer, data)),
+            )
+        }
+
         val statements =
             expression.statements
                 .map { it.accept(this, data) }

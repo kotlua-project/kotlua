@@ -148,6 +148,16 @@ class BackendLuaSymbols(
     val luaIsByte: IrSimpleFunctionSymbol by LuaCallableIds.isByte.functionSymbol()
     val luaIsShort: IrSimpleFunctionSymbol by LuaCallableIds.isShort.functionSymbol()
 
+    val luaError: IrSimpleFunctionSymbol by LuaCallableIds.luaError.functionSymbol()
+    val luaPairTable: IrSimpleFunctionSymbol by LuaCallableIds.luaPairTable.functionSymbol()
+    val luaPCall: IrSimpleFunctionSymbol by LuaCallableIds.luaPCall.functionSymbol()
+    val luaInternalError: IrClassSymbol by lazy {
+        LuaClassIds.LuaInternalError.classSymbol()
+    }
+
+    val luaMultiReturn: IrSimpleFunctionSymbol by LuaCallableIds.luaMultiReturn.functionSymbol()
+    val luaPackToTable: IrSimpleFunctionSymbol by LuaCallableIds.luaPackToTable.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
     override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
@@ -160,10 +170,13 @@ private object LuaClassIds {
     val StringBuilder = ClassId(StandardClassIds.BASE_TEXT_PACKAGE, Name.identifier("StringBuilder"))
 
     private val String.luaInternalClassId get() = ClassId(BASE_LUA_INTERNAL_PACKAGE, Name.identifier(this))
+    private val String.luaClassId get() = ClassId(BASE_LUA_PACKAGE, Name.identifier(this))
 
     val EnumEntries = "EnumEntries".luaInternalClassId
     val FunctionAdapter = "FunctionAdapter".luaInternalClassId
     val DefaultConstructorMarker = "DefaultConstructorMarker".luaInternalClassId
+
+    val LuaInternalError = "LuaInternalError".luaClassId
 
     val Continuation = ClassId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("Continuation"))
 }
@@ -252,4 +265,11 @@ private object LuaCallableIds {
     val isInt = "isInt".luaCallableId
     val isByte = "isByte".luaCallableId
     val isShort = "isShort".luaCallableId
+
+    val luaError = "luaError".luaCallableId
+    val luaPairTable = "luaPairTable".luaCallableId
+    val luaPCall = "luaPCall".luaCallableId
+
+    val luaMultiReturn = "luaMultiReturn".luaCallableId
+    val luaPackToTable = "luaPackToTable".luaCallableId
 }

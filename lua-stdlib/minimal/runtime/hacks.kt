@@ -1,33 +1,21 @@
-@file:OptIn(LuaIntrinsic::class)
-
 package kotlin
 
 import kotlin.internal.UsedFromCompilerGeneratedCode
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode
-internal fun THROW_NPE(): Nothing {
-    lua("error('NullPointerException')")
-    unreachable()
-}
+internal fun THROW_NPE(): Nothing = throw NullPointerException()
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode
-internal fun THROW_IAE(msg: String): Nothing {
-    lua("error('IllegalArgumentException: ' .. msg)")
-    unreachable()
-}
+internal fun THROW_IAE(msg: String): Nothing = throw IllegalArgumentException(msg)
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode
-internal fun THROW_CCE(): Nothing {
-    lua("error('ClassCastException')")
-    unreachable()
-}
+internal fun THROW_CCE(): Nothing = throw ClassCastException()
 
 @UsedFromCompilerGeneratedCode
-internal fun noWhenBranchMatchedException(): Nothing =
-    lua("error('NoWhenBranchMatchedException')")
+internal fun noWhenBranchMatchedException(): Nothing = throw NoWhenBranchMatchedException()
 
 @PublishedApi
 @UsedFromCompilerGeneratedCode

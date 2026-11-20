@@ -27,10 +27,13 @@ import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
 import io.github.kotlua.ir.lower.LuaCallableReferenceLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
 import io.github.kotlua.ir.lower.LuaLoopLowering
+import io.github.kotlua.ir.lower.LuaMultiReturnLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
+import io.github.kotlua.ir.lower.LuaTryCatchLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.LuaVarargLowering
+import io.github.kotlua.ir.lower.MultipleCatchesLowering
 import io.github.kotlua.ir.lower.ObjectDeclarationLowering
 import io.github.kotlua.ir.lower.ObjectUsageLowering
 import io.github.kotlua.ir.lower.PrimitiveCompanionLowering
@@ -144,11 +147,14 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::ForLoopsLowering,
         ::PrimitiveCompanionLowering,
         ::ObjectUsageLowering,
+        ::MultipleCatchesLowering,
+        ::LuaTryCatchLowering,
         ::ExpressionBodyTransformer,
         ::LuaTypeOperatorLowering,
         ::LuaBlockDecomposerLowering,
         ::LuaVarargLowering,
         ::LuaLoopLowering,
+        ::LuaMultiReturnLowering,
         ::CallsLowering,
     )
 

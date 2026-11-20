@@ -348,3 +348,8 @@ internal fun isShort(o: Any?): Boolean =
             luaEq(luaMod(o, 1), 0) &&
             luaGte(o, -32768.0) &&
             luaLte(o, 32767.0)
+
+@UsedFromCompilerGeneratedCode
+internal class LuaInternalError(
+    val rawError: Any?,
+) : Error(anyToString(rawError))

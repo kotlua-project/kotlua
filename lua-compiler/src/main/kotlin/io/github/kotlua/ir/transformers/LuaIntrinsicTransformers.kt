@@ -29,7 +29,9 @@ import io.github.kotlua.ir.utils.LuaGenerationContext
 import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
+import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.symbols.IrConstructorSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
@@ -162,6 +164,15 @@ class LuaExpressionIntrinsicTransformers(
                             ?: compilationException("luaClass requires a class type argument", call)
                     context.getRefForStaticDeclaration(klass)
                 }
+                withTranslatedArgs(symbols.luaError) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("error"), args = listOf(args[0]))
+                }
+                withTranslatedArgs(symbols.luaPCall) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("pcall"), args = listOf(args[0]))
+                }
+                withTranslatedArgs(symbols.luaPackToTable) { args ->
+                    LuaExpression.TableConstructor(listOf(LuaField.Positional(args[0])))
+                }
             }
     }
 
@@ -201,6 +212,18 @@ class LuaStatementIntrinsicTransformers(
                 }
                 withTranslatedArgs(symbols.luaSetMetatable) { args ->
                     LuaExpression.FunctionCall(target = LuaName("setmetatable"), args = listOf(args[0], args[1]))
+                }
+                withTranslatedArgs(symbols.luaError) { args ->
+                    LuaExpression.FunctionCall(target = LuaName("error"), args = listOf(args[0]))
+                }
+                put(symbols.luaMultiReturn) { call, context ->
+                    val vararg = call.arguments[0] as IrVararg
+                    val exprTransformer = IrElementToLuaExpressionTransformer()
+                    val values =
+                        vararg.elements.map { element ->
+                            (element as IrExpression).accept(exprTransformer, context)
+                        }
+                    LuaStatement.Return(values)
                 }
             }
     }

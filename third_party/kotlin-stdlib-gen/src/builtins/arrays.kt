@@ -254,9 +254,7 @@ class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
     override fun FileBuilder.modifyGeneratedFile() {
         import("kotlin.lua.*")
         annotate("OptIn(LuaIntrinsic::class)")
-        suppress("NON_ABSTRACT_FUNCTION_WITH_NO_BODY")
         suppress("UNUSED_PARAMETER")
-        suppress("MUST_BE_INITIALIZED_OR_BE_ABSTRACT")
     }
 
     override fun arrayBuilder(kind: PrimitiveType?): ArrayBuilder = object : ArrayBuilder(kind) {
@@ -296,28 +294,29 @@ class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
                 ""
             }
 
-            classBody("""
-               	private var storage: dynamic
-    
-               	private var _size: Int
-    
-               	init {
-               	    if (size < 0) lua("error('Negative array size')")
-               	    storage = luaEmptyTable()
-               	    _size = size
-               	    $fillLoop
-               	}
-    
-               	@PublishedApi
-               	@kotlin.internal.UsedFromCompilerGeneratedCode
-               	internal constructor(
-               	    table: dynamic,
-               	    count: Int,
-               	    @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
-               	) : this(0) {
-               	    storage = table
-               	    _size = count
-               	}
+            classBody(
+                $$"""
+                private var storage: dynamic
+
+                private var _size: Int
+
+                init {
+                    if (size < 0) throw IllegalArgumentException("Negative array size: $size")
+                    storage = luaEmptyTable()
+                    _size = size
+                    $$fillLoop
+                }
+
+                @PublishedApi
+                @kotlin.internal.UsedFromCompilerGeneratedCode
+                internal constructor(
+                    table: dynamic,
+                    count: Int,
+                    @Suppress("UNUSED_PARAMETER") rawMarker: Boolean,
+                ) : this(0) {
+                    storage = table
+                    _size = count
+                }
             """.trimIndent(),
             )
         }
@@ -336,15 +335,15 @@ class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
         }
 
         override fun MethodBuilder.modifyGetOperator() {
-            """
-                if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
-                return luaTableGet(storage, index + 1).unsafeCast<$elementTypeName>()
+            $$"""
+                if (index < 0 || index >= _size) throw IndexOutOfBoundsException("Index $index out of bounds for length $_size")
+                return luaTableGet(storage, index + 1).unsafeCast<$$elementTypeName>()
             """.trimIndent().setAsBlockBody()
         }
 
         override fun MethodBuilder.modifySetOperator() {
-            """
-                if (index < 0 || index >= _size) lua("error('IndexOutOfBoundsException')")
+            $$"""
+                if (index < 0 || index >= _size) throw IndexOutOfBoundsException("Index $index out of bounds for length $_size")
                 luaTableSet(storage, index + 1, value)
             """.trimIndent().setAsBlockBody()
         }
@@ -358,27 +357,7 @@ class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
         }
 
         override fun FileBuilder.modifyGeneratedFileAfterClass() {
-            klass {
-                visibility = MethodVisibility.PRIVATE
-                name = arrayIteratorImplClassName
-                if (kind == null) typeParam("T")
-                superType(iteratorClassName + if (kind == null) "<T>" else "()")
-                primaryConstructor {
-                    parameter {
-                        visibility = null
-                        name = "val array"
-                        type = arrayTypeName
-                    }
-                }
-                classBody(
-                    """
-                    private var index = 0
-                    override fun hasNext() = index < array.size
-                    override fun next${kind?.capitalized ?: ""}() =
-                        if (index < array.size) array[index++] else lua("error('NoSuchElementException')")
-                    """.trimIndent(),
-                )
-            }
+            generateArrayIteratorClass()
         }
     }
 }

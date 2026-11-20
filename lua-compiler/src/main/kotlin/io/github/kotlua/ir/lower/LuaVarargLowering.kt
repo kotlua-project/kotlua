@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrSpreadElement
 import org.jetbrains.kotlin.ir.expressions.IrVararg
@@ -49,6 +50,17 @@ class LuaVarargLowering(
 
         irBody.transformChildrenVoid(
             object : IrElementTransformerVoid() {
+                override fun visitCall(expression: IrCall): IrExpression {
+                    if (expression.symbol == context.symbols.luaMultiReturn) {
+                        val arg = expression.arguments[0]
+                        if (arg is IrVararg) {
+                            arg.elements.forEach { it.transformChildrenVoid(this) }
+                            return expression
+                        }
+                    }
+                    return super.visitCall(expression)
+                }
+
                 override fun visitVararg(expression: IrVararg): IrExpression {
                     expression.transformChildrenVoid(this)
 

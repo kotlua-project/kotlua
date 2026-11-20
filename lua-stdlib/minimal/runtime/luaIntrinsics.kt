@@ -136,3 +136,20 @@ internal fun <T : Any> luaClass(): Any?
 @LuaIntrinsic
 @UsedFromCompilerGeneratedCode
 internal fun unreachable(): Nothing
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun luaError(value: Any?): Nothing
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun luaMultiReturn(vararg values: Any?): Nothing
+
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun luaPackToTable(value: Any?): Any?
+
+@LuaMultiReturn
+@LuaIntrinsic
+@UsedFromCompilerGeneratedCode
+internal fun luaPCall(fn: () -> Any?): Triple<Boolean, Any?, Any?>

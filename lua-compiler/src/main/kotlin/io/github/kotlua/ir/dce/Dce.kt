@@ -18,6 +18,7 @@ package io.github.kotlua.ir.dce
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.utils.isIgnoredClass
 import io.github.kotlua.ir.utils.isMethodOfAny
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.declarations.*
@@ -31,6 +32,7 @@ import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
 import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.constructedClass
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isTopLevel
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
@@ -105,10 +107,13 @@ fun runSimpleDce(
 
             override fun visitCall(expression: IrCall) {
                 super.visitCall(expression)
-                enqueue(expression.symbol.owner)
-                expression.type.classOrNull
-                    ?.owner
-                    ?.let { enqueue(it) }
+                val callee = expression.symbol.owner
+                enqueue(callee)
+                if (!callee.isLuaMultiReturnOrIntrinsic()) {
+                    expression.type.classOrNull
+                        ?.owner
+                        ?.let { enqueue(it) }
+                }
                 for (typeArg in expression.typeArguments) {
                     typeArg?.classOrNull?.owner?.let(::enqueue)
                 }
@@ -160,9 +165,11 @@ fun runSimpleDce(
     while (queue.isNotEmpty()) {
         when (val current = queue.removeFirst()) {
             is IrSimpleFunction -> {
-                current.returnType.classOrNull
-                    ?.owner
-                    ?.let { enqueue(it) }
+                if (!current.isLuaMultiReturnOrIntrinsic()) {
+                    current.returnType.classOrNull
+                        ?.owner
+                        ?.let { enqueue(it) }
+                }
                 current.parameters.forEach { param ->
                     param.type.classOrNull
                         ?.owner
@@ -177,9 +184,11 @@ fun runSimpleDce(
             }
 
             is IrFunction -> {
-                current.returnType.classOrNull
-                    ?.owner
-                    ?.let { enqueue(it) }
+                if (!current.isLuaMultiReturnOrIntrinsic()) {
+                    current.returnType.classOrNull
+                        ?.owner
+                        ?.let { enqueue(it) }
+                }
                 current.parameters.forEach { param ->
                     param.type.classOrNull
                         ?.owner
@@ -277,3 +286,7 @@ private fun isKept(
 
     return false
 }
+
+private fun IrFunction.isLuaMultiReturnOrIntrinsic(): Boolean =
+    hasAnnotation(LuaStandardClassIds.Annotations.LuaMultiReturn) ||
+        hasAnnotation(LuaStandardClassIds.Annotations.LuaIntrinsic)
