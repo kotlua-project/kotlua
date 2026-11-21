@@ -15,7 +15,6 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
 class FunctionReferencesBoxTest : AbstractKotluaTest() {
@@ -322,7 +321,6 @@ class FunctionReferencesBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled("TODO: OOP / SAM conversions")
     fun `SAM conversion for fun interface`() {
         assertBoxOk(
             """

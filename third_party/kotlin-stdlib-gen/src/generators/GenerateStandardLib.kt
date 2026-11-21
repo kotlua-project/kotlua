@@ -17,6 +17,9 @@ import kotlin.system.exitProcess
  * at runtime.
  */
 fun main(args: Array<String>) {
+    val minimal = "-minimal" in args
+    val positionalArgs = args.filterNot { it == "-minimal" }
+
     val templateGroups = sequenceOf<TemplateGroup>(
         Elements,
         Filtering,
@@ -37,20 +40,29 @@ fun main(args: Array<String>) {
 
     val targetBaseDirs = mutableMapOf<KotlinTarget, File>()
 
-    when (args.size) {
+    when (positionalArgs.size) {
         1 -> {
-            val baseDir = File(args.first())
-            targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/src/generated")
+            val baseDir = File(positionalArgs.first())
+            if (minimal) {
+                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/build/common/generated")
+                targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/minimal/build/generated")
+            } else {
+                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/build/common/generated")
+                targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/src/generated")
+            }
         }
         else -> {
             println("""Parameters:
-    <kotlin-base-dir> - generates sources for lua target using path derived from specified base path
+    [-minimal] <kotlin-base-dir> - generates sources for lua target using path derived from specified base path
 """)
             exitProcess(1)
         }
     }
 
-    templateGroups.groupByFileAndWrite(targetsToGenerate = targetBaseDirs.keys) { (val target, val sourceFile) ->
+    templateGroups.groupByFileAndWrite(
+        targetsToGenerate = targetBaseDirs.keys,
+        minimal = minimal,
+    ) { (val target, val sourceFile) ->
         val targetDir = targetBaseDirs[target] ?: error("Target $target directory is not configured")
         val platformSuffix = when (val platform = target.platform) {
             Platform.Common -> ""

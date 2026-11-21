@@ -26,6 +26,14 @@ tasks {
         }
     }
 
+    register<JavaExec>("runMinimal") {
+        group = "application"
+        mainClass = "generators.GenerateStandardLibKt"
+        classpath = sourceSets.main.get().runtimeClasspath
+        args = listOf("-minimal", "$mainProjectRootDir")
+        systemProperty("line.separator", "\n")
+    }
+
     register<JavaExec>("run") {
         group = "application"
         mainClass = "generators.GenerateStandardLibKt"

@@ -42,38 +42,53 @@ data class TargetedSourceFile(
 
 @JvmName("groupByFileAndWriteGroups")
 fun Sequence<TemplateGroup>.groupByFileAndWrite(
-        targetsToGenerate: Collection<KotlinTarget>,
-        fileNameBuilder: (TargetedSourceFile) -> File
+    targetsToGenerate: Collection<KotlinTarget>,
+    minimal: Boolean = false,
+    fileNameBuilder: (TargetedSourceFile) -> File,
 ) {
     flatMap { group ->
         group.invoke()
-                .flatMap { it.instantiate(targetsToGenerate) }
-                .sortedBy { it.sortingSignature }
-    }.groupByFileAndWrite(fileNameBuilder)
+            .flatMap { it.instantiate(targetsToGenerate) }
+            .sortedBy { it.sortingSignature }
+    }.let { members ->
+        if (minimal) {
+            members.filter { member ->
+                !member.excludedIfMinimal &&
+                        when (member.target.platform) {
+                            Platform.Common -> member.isExpectDeclaration
+                            else -> member.isActualDeclaration
+                        }
+            }
+        } else {
+            members
+        }
+    }.groupByFileAndWrite(minimal, fileNameBuilder)
 }
 
 @JvmName("groupByFileAndWriteTemplates")
 fun Sequence<MemberTemplate>.groupByFileAndWrite(
         targetsToGenerate: Collection<KotlinTarget>,
-        fileNameBuilder: (TargetedSourceFile) -> File
+        fileNameBuilder: (TargetedSourceFile) -> File,
+        minimal: Boolean = false
 ) {
     flatMap { it.instantiate(targetsToGenerate) }
-        .groupByFileAndWrite(fileNameBuilder)
+        .groupByFileAndWrite(minimal, fileNameBuilder)
 }
 
 @JvmName("groupByFileAndWriteMembers")
 fun Sequence<MemberBuilder>.groupByFileAndWrite(
-        fileNameBuilder: (TargetedSourceFile) -> File
+    minimal: Boolean = false,
+    fileNameBuilder: (TargetedSourceFile) -> File,
 ) {
     val groupedMembers = groupBy { TargetedSourceFile(it.target, it.sourceFile) }
 
     for ([psf, members] in groupedMembers) {
         val file = fileNameBuilder(psf)
-        members.writeTo(file, psf)
+        members.writeTo(file, psf, minimal)
     }
 }
 
-fun List<MemberBuilder>.writeTo(file: File, targetedSource: TargetedSourceFile) {
+fun List<MemberBuilder>.writeTo(file: File, targetedSource: TargetedSourceFile, minimal: Boolean) {
     val (target, sourceFile) = targetedSource
     println("Generating file: $file")
     file.parentFile.mkdirs()
@@ -107,11 +122,11 @@ fun List<MemberBuilder>.writeTo(file: File, targetedSource: TargetedSourceFile) 
                 writer.appendLine("import withType")
             }
         }
-        if (target.platform == Platform.Common) {
+        if (target.platform == Platform.Common && !minimal) {
             writer.appendLine("import kotlin.contracts.*")
             writer.appendLine("import kotlin.random.*")
         }
-        if (sourceFile.packageName == "kotlin.collections") {
+        if (sourceFile.packageName == "kotlin.collections" && !(minimal && target.platform == Platform.Common)) {
             writer.appendLine("import kotlin.ranges.contains")
             writer.appendLine("import kotlin.ranges.reversed")
         }

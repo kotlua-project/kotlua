@@ -17,6 +17,7 @@ package io.github.kotlua.ir.utils
 
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationWithName
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrFunction
@@ -130,10 +131,13 @@ fun luaFunctionSignature(declaration: IrFunction): String {
         "Member function '${declaration.name}' must have dispatchReceiverParameter"
     }
     val targetDeclaration = (declaration as? IrSimpleFunction)?.resolveFakeOverride() ?: declaration
-    if (targetDeclaration is IrSimpleFunction &&
-        (targetDeclaration.isMethodOfAny() || targetDeclaration.isComparableCompareTo())
-    ) {
-        return "${targetDeclaration.name.asString()}_k"
+    if (targetDeclaration is IrSimpleFunction) {
+        if (targetDeclaration.origin == IrDeclarationOrigin.BRIDGE && targetDeclaration.overriddenSymbols.size == 1) {
+            return luaFunctionSignature(targetDeclaration.overriddenSymbols.single().owner)
+        }
+        if (targetDeclaration.isMethodOfAny() || targetDeclaration.isComparableCompareTo()) {
+            return "${targetDeclaration.name.asString()}_k"
+        }
     }
     return calculateLuaFunctionSignature(targetDeclaration)
 }

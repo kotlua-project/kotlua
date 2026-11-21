@@ -153,6 +153,26 @@ object ArrayOps : TemplateGroupBase() {
         on(Platform.JS) {
             body { "return contentEqualsInternal(other)" }
         }
+        on(Platform.Lua) {
+            fun notEq(operand1: String, operand2: String) = when {
+                primitive?.isFloatingPoint() == true -> "!$operand1.equals($operand2)"
+                else -> "$operand1 != $operand2"
+            }
+            body {
+                """
+                if (this === other) return true
+                if (this === null || other === null) return false
+                if (size != other.size) return false
+                var i = 0
+                val n = size
+                while (i < n) {
+                    if (${notEq("this[i]", "other[i]")}) return false
+                    i++
+                }
+                return true
+                """
+            }
+        }
         on(Platform.Native) {
             fun notEq(operand1: String, operand2: String) = when {
                 primitive?.isFloatingPoint() == true -> "!$operand1.equals($operand2)"
@@ -234,6 +254,7 @@ object ArrayOps : TemplateGroupBase() {
     val f_contentToString_nullable = fn("contentToString()") {
         include(ArraysOfObjects, ArraysOfPrimitives, ArraysOfUnsigned)
     } builder {
+        excludeIfMinimal()
         since("1.4")
         doc {
             """
@@ -247,7 +268,9 @@ object ArrayOps : TemplateGroupBase() {
             body { """return this?.joinToString(", ", "[", "]") ?: "null"""" }
             return@builder
         }
-
+        on(Platform.Lua) {
+            body { """return this?.joinToString(", ", "[", "]") ?: "null"""" }
+        }
         on(Platform.JVM) {
             inlineOnly()
             body { "return java.util.Arrays.toString(this)" }
@@ -319,7 +342,21 @@ object ArrayOps : TemplateGroupBase() {
             body { "return this?.storage.contentHashCode()" }
             return@builder
         }
-
+        on(Platform.Lua) {
+            body {
+                """
+                if (this === null) return 0
+                var result = 1
+                var i = 0
+                val n = size
+                while (i < n) {
+                    result = 31 * result + this[i]!!.hashCode()
+                    i++
+                }
+                return result
+                """
+            }
+        }
         on(Platform.JVM) {
             inlineOnly()
             body { "return java.util.Arrays.hashCode(this)" }
@@ -521,7 +558,10 @@ object ArrayOps : TemplateGroupBase() {
                 body { """return this.asDynamic().concat(arrayOf(element))""" }
                 return@builder
             }
-
+            on(Platform.Lua) {
+                inlineOnly()
+                body { "return plus(element)" }
+            }
             on(Platform.JVM) {
                 inlineOnly()
                 body { "return plus(element)" }
@@ -576,6 +616,24 @@ object ArrayOps : TemplateGroupBase() {
                         val result = java.util.Arrays.copyOf(this, index + 1)
                         result[index] = element
                         return result
+                        """
+                    }
+                }
+                on(Platform.Lua) {
+                    val returnStmt = if (f == InvariantArraysOfObjects) {
+                        """
+                        @Suppress("UNCHECKED_CAST")
+                        return result as Array<T>
+                        """.trimIndent()
+                    } else {
+                        "return result"
+                    }
+                    body {
+                        """
+                        val index = size
+                        val result = this.copyOf(index + 1)
+                        result[index] = element
+                        $returnStmt
                         """
                     }
                 }
@@ -650,6 +708,24 @@ object ArrayOps : TemplateGroupBase() {
                         """
                     }
                 }
+                on(Platform.Lua) {
+                    val returnStmt = if (f == InvariantArraysOfObjects) {
+                        """
+                        @Suppress("UNCHECKED_CAST")
+                        return result as Array<T>
+                        """.trimIndent()
+                    } else {
+                        "return result"
+                    }
+                    body {
+                        """
+                        var index = size
+                        val result = this.copyOf(index + elements.size)
+                        for (element in elements) result[index++] = element
+                        $returnStmt
+                        """
+                    }
+                }
                 on(Platform.JS) {
                     // TODO: inline arrayPlusCollection when @PublishedAPI is available
                     // inline(Platform.JS, Inline.Yes)
@@ -713,6 +789,26 @@ object ArrayOps : TemplateGroupBase() {
             specialFor(InvariantArraysOfObjects, ArraysOfPrimitives) {
                 specialFor(InvariantArraysOfObjects) {
                     signature("plus(elements: Array<out T>)", notForSorting = true)
+                }
+
+                on(Platform.Lua) {
+                    val resultDecl = if (f == InvariantArraysOfObjects) {
+                        """
+                        @Suppress("UNCHECKED_CAST")
+                        val result = this.copyOf(thisSize + arraySize) as Array<T>
+                        """.trimIndent()
+                    } else {
+                        "val result = this.copyOf(thisSize + arraySize)"
+                    }
+                    body {
+                        """
+                        val thisSize = size
+                        val arraySize = elements.size
+                        $resultDecl
+                        elements.copyInto(result, thisSize)
+                        return result
+                        """
+                    }
                 }
 
                 on(Platform.JVM) {
@@ -805,8 +901,34 @@ object ArrayOps : TemplateGroupBase() {
             on(Platform.Lua) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
                 signature("copyInto(destination: SELF, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size)")
-                inlineOnly()
-                // TODO
+                body {
+                    $$"""
+                    if (startIndex < 0 || endIndex > size) {
+                        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+                    }
+                    if (startIndex > endIndex) {
+                        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+                    }
+                    val rangeSize = endIndex - startIndex
+                    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+                        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+                    }
+                    if (this === destination && destinationOffset > startIndex) {
+                        var i = rangeSize - 1
+                        while (i >= 0) {
+                            destination[destinationOffset + i] = this[startIndex + i]
+                            i--
+                        }
+                    } else {
+                        var i = 0
+                        while (i < rangeSize) {
+                            destination[destinationOffset + i] = this[startIndex + i]
+                            i++
+                        }
+                    }
+                    return destination
+                    """
+                }
             }
             on(Platform.JS) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
@@ -920,6 +1042,30 @@ object ArrayOps : TemplateGroupBase() {
                     }
                     body { rangeCheck + "\n" + body }
                 }
+                on(Platform.Lua) {
+                    val alloc = if (f == InvariantArraysOfObjects) {
+                        """
+                        @Suppress("UNCHECKED_CAST")
+                        val result = Array<Any?>(newSize) as Array<T>
+                        """.trimIndent()
+                    } else {
+                        "val result = SELF(newSize)"
+                    }
+                    body {
+                        $$"""
+                        if (fromIndex < 0 || toIndex > size) {
+                            throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+                        }
+                        if (fromIndex > toIndex) {
+                            throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+                        }
+                        val newSize = toIndex - fromIndex
+                        $$alloc
+                        this.copyInto(result, 0, fromIndex, toIndex)
+                        return result
+                        """
+                    }
+                }
                 on(Platform.JVM) {
                     annotation("""@JvmName("copyOfRangeInline")""")
                     inlineOnly()
@@ -1016,6 +1162,22 @@ object ArrayOps : TemplateGroupBase() {
                     inlineOnly()
                     body { "return java.util.Arrays.copyOf(this, size)" }
                 }
+                on(Platform.Lua) {
+                    val alloc = if (f == InvariantArraysOfObjects) {
+                        """
+                        @Suppress("UNCHECKED_CAST")
+                        val result = Array<Any?>(size) as Array<T>
+                        """.trimIndent()
+                    } else {
+                        "val result = SELF(size)"
+                    }
+                    body {
+                        """
+                        $alloc
+                        return this.copyInto(result)
+                        """
+                    }
+                }
                 on(Platform.JS) {
                     when (primitive) {
                         null -> {
@@ -1083,6 +1245,17 @@ object ArrayOps : TemplateGroupBase() {
             specialFor(ArraysOfPrimitives) {
                 sample("samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf")
                 returns("SELF")
+                on(Platform.Lua) {
+                    body {
+                        """
+                        $newSizeCheck
+                        val result = SELF(newSize)
+                        val copyCount = if (size < newSize) size else newSize
+                        this.copyInto(result, 0, 0, copyCount)
+                        return result
+                        """
+                    }
+                }
                 on(Platform.JS) {
                     /**
                      * Benchmarking showed that when copying a small number of elements (typically < 20),
@@ -1145,6 +1318,18 @@ object ArrayOps : TemplateGroupBase() {
             specialFor(InvariantArraysOfObjects) {
                 sample("samples.collections.Arrays.CopyOfOperations.resizingCopyOf")
                 returns("Array<T?>")
+                on(Platform.Lua) {
+                    body {
+                        """
+                        $newSizeCheck
+                        @Suppress("UNCHECKED_CAST")
+                        val result = Array<Any?>(newSize) as Array<T?>
+                        val copyCount = if (size < newSize) size else newSize
+                        this.copyInto(result, 0, 0, copyCount)
+                        return result
+                        """
+                    }
+                }
                 on(Platform.JS) {
                     inlineOnly()
                     deprecate(Deprecation("Provided for expect-actual matching", level = DeprecationLevel.HIDDEN))
@@ -1246,6 +1431,9 @@ object ArrayOps : TemplateGroupBase() {
         }
 
         specialFor(ArraysOfPrimitives, ArraysOfObjects) {
+            on(Platform.Lua) {
+                body { "if (size > 1) sort(0, size)" }
+            }
             on(Platform.JS) {
                 body {
                     """if (size > 1) sortArray(this)"""
@@ -1297,6 +1485,9 @@ object ArrayOps : TemplateGroupBase() {
         doc { "Sorts the array in-place according to the order specified by the given [comparator]." }
         appendStableSortNote()
         returns("Unit")
+        on(Platform.Lua) {
+            body { "if (size > 1) sortWith(comparator, 0, size)" }
+        }
         on(Platform.JVM) {
             body {
                 "if (size > 1) java.util.Arrays.sort(this, comparator)"
@@ -1424,6 +1615,13 @@ object ArrayOps : TemplateGroupBase() {
         }
         on(Platform.Lua) {
             suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+            body {
+                if (f == ArraysOfObjects || primitive?.isFloatingPoint() == true) {
+                    "sortArrayComparable(storage, size, fromIndex, toIndex)"
+                } else {
+                    "sortArrayPrimitive(storage, size, fromIndex, toIndex)"
+                }
+            }
         }
         on(Platform.JS) {
             since("1.4")
@@ -1468,6 +1666,7 @@ object ArrayOps : TemplateGroupBase() {
         returns("Unit")
         on(Platform.Lua) {
             suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+            body { "sortArrayWith(storage, size, fromIndex, toIndex, comparator)" }
         }
         on(Platform.JVM) {
             suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
@@ -1688,6 +1887,21 @@ object ArrayOps : TemplateGroupBase() {
             }
             on(Platform.Lua) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
+                body {
+                    $$"""
+                    if (fromIndex < 0 || toIndex > size) {
+                        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+                    }
+                    if (fromIndex > toIndex) {
+                        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+                    }
+                    var index = fromIndex
+                    while (index < toIndex) {
+                        this[index] = element
+                        index++
+                    }
+                    """
+                }
             }
             on(Platform.JS) {
                 suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")

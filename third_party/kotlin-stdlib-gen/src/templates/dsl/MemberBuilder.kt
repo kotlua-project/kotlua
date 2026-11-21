@@ -70,6 +70,17 @@ class MemberBuilder(
     val annotations: MutableSet<String> = mutableSetOf()
     val suppressions: MutableList<String> = mutableListOf()
     val wasExperimentalAnnotations: MutableSet<String> = mutableSetOf()
+    val isExpectDeclaration: Boolean
+        get() = !legacyMode && target.platform == Platform.Common && hasPlatformSpecializations
+
+    val isActualDeclaration: Boolean
+        get() = !legacyMode && (explicitActual || target.platform != Platform.Common && Platform.Common in allowedPlatforms)
+
+    var excludedIfMinimal: Boolean = false; private set
+
+    fun excludeIfMinimal(value: Boolean = true) {
+        excludedIfMinimal = value
+    }
 
     fun sourceFile(file: SourceFile) { sourceFile = file }
 
@@ -184,8 +195,8 @@ class MemberBuilder(
         val headerOnly: Boolean
         val isImpl: Boolean
         if (!legacyMode) {
-            headerOnly = target.platform == Platform.Common && hasPlatformSpecializations
-            isImpl = explicitActual || target.platform != Platform.Common && Platform.Common in allowedPlatforms
+            headerOnly = isExpectDeclaration
+            isImpl = isActualDeclaration
         }
         else {
             // legacy mode when all is headerOnly + no_impl

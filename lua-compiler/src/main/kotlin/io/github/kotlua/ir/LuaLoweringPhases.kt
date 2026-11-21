@@ -24,11 +24,13 @@ import io.github.kotlua.ir.lower.EnumEntryInstancesLowering
 import io.github.kotlua.ir.lower.EnumSyntheticFunctionsAndPropertiesLowering
 import io.github.kotlua.ir.lower.EnumUsageLowering
 import io.github.kotlua.ir.lower.LuaBlockDecomposerLowering
+import io.github.kotlua.ir.lower.LuaBridgeLowering
 import io.github.kotlua.ir.lower.LuaCallableReferenceLowering
 import io.github.kotlua.ir.lower.LuaCodeOutliningLowering
 import io.github.kotlua.ir.lower.LuaLoopLowering
 import io.github.kotlua.ir.lower.LuaMultiReturnLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
+import io.github.kotlua.ir.lower.LuaSingleAbstractMethodLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
 import io.github.kotlua.ir.lower.LuaTryCatchLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
@@ -122,6 +124,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::ExpectDeclarationsRemoveLowering,
         ::StripTypeAliasDeclarationsLowering,
         ::TailrecLowering,
+        ::LuaSingleAbstractMethodLowering,
         ::EnumClassConstructorLowering,
         ::EnumClassConstructorBodyTransformer,
         ::EnumEntryInstancesLowering,
@@ -133,6 +136,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::createDefaultParameterInjector,
         ::DefaultParameterCleaner,
         ::LuaCallableReferenceLowering,
+        ::LuaBridgeLowering,
         ::InnerClassesLowering,
         ::PropertiesLowering,
         ::InitializersLowering,

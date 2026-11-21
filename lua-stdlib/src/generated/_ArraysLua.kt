@@ -279,7 +279,16 @@ public actual fun <T> Array<out T>?.contentDeepToString(): String {
  */
 @SinceKotlin("1.4")
 public actual infix fun <T> Array<out T>?.contentEquals(other: Array<out T>?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -296,7 +305,16 @@ public actual infix fun <T> Array<out T>?.contentEquals(other: Array<out T>?): B
  */
 @SinceKotlin("1.4")
 public actual infix fun ByteArray?.contentEquals(other: ByteArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -313,7 +331,16 @@ public actual infix fun ByteArray?.contentEquals(other: ByteArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual infix fun ShortArray?.contentEquals(other: ShortArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -330,7 +357,16 @@ public actual infix fun ShortArray?.contentEquals(other: ShortArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual infix fun IntArray?.contentEquals(other: IntArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -347,7 +383,16 @@ public actual infix fun IntArray?.contentEquals(other: IntArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual infix fun LongArray?.contentEquals(other: LongArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -366,7 +411,16 @@ public actual infix fun LongArray?.contentEquals(other: LongArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual infix fun FloatArray?.contentEquals(other: FloatArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (!this[i].equals(other[i])) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -385,7 +439,16 @@ public actual infix fun FloatArray?.contentEquals(other: FloatArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual infix fun DoubleArray?.contentEquals(other: DoubleArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (!this[i].equals(other[i])) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -402,7 +465,16 @@ public actual infix fun DoubleArray?.contentEquals(other: DoubleArray?): Boolean
  */
 @SinceKotlin("1.4")
 public actual infix fun BooleanArray?.contentEquals(other: BooleanArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -419,7 +491,16 @@ public actual infix fun BooleanArray?.contentEquals(other: BooleanArray?): Boole
  */
 @SinceKotlin("1.4")
 public actual infix fun CharArray?.contentEquals(other: CharArray?): Boolean {
-    TODO("Body is not provided")
+    if (this === other) return true
+    if (this === null || other === null) return false
+    if (size != other.size) return false
+    var i = 0
+    val n = size
+    while (i < n) {
+        if (this[i] != other[i]) return false
+        i++
+    }
+    return true
 }
 
 /**
@@ -427,7 +508,15 @@ public actual infix fun CharArray?.contentEquals(other: CharArray?): Boolean {
  */
 @SinceKotlin("1.4")
 public actual fun <T> Array<out T>?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -435,7 +524,15 @@ public actual fun <T> Array<out T>?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun ByteArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -443,7 +540,15 @@ public actual fun ByteArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun ShortArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -451,7 +556,15 @@ public actual fun ShortArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun IntArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -459,7 +572,15 @@ public actual fun IntArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun LongArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -467,7 +588,15 @@ public actual fun LongArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun FloatArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -475,7 +604,15 @@ public actual fun FloatArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun DoubleArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -483,7 +620,15 @@ public actual fun DoubleArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun BooleanArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -491,7 +636,15 @@ public actual fun BooleanArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun CharArray?.contentHashCode(): Int {
-    TODO("Body is not provided")
+    if (this === null) return 0
+    var result = 1
+    var i = 0
+    val n = size
+    while (i < n) {
+        result = 31 * result + this[i]!!.hashCode()
+        i++
+    }
+    return result
 }
 
 /**
@@ -501,7 +654,7 @@ public actual fun CharArray?.contentHashCode(): Int {
  */
 @SinceKotlin("1.4")
 public actual fun <T> Array<out T>?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -511,7 +664,7 @@ public actual fun <T> Array<out T>?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun ByteArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -521,7 +674,7 @@ public actual fun ByteArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun ShortArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -531,7 +684,7 @@ public actual fun ShortArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun IntArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -541,7 +694,7 @@ public actual fun IntArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun LongArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -551,7 +704,7 @@ public actual fun LongArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun FloatArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -561,7 +714,7 @@ public actual fun FloatArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun DoubleArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -571,7 +724,7 @@ public actual fun DoubleArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun BooleanArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -581,7 +734,7 @@ public actual fun BooleanArray?.contentToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun CharArray?.contentToString(): String {
-    TODO("Body is not provided")
+    return this?.joinToString(", ", "[", "]") ?: "null"
 }
 
 /**
@@ -602,10 +755,32 @@ public actual fun CharArray?.contentToString(): String {
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun <T> Array<out T>.copyInto(destination: Array<T>, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): Array<T> {
-    TODO("Body is not provided")
+public actual fun <T> Array<out T>.copyInto(destination: Array<T>, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): Array<T> {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -626,10 +801,32 @@ public actual inline fun <T> Array<out T>.copyInto(destination: Array<T>, destin
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun ByteArray.copyInto(destination: ByteArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ByteArray {
-    TODO("Body is not provided")
+public actual fun ByteArray.copyInto(destination: ByteArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ByteArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -650,10 +847,32 @@ public actual inline fun ByteArray.copyInto(destination: ByteArray, destinationO
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun ShortArray.copyInto(destination: ShortArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ShortArray {
-    TODO("Body is not provided")
+public actual fun ShortArray.copyInto(destination: ShortArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): ShortArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -674,10 +893,32 @@ public actual inline fun ShortArray.copyInto(destination: ShortArray, destinatio
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun IntArray.copyInto(destination: IntArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): IntArray {
-    TODO("Body is not provided")
+public actual fun IntArray.copyInto(destination: IntArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): IntArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -698,10 +939,32 @@ public actual inline fun IntArray.copyInto(destination: IntArray, destinationOff
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun LongArray.copyInto(destination: LongArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): LongArray {
-    TODO("Body is not provided")
+public actual fun LongArray.copyInto(destination: LongArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): LongArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -722,10 +985,32 @@ public actual inline fun LongArray.copyInto(destination: LongArray, destinationO
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun FloatArray.copyInto(destination: FloatArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): FloatArray {
-    TODO("Body is not provided")
+public actual fun FloatArray.copyInto(destination: FloatArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): FloatArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -746,10 +1031,32 @@ public actual inline fun FloatArray.copyInto(destination: FloatArray, destinatio
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun DoubleArray.copyInto(destination: DoubleArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): DoubleArray {
-    TODO("Body is not provided")
+public actual fun DoubleArray.copyInto(destination: DoubleArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): DoubleArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -770,10 +1077,32 @@ public actual inline fun DoubleArray.copyInto(destination: DoubleArray, destinat
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun BooleanArray.copyInto(destination: BooleanArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): BooleanArray {
-    TODO("Body is not provided")
+public actual fun BooleanArray.copyInto(destination: BooleanArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): BooleanArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -794,10 +1123,32 @@ public actual inline fun BooleanArray.copyInto(destination: BooleanArray, destin
  */
 @SinceKotlin("1.3")
 @IgnorableReturnValue
-@kotlin.internal.InlineOnly
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-public actual inline fun CharArray.copyInto(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): CharArray {
-    TODO("Body is not provided")
+public actual fun CharArray.copyInto(destination: CharArray, destinationOffset: Int = 0, startIndex: Int = 0, endIndex: Int = size): CharArray {
+    if (startIndex < 0 || endIndex > size) {
+        throw IndexOutOfBoundsException("startIndex: $startIndex, endIndex: $endIndex, size: $size")
+    }
+    if (startIndex > endIndex) {
+        throw IllegalArgumentException("startIndex: $startIndex > endIndex: $endIndex")
+    }
+    val rangeSize = endIndex - startIndex
+    if (destinationOffset < 0 || destinationOffset > destination.size || rangeSize > destination.size - destinationOffset) {
+        throw IndexOutOfBoundsException("destinationOffset: $destinationOffset, rangeSize: $rangeSize, destination.size: ${destination.size}")
+    }
+    if (this === destination && destinationOffset > startIndex) {
+        var i = rangeSize - 1
+        while (i >= 0) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i--
+        }
+    } else {
+        var i = 0
+        while (i < rangeSize) {
+            destination[destinationOffset + i] = this[startIndex + i]
+            i++
+        }
+    }
+    return destination
 }
 
 /**
@@ -806,7 +1157,9 @@ public actual inline fun CharArray.copyInto(destination: CharArray, destinationO
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun <T> Array<T>.copyOf(): Array<T> {
-    TODO("Body is not provided")
+    @Suppress("UNCHECKED_CAST")
+    val result = Array<Any?>(size) as Array<T>
+    return this.copyInto(result)
 }
 
 /**
@@ -815,7 +1168,8 @@ public actual fun <T> Array<T>.copyOf(): Array<T> {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun ByteArray.copyOf(): ByteArray {
-    TODO("Body is not provided")
+    val result = ByteArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -824,7 +1178,8 @@ public actual fun ByteArray.copyOf(): ByteArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun ShortArray.copyOf(): ShortArray {
-    TODO("Body is not provided")
+    val result = ShortArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -833,7 +1188,8 @@ public actual fun ShortArray.copyOf(): ShortArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun IntArray.copyOf(): IntArray {
-    TODO("Body is not provided")
+    val result = IntArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -842,7 +1198,8 @@ public actual fun IntArray.copyOf(): IntArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun LongArray.copyOf(): LongArray {
-    TODO("Body is not provided")
+    val result = LongArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -851,7 +1208,8 @@ public actual fun LongArray.copyOf(): LongArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun FloatArray.copyOf(): FloatArray {
-    TODO("Body is not provided")
+    val result = FloatArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -860,7 +1218,8 @@ public actual fun FloatArray.copyOf(): FloatArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun DoubleArray.copyOf(): DoubleArray {
-    TODO("Body is not provided")
+    val result = DoubleArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -869,7 +1228,8 @@ public actual fun DoubleArray.copyOf(): DoubleArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun BooleanArray.copyOf(): BooleanArray {
-    TODO("Body is not provided")
+    val result = BooleanArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -878,7 +1238,8 @@ public actual fun BooleanArray.copyOf(): BooleanArray {
  * @sample samples.collections.Arrays.CopyOfOperations.copyOf
  */
 public actual fun CharArray.copyOf(): CharArray {
-    TODO("Body is not provided")
+    val result = CharArray(size)
+    return this.copyInto(result)
 }
 
 /**
@@ -891,7 +1252,11 @@ public actual fun CharArray.copyOf(): CharArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun ByteArray.copyOf(newSize: Int): ByteArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = ByteArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -904,7 +1269,11 @@ public actual fun ByteArray.copyOf(newSize: Int): ByteArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun ShortArray.copyOf(newSize: Int): ShortArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = ShortArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -917,7 +1286,11 @@ public actual fun ShortArray.copyOf(newSize: Int): ShortArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun IntArray.copyOf(newSize: Int): IntArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = IntArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -930,7 +1303,11 @@ public actual fun IntArray.copyOf(newSize: Int): IntArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun LongArray.copyOf(newSize: Int): LongArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = LongArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -943,7 +1320,11 @@ public actual fun LongArray.copyOf(newSize: Int): LongArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun FloatArray.copyOf(newSize: Int): FloatArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = FloatArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -956,7 +1337,11 @@ public actual fun FloatArray.copyOf(newSize: Int): FloatArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun DoubleArray.copyOf(newSize: Int): DoubleArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = DoubleArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -969,7 +1354,11 @@ public actual fun DoubleArray.copyOf(newSize: Int): DoubleArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun BooleanArray.copyOf(newSize: Int): BooleanArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = BooleanArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -982,7 +1371,11 @@ public actual fun BooleanArray.copyOf(newSize: Int): BooleanArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizedPrimitiveCopyOf
  */
 public actual fun CharArray.copyOf(newSize: Int): CharArray {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    val result = CharArray(newSize)
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -995,7 +1388,12 @@ public actual fun CharArray.copyOf(newSize: Int): CharArray {
  * @sample samples.collections.Arrays.CopyOfOperations.resizingCopyOf
  */
 public actual fun <T> Array<T>.copyOf(newSize: Int): Array<T?> {
-    TODO("Body is not provided")
+    require(newSize >= 0) { "Invalid new array size: $newSize." }
+    @Suppress("UNCHECKED_CAST")
+    val result = Array<Any?>(newSize) as Array<T?>
+    val copyCount = if (size < newSize) size else newSize
+    this.copyInto(result, 0, 0, copyCount)
+    return result
 }
 
 /**
@@ -1008,7 +1406,17 @@ public actual fun <T> Array<T>.copyOf(newSize: Int): Array<T?> {
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun <T> Array<T>.copyOfRange(fromIndex: Int, toIndex: Int): Array<T> {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    @Suppress("UNCHECKED_CAST")
+    val result = Array<Any?>(newSize) as Array<T>
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1021,7 +1429,16 @@ public actual fun <T> Array<T>.copyOfRange(fromIndex: Int, toIndex: Int): Array<
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun ByteArray.copyOfRange(fromIndex: Int, toIndex: Int): ByteArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = ByteArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1034,7 +1451,16 @@ public actual fun ByteArray.copyOfRange(fromIndex: Int, toIndex: Int): ByteArray
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun ShortArray.copyOfRange(fromIndex: Int, toIndex: Int): ShortArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = ShortArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1047,7 +1473,16 @@ public actual fun ShortArray.copyOfRange(fromIndex: Int, toIndex: Int): ShortArr
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun IntArray.copyOfRange(fromIndex: Int, toIndex: Int): IntArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = IntArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1060,7 +1495,16 @@ public actual fun IntArray.copyOfRange(fromIndex: Int, toIndex: Int): IntArray {
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun LongArray.copyOfRange(fromIndex: Int, toIndex: Int): LongArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = LongArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1073,7 +1517,16 @@ public actual fun LongArray.copyOfRange(fromIndex: Int, toIndex: Int): LongArray
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun FloatArray.copyOfRange(fromIndex: Int, toIndex: Int): FloatArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = FloatArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1086,7 +1539,16 @@ public actual fun FloatArray.copyOfRange(fromIndex: Int, toIndex: Int): FloatArr
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun DoubleArray.copyOfRange(fromIndex: Int, toIndex: Int): DoubleArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = DoubleArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1099,7 +1561,16 @@ public actual fun DoubleArray.copyOfRange(fromIndex: Int, toIndex: Int): DoubleA
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun BooleanArray.copyOfRange(fromIndex: Int, toIndex: Int): BooleanArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = BooleanArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1112,7 +1583,16 @@ public actual fun BooleanArray.copyOfRange(fromIndex: Int, toIndex: Int): Boolea
  * @throws IllegalArgumentException if [fromIndex] is greater than [toIndex].
  */
 public actual fun CharArray.copyOfRange(fromIndex: Int, toIndex: Int): CharArray {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    val newSize = toIndex - fromIndex
+    val result = CharArray(newSize)
+    this.copyInto(result, 0, fromIndex, toIndex)
+    return result
 }
 
 /**
@@ -1126,7 +1606,17 @@ public actual fun CharArray.copyOfRange(fromIndex: Int, toIndex: Int): CharArray
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T> Array<T>.fill(element: T, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1140,7 +1630,17 @@ public actual fun <T> Array<T>.fill(element: T, fromIndex: Int = 0, toIndex: Int
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ByteArray.fill(element: Byte, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1154,7 +1654,17 @@ public actual fun ByteArray.fill(element: Byte, fromIndex: Int = 0, toIndex: Int
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ShortArray.fill(element: Short, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1168,7 +1678,17 @@ public actual fun ShortArray.fill(element: Short, fromIndex: Int = 0, toIndex: I
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun IntArray.fill(element: Int, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1182,7 +1702,17 @@ public actual fun IntArray.fill(element: Int, fromIndex: Int = 0, toIndex: Int =
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun LongArray.fill(element: Long, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1196,7 +1726,17 @@ public actual fun LongArray.fill(element: Long, fromIndex: Int = 0, toIndex: Int
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun FloatArray.fill(element: Float, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1210,7 +1750,17 @@ public actual fun FloatArray.fill(element: Float, fromIndex: Int = 0, toIndex: I
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun DoubleArray.fill(element: Double, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1224,7 +1774,17 @@ public actual fun DoubleArray.fill(element: Double, fromIndex: Int = 0, toIndex:
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun BooleanArray.fill(element: Boolean, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
@@ -1238,203 +1798,307 @@ public actual fun BooleanArray.fill(element: Boolean, fromIndex: Int = 0, toInde
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun CharArray.fill(element: Char, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    if (fromIndex < 0 || toIndex > size) {
+        throw IndexOutOfBoundsException("fromIndex: $fromIndex, toIndex: $toIndex, size: $size")
+    }
+    if (fromIndex > toIndex) {
+        throw IllegalArgumentException("fromIndex: $fromIndex > toIndex: $toIndex")
+    }
+    var index = fromIndex
+    while (index < toIndex) {
+        this[index] = element
+        index++
+    }
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun <T> Array<T>.plus(element: T): Array<T> {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    @Suppress("UNCHECKED_CAST")
+    return result as Array<T>
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun ByteArray.plus(element: Byte): ByteArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun ShortArray.plus(element: Short): ShortArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun IntArray.plus(element: Int): IntArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun LongArray.plus(element: Long): LongArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun FloatArray.plus(element: Float): FloatArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun DoubleArray.plus(element: Double): DoubleArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun BooleanArray.plus(element: Boolean): BooleanArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
 public actual operator fun CharArray.plus(element: Char): CharArray {
-    TODO("Body is not provided")
+    val index = size
+    val result = this.copyOf(index + 1)
+    result[index] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun <T> Array<T>.plus(elements: Collection<T>): Array<T> {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    @Suppress("UNCHECKED_CAST")
+    return result as Array<T>
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun ByteArray.plus(elements: Collection<Byte>): ByteArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun ShortArray.plus(elements: Collection<Short>): ShortArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun IntArray.plus(elements: Collection<Int>): IntArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun LongArray.plus(elements: Collection<Long>): LongArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun FloatArray.plus(elements: Collection<Float>): FloatArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun DoubleArray.plus(elements: Collection<Double>): DoubleArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun BooleanArray.plus(elements: Collection<Boolean>): BooleanArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] collection.
  */
 public actual operator fun CharArray.plus(elements: Collection<Char>): CharArray {
-    TODO("Body is not provided")
+    var index = size
+    val result = this.copyOf(index + elements.size)
+    for (element in elements) result[index++] = element
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun <T> Array<T>.plus(elements: Array<out T>): Array<T> {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    @Suppress("UNCHECKED_CAST")
+    val result = this.copyOf(thisSize + arraySize) as Array<T>
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun ByteArray.plus(elements: ByteArray): ByteArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun ShortArray.plus(elements: ShortArray): ShortArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun IntArray.plus(elements: IntArray): IntArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun LongArray.plus(elements: LongArray): LongArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun FloatArray.plus(elements: FloatArray): FloatArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun DoubleArray.plus(elements: DoubleArray): DoubleArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun BooleanArray.plus(elements: BooleanArray): BooleanArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then all elements of the given [elements] array.
  */
 public actual operator fun CharArray.plus(elements: CharArray): CharArray {
-    TODO("Body is not provided")
+    val thisSize = size
+    val arraySize = elements.size
+    val result = this.copyOf(thisSize + arraySize)
+    elements.copyInto(result, thisSize)
+    return result
 }
 
 /**
  * Returns an array containing all elements of the original array and then the given [element].
  */
-public actual fun <T> Array<T>.plusElement(element: T): Array<T> {
-    TODO("Body is not provided")
+@kotlin.internal.InlineOnly
+public actual inline fun <T> Array<T>.plusElement(element: T): Array<T> {
+    return plus(element)
 }
 
 /**
@@ -1443,7 +2107,7 @@ public actual fun <T> Array<T>.plusElement(element: T): Array<T> {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun IntArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1452,7 +2116,7 @@ public actual fun IntArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun LongArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1461,7 +2125,7 @@ public actual fun LongArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun ByteArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1470,7 +2134,7 @@ public actual fun ByteArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun ShortArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1479,7 +2143,7 @@ public actual fun ShortArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun DoubleArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1488,7 +2152,7 @@ public actual fun DoubleArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun FloatArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1497,7 +2161,7 @@ public actual fun FloatArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArray
  */
 public actual fun CharArray.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1508,7 +2172,7 @@ public actual fun CharArray.sort(): Unit {
  * @sample samples.collections.Arrays.Sorting.sortArrayOfComparable
  */
 public actual fun <T : Comparable<T>> Array<out T>.sort(): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sort(0, size)
 }
 
 /**
@@ -1526,7 +2190,7 @@ public actual fun <T : Comparable<T>> Array<out T>.sort(): Unit {
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T : Comparable<T>> Array<out T>.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayComparable(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1542,7 +2206,7 @@ public actual fun <T : Comparable<T>> Array<out T>.sort(fromIndex: Int = 0, toIn
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ByteArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayPrimitive(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1558,7 +2222,7 @@ public actual fun ByteArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit 
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun ShortArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayPrimitive(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1574,7 +2238,7 @@ public actual fun ShortArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun IntArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayPrimitive(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1590,7 +2254,7 @@ public actual fun IntArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun LongArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayPrimitive(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1606,7 +2270,7 @@ public actual fun LongArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit 
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun FloatArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayComparable(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1622,7 +2286,7 @@ public actual fun FloatArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun DoubleArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayComparable(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1638,7 +2302,7 @@ public actual fun DoubleArray.sort(fromIndex: Int = 0, toIndex: Int = size): Uni
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun CharArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayPrimitive(storage, size, fromIndex, toIndex)
 }
 
 /**
@@ -1647,7 +2311,7 @@ public actual fun CharArray.sort(fromIndex: Int = 0, toIndex: Int = size): Unit 
  * The sort is _stable_. It means that equal elements preserve their order relative to each other after sorting.
  */
 public actual fun <T> Array<out T>.sortWith(comparator: Comparator<in T>): Unit {
-    TODO("Body is not provided")
+    if (size > 1) sortWith(comparator, 0, size)
 }
 
 /**
@@ -1663,7 +2327,7 @@ public actual fun <T> Array<out T>.sortWith(comparator: Comparator<in T>): Unit 
  */
 @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
 public actual fun <T> Array<out T>.sortWith(comparator: Comparator<in T>, fromIndex: Int = 0, toIndex: Int = size): Unit {
-    TODO("Body is not provided")
+    sortArrayWith(storage, size, fromIndex, toIndex, comparator)
 }
 
 /**
