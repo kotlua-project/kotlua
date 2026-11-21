@@ -249,7 +249,8 @@ class ExternalInteropTest : AbstractKotluaTest() {
     @Test
     fun `lua global external object with LuaMultiReturn`() {
         assertBoxOk(
-            kotlinCode = $$"""
+            kotlinCode =
+                $$"""
                 @LuaGlobal
                 external object string {
                     @LuaMultiReturn
@@ -273,14 +274,15 @@ class ExternalInteropTest : AbstractKotluaTest() {
                         "FAIL:$startIdx:$endIdx:$missStart:$missEnd:$onlyEnd:$packed"
                     }
                 }
-            """.trimIndent(),
+                """.trimIndent(),
         )
     }
 
     @Test
     fun `lua import external object and class with LuaMultiReturn`() {
         assertBoxOk(
-            kotlinCode = $$"""
+            kotlinCode =
+                $$"""
                 @LuaImport("multi_service")
                 external object MultiService {
                     @LuaMultiReturn
@@ -310,31 +312,33 @@ class ExternalInteropTest : AbstractKotluaTest() {
 
                     return if (valid) "OK" else "FAIL:$ok1:$code1:$msg1:$code2:$left:$right"
                 }
-            """.trimIndent(),
-            luaFiles = mapOf(
-                "multi_service.lua" to """
-                    local M = {}
-                    M.__index = M
-
-                    function M.parse(input)
-                        if input == "good" then
-                            return true, 200, "ok"
-                        end
-                        return false, 400, "err"
-                    end
-
-                    function M.new(prefix)
-                        return setmetatable({ prefix = prefix }, M)
-                    end
-
-                    function M:splitFirst(input)
-                        local idx = string.find(input, self.prefix, 1, true)
-                        return string.sub(input, 1, idx - 1), string.sub(input, idx + #self.prefix)
-                    end
-
-                    return M
                 """.trimIndent(),
-            ),
+            luaFiles =
+                mapOf(
+                    "multi_service.lua" to
+                        """
+                        local M = {}
+                        M.__index = M
+
+                        function M.parse(input)
+                            if input == "good" then
+                                return true, 200, "ok"
+                            end
+                            return false, 400, "err"
+                        end
+
+                        function M.new(prefix)
+                            return setmetatable({ prefix = prefix }, M)
+                        end
+
+                        function M:splitFirst(input)
+                            local idx = string.find(input, self.prefix, 1, true)
+                            return string.sub(input, 1, idx - 1), string.sub(input, idx + #self.prefix)
+                        end
+
+                        return M
+                        """.trimIndent(),
+                ),
         )
     }
 }

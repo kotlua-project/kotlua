@@ -201,6 +201,9 @@ object ComparableOps : TemplateGroupBase() {
                 on(Platform.JVM) {
                     body { "return Math.min(a.toInt(), b.toInt()).$convertBack" }
                 }
+                on(Platform.Lua) {
+                    body { "return $defaultImpl" }
+                }
             }
             if (isFloat) {
                 on(Platform.Native) {
@@ -209,6 +212,17 @@ object ComparableOps : TemplateGroupBase() {
                         return when {
                             a.isNaN() -> a
                             b.isNaN() -> b
+                            else -> if (a.compareTo(b) <= 0) a else b
+                        }
+                        """
+                    }
+                }
+                on(Platform.Lua) {
+                    body {
+                        """
+                        return when {
+                            a != a -> a
+                            b != b -> b
                             else -> if (a.compareTo(b) <= 0) a else b
                         }
                         """
@@ -256,6 +270,9 @@ object ComparableOps : TemplateGroupBase() {
                 }
                 on(Platform.JS) {
                     body { "return JsMath.min(a.toInt(), b.toInt(), c.toInt()).unsafeCast<$primitive>()" }
+                }
+                on(Platform.Lua) {
+                    body { "return minOf(a, minOf(b, c))" }
                 }
             }
             else if (primitive != PrimitiveType.Long) {
@@ -405,9 +422,19 @@ object ComparableOps : TemplateGroupBase() {
                 on(Platform.JVM) {
                     body { "return Math.max(a.toInt(), b.toInt()).$convertBack" }
                 }
+                on(Platform.Lua) {
+                    body { "return $defaultImpl" }
+                }
             }
             if (isFloat) {
                 on(Platform.Native) {
+                    body {
+                        """
+                        return if (a.compareTo(b) >= 0) a else b
+                        """
+                    }
+                }
+                on(Platform.Lua) {
                     body {
                         """
                         return if (a.compareTo(b) >= 0) a else b
@@ -456,6 +483,9 @@ object ComparableOps : TemplateGroupBase() {
                 }
                 on(Platform.JS) {
                     body { "return JsMath.max(a.toInt(), b.toInt(), c.toInt()).unsafeCast<$primitive>()" }
+                }
+                on(Platform.Lua) {
+                    body { "return maxOf(a, maxOf(b, c))" }
                 }
             }
             else if (primitive != PrimitiveType.Long) {

@@ -130,7 +130,9 @@ fun luaFunctionSignature(declaration: IrFunction): String {
         "Member function '${declaration.name}' must have dispatchReceiverParameter"
     }
     val targetDeclaration = (declaration as? IrSimpleFunction)?.resolveFakeOverride() ?: declaration
-    if (targetDeclaration is IrSimpleFunction && targetDeclaration.isMethodOfAny()) {
+    if (targetDeclaration is IrSimpleFunction &&
+        (targetDeclaration.isMethodOfAny() || targetDeclaration.isComparableCompareTo())
+    ) {
         return "${targetDeclaration.name.asString()}_k"
     }
     return calculateLuaFunctionSignature(targetDeclaration)
@@ -143,4 +145,11 @@ fun calculateLuaConstructorSignature(constructor: IrConstructor): String {
     }
     val hash = abs(nameBuilder.toString().hashCode()).toString(Character.MAX_RADIX)
     return "_ctor_$hash"
+}
+
+internal fun IrSimpleFunction.isComparableCompareTo(): Boolean {
+    if (name != OperatorNameConventions.COMPARE_TO) return false
+    if (dispatchReceiverParameter == null || nonDispatchParameters.size != 1) return false
+    if (parentClassOrNull?.fqNameWhenAvailable?.asString() == "kotlin.Comparable") return true
+    return overriddenSymbols.any { it.owner.isComparableCompareTo() }
 }

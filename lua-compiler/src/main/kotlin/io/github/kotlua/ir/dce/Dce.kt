@@ -18,6 +18,7 @@ package io.github.kotlua.ir.dce
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.lower.mainFunctionWrapper
 import io.github.kotlua.ir.utils.LuaMainFunctionDetector
+import io.github.kotlua.ir.utils.isComparableCompareTo
 import io.github.kotlua.ir.utils.isIgnoredClass
 import io.github.kotlua.ir.utils.isMethodOfAny
 import io.github.kotlua.name.LuaStandardClassIds
@@ -248,6 +249,7 @@ fun runSimpleDce(
 
                                 is IrSimpleFunction -> {
                                     decl.isMethodOfAny() ||
+                                        decl.isComparableCompareTo() ||
                                         decl.overriddenSymbols.any { it.owner in reachable } ||
                                         (isEnum && (decl.name.asString() == "values" || decl.name.asString() == "valueOf"))
                                 }

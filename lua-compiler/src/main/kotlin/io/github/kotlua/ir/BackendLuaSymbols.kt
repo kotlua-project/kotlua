@@ -160,6 +160,8 @@ class BackendLuaSymbols(
     val luaMainArgs: IrSimpleFunctionSymbol by LuaCallableIds.luaMainArgs.functionSymbol()
     val luaUnpack: IrSimpleFunctionSymbol by LuaCallableIds.luaUnpack.functionSymbol()
 
+    val luaCompareTo: IrSimpleFunctionSymbol by LuaCallableIds.compareTo.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
     override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
@@ -276,4 +278,6 @@ private object LuaCallableIds {
 
     val luaMainArgs = "luaMainArgs".luaCallableId
     val luaUnpack = "luaUnpack".luaCallableId
+
+    val compareTo = "compareTo".luaCallableId
 }

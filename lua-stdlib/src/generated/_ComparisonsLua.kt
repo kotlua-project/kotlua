@@ -27,7 +27,7 @@ public actual fun <T : Comparable<T>> maxOf(a: T, b: T): T {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Byte, b: Byte): Byte {
-    return maxOf(a.toInt(), b.toInt()).toByte()
+    return if (a >= b) a else b
 }
 
 /**
@@ -36,7 +36,7 @@ public actual inline fun maxOf(a: Byte, b: Byte): Byte {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Short, b: Short): Short {
-    return maxOf(a.toInt(), b.toInt()).toShort()
+    return if (a >= b) a else b
 }
 
 /**
@@ -65,7 +65,7 @@ public actual inline fun maxOf(a: Long, b: Long): Long {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Float, b: Float): Float {
-    return if (a >= b) a else b
+    return if (a.compareTo(b) >= 0) a else b
 }
 
 /**
@@ -76,7 +76,7 @@ public actual inline fun maxOf(a: Float, b: Float): Float {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Double, b: Double): Double {
-    return if (a >= b) a else b
+    return if (a.compareTo(b) >= 0) a else b
 }
 
 /**
@@ -95,7 +95,7 @@ public actual fun <T : Comparable<T>> maxOf(a: T, b: T, c: T): T {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Byte, b: Byte, c: Byte): Byte {
-    return maxOf(a.toInt(), maxOf(b.toInt(), c.toInt())).toByte()
+    return maxOf(a, maxOf(b, c))
 }
 
 /**
@@ -104,7 +104,7 @@ public actual inline fun maxOf(a: Byte, b: Byte, c: Byte): Byte {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun maxOf(a: Short, b: Short, c: Short): Short {
-    return maxOf(a.toInt(), maxOf(b.toInt(), c.toInt())).toShort()
+    return maxOf(a, maxOf(b, c))
 }
 
 /**
@@ -239,7 +239,7 @@ public actual fun <T : Comparable<T>> minOf(a: T, b: T): T {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Byte, b: Byte): Byte {
-    return minOf(a.toInt(), b.toInt()).toByte()
+    return if (a <= b) a else b
 }
 
 /**
@@ -248,7 +248,7 @@ public actual inline fun minOf(a: Byte, b: Byte): Byte {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Short, b: Short): Short {
-    return minOf(a.toInt(), b.toInt()).toShort()
+    return if (a <= b) a else b
 }
 
 /**
@@ -277,7 +277,11 @@ public actual inline fun minOf(a: Long, b: Long): Long {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Float, b: Float): Float {
-    return if (a <= b) a else b
+    return when {
+        a != a -> a
+        b != b -> b
+        else -> if (a.compareTo(b) <= 0) a else b
+    }
 }
 
 /**
@@ -288,7 +292,11 @@ public actual inline fun minOf(a: Float, b: Float): Float {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Double, b: Double): Double {
-    return if (a <= b) a else b
+    return when {
+        a != a -> a
+        b != b -> b
+        else -> if (a.compareTo(b) <= 0) a else b
+    }
 }
 
 /**
@@ -307,7 +315,7 @@ public actual fun <T : Comparable<T>> minOf(a: T, b: T, c: T): T {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Byte, b: Byte, c: Byte): Byte {
-    return minOf(a.toInt(), minOf(b.toInt(), c.toInt())).toByte()
+    return minOf(a, minOf(b, c))
 }
 
 /**
@@ -316,7 +324,7 @@ public actual inline fun minOf(a: Byte, b: Byte, c: Byte): Byte {
 @SinceKotlin("1.1")
 @kotlin.internal.InlineOnly
 public actual inline fun minOf(a: Short, b: Short, c: Short): Short {
-    return minOf(a.toInt(), minOf(b.toInt(), c.toInt())).toShort()
+    return minOf(a, minOf(b, c))
 }
 
 /**

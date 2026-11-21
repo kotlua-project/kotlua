@@ -124,6 +124,61 @@ internal fun anyHashCode(o: Any?): Int {
 }
 
 @UsedFromCompilerGeneratedCode
+internal fun compareTo(
+    a: Any?,
+    b: Any?,
+): Int {
+    if (isTypeOf(a, "number") && isTypeOf(b, "number")) {
+        if (luaLt(a, b)) {
+            return -1
+        }
+        if (luaGt(a, b)) {
+            return 1
+        }
+        if (luaEq(a, b)) {
+            if (luaEq(a, 0)) {
+                val invA: dynamic = luaDiv(1, a)
+                val invB: dynamic = luaDiv(1, b)
+                if (luaLt(invA, invB)) {
+                    return -1
+                }
+                if (luaGt(invA, invB)) {
+                    return 1
+                }
+            }
+            return 0
+        }
+        if (luaNeq(a, a)) {
+            return if (luaNeq(b, b)) 0 else 1
+        }
+        return -1
+    }
+    if (isTypeOf(a, "string") && isTypeOf(b, "string")) {
+        if (luaLt(a, b)) {
+            return -1
+        }
+        if (luaGt(a, b)) {
+            return 1
+        }
+        return 0
+    }
+    if (isTypeOf(a, "boolean") && isTypeOf(b, "boolean")) {
+        if (luaEq(a, b)) {
+            return 0
+        }
+        return if (luaEq(a, true)) 1 else -1
+    }
+    if (isTypeOf(a, "table")) {
+        val mt: dynamic = luaGetMetatable(a)
+        val t = a.asDynamic()
+        if (luaNeq(mt, null) && luaNeq(mt.__types, null) && luaNeq(t.compareTo_k, null)) {
+            return lua("t:compareTo_k(b)")
+        }
+    }
+    luaError("Cannot compare values")
+}
+
+@UsedFromCompilerGeneratedCode
 internal fun hashCode(o: Any?): Int {
     if (luaEq(o, null)) {
         return 0
