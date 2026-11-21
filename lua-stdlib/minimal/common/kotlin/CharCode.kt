@@ -5,6 +5,9 @@
 
 package kotlin
 
+import kotlin.internal.InlineOnly
+import kotlin.internal.IntrinsicConstEvaluation
+
 
 /**
  * Creates a Char with the specified [code], or throws an exception if the [code] is out of `Char.MIN_VALUE.code..Char.MAX_VALUE.code`.
@@ -16,7 +19,7 @@ package kotlin
  * @sample samples.text.Chars.charFromCode
  */
 @SinceKotlin("1.5")
-@kotlin.internal.InlineOnly
+@InlineOnly
 public inline fun Char(code: Int): Char {
     if (code < Char.MIN_VALUE.code || code > Char.MAX_VALUE.code) {
         throw IllegalArgumentException("Invalid Char code: $code")
@@ -32,7 +35,7 @@ public inline fun Char(code: Int): Char {
  * @sample samples.text.Chars.code
  */
 @SinceKotlin("1.5")
-@kotlin.internal.InlineOnly
+@InlineOnly
 @Suppress("DEPRECATION")
-@kotlin.internal.IntrinsicConstEvaluation
+@IntrinsicConstEvaluation
 public inline val Char.code: Int get() = this.toInt()

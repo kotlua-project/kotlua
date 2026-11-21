@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import io.github.kotlua.gradle.Kotlin2LuaCompile
 import javax.inject.Inject
 import org.gradle.api.attributes.Category
 import org.gradle.api.attributes.DocsType
-import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     base
     alias(libs.plugins.kotlua.gradlePlugin)
 }
-
-val compilerClasspath = configurations.create("compilerClasspath")
 
 val commonSourcesConfig = configurations.create("commonSourcesConfig") {
     isCanBeResolved = true
@@ -37,20 +33,12 @@ val commonSourcesConfig = configurations.create("commonSourcesConfig") {
     }
 }
 
-val unpackedCommonSourcesDir = layout.buildDirectory.dir("unpacked-common-sources")
-val commonSourcesDir = unpackedCommonSourcesDir.map { it.dir("commonMain") }
-val commonNonJvmMainDir = unpackedCommonSourcesDir.map { it.dir("commonNonJvmMain") }
+val commonMainFullSourcesElements = configurations.consumable("commonMainFullSourcesElements")
+val commonNonJvmMainFullSourcesElements = configurations.consumable("commonNonJvmMainFullSourcesElements")
 
 dependencies {
     kotluaCompilerClasspath(projects.luaCompiler)
     commonSourcesConfig(libs.kotlin.stdlib)
-}
-
-tasks {
-    withType<Kotlin2LuaCompile>().configureEach {
-        commonSourceSet.from(commonSourcesDir.get())
-        source("src/", "runtime/", "builtins/")
-    }
 }
 
 kotlua {
@@ -59,11 +47,11 @@ kotlua {
         moduleName = "kotlin-stdlib-lua"
         freeCompilerArgs.addAll(
             listOf(
-                "-XXlenient-mode",
                 "-Xallow-kotlin-package",
                 "-Xstdlib-compilation",
                 "-Xreturn-value-checker=full",
                 "-Xexpect-actual-classes",
+                "-Xcontext-parameters",
                 "-Xname-based-destructuring=complete",
             ),
         )
@@ -105,8 +93,57 @@ abstract class UnpackSourcesTask @Inject constructor(
     }
 }
 
+val unpackedCommonSourcesDir = layout.buildDirectory.dir("unpacked-common-sources")
+
 val unpackCommonSources = tasks.register<UnpackSourcesTask>("unpackCommonSources") {
     description = "Unpack kotlin stdlib common sources"
     archiveFiles.from(commonSourcesConfig)
     targetDir.set(unpackedCommonSourcesDir)
+}
+
+val commonMainFullSources = tasks.register<Sync>("commonMainFullSources") {
+    from(unpackCommonSources.flatMap { it.targetDir.dir("commonMain") })
+    from(unpackCommonSources.flatMap { it.targetDir.dir("commonNonJvmMain") }) {
+        include("kotlin/reflect/findAssociatedObject.kt")
+        include("kotlin/reflect/AssociatedObjects.kt")
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("commonMainFullSources"))
+}
+
+val commonNonJvmMainFullSources = tasks.register<Sync>("commonNonJvmMainFullSources") {
+    from(unpackCommonSources.flatMap { it.targetDir.dir("commonNonJvmMain") }) {
+        exclude("kotlin/reflect/findAssociatedObject.kt")
+        exclude("kotlin/reflect/AssociatedObjects.kt")
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("commonNonJvmMainFullSources"))
+}
+
+val luaMainFullSourcesElements = configurations.consumable("luaMainFullSourcesElements")
+
+val luaMainFullSources = tasks.register<Sync>("luaMainFullSources") {
+    from("src") { into("src") }
+    from("runtime") { into("runtime") }
+    from("builtins") { into("builtins") }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("luaMainFullSources"))
+}
+
+artifacts {
+    add(commonMainFullSourcesElements.name, commonMainFullSources)
+    add(commonNonJvmMainFullSourcesElements.name, commonNonJvmMainFullSources)
+    add(luaMainFullSourcesElements.name, luaMainFullSources)
+}
+
+sourceSets {
+    commonMain {
+        kotlin.setSrcDirs(emptyList<Any>())
+        kotlin.srcDir(commonMainFullSources)
+    }
+    luaMain {
+        kotlin.setSrcDirs(listOf("src", "builtins", "runtime"))
+        kotlin.srcDir(commonNonJvmMainFullSources)
+        resources.setSrcDirs(emptyList<Any>())
+    }
 }

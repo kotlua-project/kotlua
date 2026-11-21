@@ -19,8 +19,118 @@ plugins {
     alias(libs.plugins.kotlua.gradlePlugin)
 }
 
+val commonMainFullSourcesConfig by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+val commonNonJvmMainFullSourcesConfig by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+val luaMainFullSourcesConfig by configurations.creating {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+}
+
 dependencies {
     kotluaCompilerClasspath(projects.luaCompiler)
+
+    commonMainFullSourcesConfig(project(":lua-stdlib", configuration = "commonMainFullSourcesElements"))
+    commonNonJvmMainFullSourcesConfig(project(":lua-stdlib", configuration = "commonNonJvmMainFullSourcesElements"))
+    luaMainFullSourcesConfig(project(":lua-stdlib", configuration = "luaMainFullSourcesElements"))
+}
+
+val commonMainSources = tasks.register<Sync>("commonMainSources") {
+    from(commonMainFullSourcesConfig) {
+        exclude(
+            "generated/_Arrays.kt",
+            "generated/_Collections.kt",
+            "generated/_Comparisons.kt",
+            "generated/_Maps.kt",
+            "generated/_OneToManyTitlecaseMappings.kt",
+            "generated/_Sequences.kt",
+            "generated/_Sets.kt",
+            "generated/_Ranges.kt",
+            "generated/_Strings.kt",
+            "generated/_UArrays.kt",
+            "generated/_URanges.kt",
+            "generated/_UCollections.kt",
+            "generated/_UComparisons.kt",
+            "generated/_USequences.kt",
+            "kotlin/AutoCloseable.kt",
+            "kotlin/CharCode.kt",
+            "kotlin/KotlinH.kt",
+            "kotlin/MathH.kt",
+            "kotlin/SequencesH.kt",
+            "kotlin/TextH.kt",
+            "kotlin/UnsignedCommon.kt",
+            "kotlin/UProgressionUtil.kt",
+            "kotlin/UByte.kt",
+            "kotlin/UByteArray.kt",
+            "kotlin/UByteRange.kt",
+            "kotlin/UInt.kt",
+            "kotlin/UIntArray.kt",
+            "kotlin/UIntRange.kt",
+            "kotlin/ULong.kt",
+            "kotlin/ULongArray.kt",
+            "kotlin/ULongRange.kt",
+            "kotlin/UShort.kt",
+            "kotlin/UShortArray.kt",
+            "kotlin/UShortRange.kt",
+            "kotlin/UMath.kt",
+            "kotlin/UNumbers.kt",
+            "kotlin/UStrings.kt",
+            "kotlin/collections/**",
+            "kotlin/concurrent/**",
+            "kotlin/enums/**",
+            "kotlin/io/**",
+            "kotlin/properties/Delegates.kt",
+            "kotlin/random/**",
+            "kotlin/reflect/findAssociatedObject.kt",
+            "kotlin/text/**",
+            "kotlin/time/**",
+            "kotlin/util/KotlinVersion.kt",
+            "kotlin/util/Numbers.kt",
+            "kotlin/util/FloorDivMod.kt",
+            "kotlin/util/Tuples.kt",
+            "kotlin/uuid/**",
+        )
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("commonMainSources"))
+}
+
+val commonMainCollectionSources = tasks.register<Sync>("commonMainCollectionSources") {
+    from(commonMainFullSourcesConfig) {
+        include(
+            "kotlin/collections/PrimitiveIterators.kt",
+        )
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("commonMainCollectionSources"))
+}
+
+val commonNonJvmMainSources = tasks.register<Sync>("commonNonJvmMainSources") {
+    from(commonNonJvmMainFullSourcesConfig) {
+        exclude(
+            "kotlin/reflect/KTypeImpl.kt",
+            "kotlin/text/**",
+        )
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("commonNonJvmMainSources"))
+}
+
+val luaMainSources = tasks.register<Sync>("luaMainSources") {
+    from(luaMainFullSourcesConfig) {
+        exclude(
+            "src/generated/**",
+            "src/kotlin/text/**",
+            "src/kotlin/collections/ArraysLua.kt"
+        )
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("luaMainSources"))
 }
 
 kotlua {
@@ -51,10 +161,18 @@ kotlua {
 
 sourceSets {
     commonMain {
-        kotlin.setSrcDirs(listOf("common"))
+        kotlin.setSrcDirs(emptyList<Any>())
+        kotlin.srcDir(commonMainSources)
+        kotlin.srcDir(commonMainCollectionSources)
+        kotlin.srcDir("common")
     }
     luaMain {
-        kotlin.setSrcDirs(listOf("src", "builtins", "runtime"))
+        kotlin.setSrcDirs(emptyList<Any>())
+        kotlin.srcDir(commonNonJvmMainSources)
+        kotlin.srcDir(luaMainSources)
+        kotlin.srcDir("src")
+        kotlin.srcDir("builtins")
+        kotlin.srcDir("runtime")
         resources.setSrcDirs(emptyList<Any>())
     }
 }
