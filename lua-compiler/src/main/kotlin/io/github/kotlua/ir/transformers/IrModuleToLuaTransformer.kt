@@ -20,16 +20,23 @@ import io.github.kotlua.LuaToStringGenerator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaField
+import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.LuaStatement
 import io.github.kotlua.cli.pipeline.LuaCompiledResult
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.dce.runSimpleDce
 import io.github.kotlua.ir.lower.mainFunctionWrapper
 import io.github.kotlua.ir.utils.*
+import io.github.kotlua.name.LuaStandardClassIds
+import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.ir.declarations.*
+import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.IrSimpleType
+import org.jetbrains.kotlin.ir.util.getAnnotation
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isInterface
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.DFS
 
 class IrModuleToLuaTransformer(
@@ -53,6 +60,8 @@ class IrModuleToLuaTransformer(
                     initializers = listOf(LuaExpression.TableConstructor(emptyList())),
                 ),
             )
+
+        val importStatements = generateImportStatements(modules, context)
 
         val fileDeclarations =
             modules.flatMap { module ->
@@ -86,7 +95,9 @@ class IrModuleToLuaTransformer(
 
         val classStatements = generateClassesInTopologicalOrder(modules, context)
         val footer = listOf(LuaStatement.Return(listOf(context.moduleTableName)))
-        val statements = header + fileDeclarations + classStatements + context.initializerBlock + mainCallStatements + footer
+        val statements =
+            header + importStatements + fileDeclarations + classStatements + context.initializerBlock +
+                mainCallStatements + footer
 
         val textOutput = LuaTextOutput()
         val luaCode =
@@ -190,5 +201,107 @@ class IrModuleToLuaTransformer(
 
             listOf(classDef) + memberStatements
         }
+    }
+
+    private fun generateImportStatements(
+        modules: Iterable<IrModuleFragment>,
+        context: LuaStaticContext,
+    ): List<LuaStatement> {
+        val genContext =
+            LuaGenerationContext(
+                staticContext = context,
+                currentScope = context.rootScope,
+                localNames = NameTable(LuaModuleReservedScope),
+            )
+        val result = mutableListOf<LuaStatement>()
+        val moduleVarCache = hashMapOf<String, LuaName>()
+        val emittedDeclarations = hashSetOf<IrDeclaration>()
+        val moduleNameTable = NameTable<String>(LuaModuleReservedScope)
+
+        fun getOrCreateModuleVar(moduleName: String): LuaName =
+            moduleVarCache.getOrPut(moduleName) {
+                val baseName = moduleName.substringAfterLast('.').substringAfterLast('/')
+                val varName = LuaName(moduleNameTable.declareFreshName(moduleName, "_imp_$baseName"))
+                result +=
+                    LuaStatement.LocalVarDeclaration(
+                        names = listOf(varName),
+                        initializers =
+                            listOf(
+                                LuaExpression.FunctionCall(
+                                    target = LuaName("require"),
+                                    args = listOf(LuaExpression.StringLiteral(moduleName)),
+                                ),
+                            ),
+                    )
+                varName
+            }
+
+        fun processDeclaration(decl: IrDeclaration) {
+            if (decl !is IrDeclarationWithName || !decl.isEffectivelyExternal()) return
+            if (!emittedDeclarations.add(decl)) return
+
+            val importAnnotation =
+                decl.getAnnotation(LuaStandardClassIds.Annotations.LuaImport.asSingleFqName())
+                    ?: return
+
+            val moduleArg =
+                (importAnnotation.argumentMapping[Name.identifier("module")] as? IrConst)?.value as? String
+            val codeExpr =
+                parseLuaExpressionFromAnnotation(decl, LuaStandardClassIds.Annotations.LuaImport, "code")
+
+            when {
+                codeExpr != null -> {
+                    val localName = genContext.getNameForStaticDeclaration(decl)
+                    result +=
+                        LuaStatement.LocalVarDeclaration(
+                            names = listOf(localName),
+                            initializers = listOf(codeExpr),
+                        )
+                }
+
+                !moduleArg.isNullOrEmpty() -> {
+                    if (decl is IrClass) {
+                        val localName = genContext.getNameForStaticDeclaration(decl)
+                        result +=
+                            LuaStatement.LocalVarDeclaration(
+                                names = listOf(localName),
+                                initializers =
+                                    listOf(
+                                        LuaExpression.FunctionCall(
+                                            target = LuaName("require"),
+                                            args = listOf(LuaExpression.StringLiteral(moduleArg)),
+                                        ),
+                                    ),
+                            )
+                    } else {
+                        val modVar = getOrCreateModuleVar(moduleArg)
+                        context.externalImportModuleVars[decl] = modVar
+                        if (decl is IrProperty) {
+                            decl.getter?.let { context.externalImportModuleVars[it] = modVar }
+                            decl.setter?.let { context.externalImportModuleVars[it] = modVar }
+                        }
+                    }
+                }
+
+                else -> {
+                    compilationException("@LuaImport must specify either 'module' or 'code'", importAnnotation)
+                }
+            }
+        }
+
+        fun visitDecl(decl: IrDeclaration) {
+            processDeclaration(decl)
+            if (decl is IrClass) {
+                decl.declarations.forEach(::visitDecl)
+            }
+        }
+
+        for (module in modules) {
+            for (file in module.files) {
+                file.declarations.forEach(::visitDecl)
+            }
+        }
+
+        return result
     }
 }

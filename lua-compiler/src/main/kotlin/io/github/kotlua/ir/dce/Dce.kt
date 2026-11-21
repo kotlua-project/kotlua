@@ -35,7 +35,9 @@ import org.jetbrains.kotlin.ir.expressions.IrVararg
 import org.jetbrains.kotlin.ir.types.classOrNull
 import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isTopLevel
+import org.jetbrains.kotlin.ir.util.isVararg
 import org.jetbrains.kotlin.ir.util.parentClassOrNull
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -89,6 +91,7 @@ fun runSimpleDce(
             searchModules
                 .flatMap { it.files }
                 .flatMap { it.declarations }
+                .filter { !it.isEffectivelyExternal() }
         }
 
     val reachable = mutableSetOf<IrDeclaration>()
@@ -112,6 +115,9 @@ fun runSimpleDce(
                 super.visitCall(expression)
                 val callee = expression.symbol.owner
                 enqueue(callee)
+                if (callee.isEffectivelyExternal() && callee.parameters.any { it.isVararg }) {
+                    enqueue(backendContext.symbols.luaUnpack.owner)
+                }
                 if (!callee.isLuaMultiReturnOrIntrinsic()) {
                     expression.type.classOrNull
                         ?.owner

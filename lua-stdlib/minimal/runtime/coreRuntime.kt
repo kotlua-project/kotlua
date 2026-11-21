@@ -142,14 +142,14 @@ internal fun hashCode(o: Any?): Int {
 internal fun intDiv(a: Int, b: Int): Int {
     val q = luaDiv(a, b)
     return if (luaGte(q, 0)) {
-        lua("math.floor(q)")
+        LuaMath.floor(q)
     } else {
-        lua("math.ceil(q)")
+        LuaMath.ceil(q)
     }
 }
 
 @UsedFromCompilerGeneratedCode
-internal fun rem(a: Any?, b: Any?): Any? = lua("math.fmod(a, b)")
+internal fun rem(a: Any?, b: Any?): Any = LuaMath.fmod(a, b)
 
 private fun toInt32(u: dynamic): Int =
     if (luaGte(u, 2147483648.0)) {
@@ -247,7 +247,7 @@ internal fun bitShr(
 ): Int {
     val s: dynamic = luaMod(bitCount, 32)
     val q: dynamic = luaDiv(a, luaPow(2, s))
-    val u: dynamic = luaMod(lua("math.floor(q)"), 4294967296.0)
+    val u: dynamic = luaMod(LuaMath.floor(q), 4294967296.0)
     return toInt32(u)
 }
 
@@ -258,7 +258,7 @@ internal fun bitUshr(
 ): Int {
     val s: dynamic = luaMod(bitCount, 32)
     val q: dynamic = luaDiv(luaMod(a, 4294967296.0), luaPow(2, s))
-    val u: dynamic = lua("math.floor(q)")
+    val u: dynamic = LuaMath.floor(q)
     return toInt32(u)
 }
 
@@ -374,4 +374,11 @@ internal fun luaMainArgs(): Array<String> {
         )
     val count: Int = lua("#tbl")
     return Array(tbl, count, true)
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun luaUnpack(arr: Array<*>): dynamic {
+    val storage: dynamic = arr.storage
+    val size: Int = arr.size
+    return lua("unpack(storage, 1, size)")
 }

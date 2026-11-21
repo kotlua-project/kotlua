@@ -162,9 +162,18 @@ abstract class AbstractKotluaTest {
         val luaArgs = args.joinToString(", ") { it.toLuaLiteral() }
         val escapedModulePath = moduleFile.absolutePathString().replace("\\", "/")
         val escapedResultPath = resultFile.absolutePathString().replace("\\", "/")
+        val luaModulesDir = tempDir.resolve("lua_modules")
+        val packagePathSetup =
+            if (Files.exists(luaModulesDir)) {
+                val escapedLuaDir = luaModulesDir.absolutePathString().replace("\\", "/").escapeLua()
+                """package.path = "$escapedLuaDir/?.lua;$escapedLuaDir/?/init.lua;" .. package.path"""
+            } else {
+                ""
+            }
 
         val runnerScript =
             """
+            $packagePathSetup    
             local chunk = assert(loadfile("${escapedModulePath.escapeLua()}"))
             local exported = chunk()
             local fn = type(exported) == "table" and exported["${functionName.escapeLua()}"] or _G["${functionName.escapeLua()}"]
@@ -199,6 +208,31 @@ abstract class AbstractKotluaTest {
         }
     }
 
+    protected fun writeLuaModules(luaFiles: Map<String, String>) {
+        val luaDir = tempDir.resolve("lua_modules").createDirectories()
+        for ((relativePath, content) in luaFiles) {
+            val target = luaDir.resolve(relativePath)
+            target.parent?.createDirectories()
+            target.writeText(content)
+        }
+    }
+
+    protected fun assertBoxOk(
+        kotlinCode: String,
+        luaFiles: Map<String, String>,
+    ) {
+        writeLuaModules(luaFiles)
+        assertBoxOk(kotlinCode)
+    }
+
+    protected fun assertBoxOk(
+        files: Map<String, String>,
+        luaFiles: Map<String, String>,
+    ) {
+        writeLuaModules(luaFiles)
+        assertBoxOk(files)
+    }
+
     protected fun assertBoxOk(kotlinCode: String) {
         assertBoxOk(mapOf("Test.kt" to kotlinCode))
     }
@@ -228,6 +262,11 @@ abstract class AbstractKotluaTest {
         val globals = JsePlatform.standardGlobals()
         val moduleExports =
             try {
+                val luaModulesDir = tempDir.resolve("lua_modules")
+                if (Files.exists(luaModulesDir)) {
+                    val escapedLuaDir = luaModulesDir.absolutePathString().replace("\\", "/").escapeLua()
+                    globals.load("""package.path = "$escapedLuaDir/?.lua;$escapedLuaDir/?/init.lua;" .. package.path""").call()
+                }
                 globals.load(luaCode, chunkName).call()
             } catch (e: Throwable) {
                 fail("Lua load/execution error: ${e.message}\n\nGenerated Lua:\n$luaCode", e)

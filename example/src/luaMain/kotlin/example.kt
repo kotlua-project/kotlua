@@ -18,4 +18,7 @@ fun main(args: Array<String>) {
     val b = addFive(c)
     val d = c + 5 == b
     greet("Hey $d")
+    print("Enter your name: ")
+    val name = readln()
+    println("Hello, $name!")
 }

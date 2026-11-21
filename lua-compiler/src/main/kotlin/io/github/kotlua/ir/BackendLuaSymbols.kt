@@ -158,6 +158,7 @@ class BackendLuaSymbols(
     val luaPackToTable: IrSimpleFunctionSymbol by LuaCallableIds.luaPackToTable.functionSymbol()
 
     val luaMainArgs: IrSimpleFunctionSymbol by LuaCallableIds.luaMainArgs.functionSymbol()
+    val luaUnpack: IrSimpleFunctionSymbol by LuaCallableIds.luaUnpack.functionSymbol()
 
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
@@ -274,4 +275,5 @@ private object LuaCallableIds {
     val luaPackToTable = "luaPackToTable".luaCallableId
 
     val luaMainArgs = "luaMainArgs".luaCallableId
+    val luaUnpack = "luaUnpack".luaCallableId
 }

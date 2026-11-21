@@ -15,12 +15,15 @@
  */
 package io.github.kotlua.ir.utils
 
+import io.github.kotlua.ast.LuaExpression
 import io.github.kotlua.ast.LuaLValue
 import io.github.kotlua.ast.LuaName
 import io.github.kotlua.ast.scope.LuaScope
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.symbols.IrFunctionSymbol
+import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.parentAsClass
 
@@ -86,6 +89,16 @@ class LuaGenerationContext(
     fun getRefForStaticDeclaration(declaration: IrDeclarationWithName): LuaLValue {
         val name = getNameForStaticDeclaration(declaration)
         if (declaration.isEffectivelyExternal()) {
+            staticContext.externalImportModuleVars[declaration]?.let { modVar ->
+                return luaElementAccess(name, modVar)
+            }
+            if ('.' in name.identifier &&
+                !declaration.hasAnnotation(LuaStandardClassIds.Annotations.LuaImport)
+            ) {
+                return name.identifier
+                    .split('.')
+                    .fold<String, LuaExpression?>(null) { acc, part -> luaElementAccess(part, acc) } as LuaLValue
+            }
             return name
         }
         val isPrivate =

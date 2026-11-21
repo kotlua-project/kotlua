@@ -43,7 +43,7 @@ internal constructor(size: Int) {
         }
     }
 
-    private var storage: dynamic
+    internal var storage: dynamic
 
     private var _size: Int
 

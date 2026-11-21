@@ -22,10 +22,12 @@ import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
 import org.jetbrains.kotlin.ir.declarations.IrField
+import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrScript
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 
 class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaStatement, LuaGenerationContext>() {
     override fun visitSimpleFunction(
@@ -41,6 +43,14 @@ class IrDeclarationToLuaTransformer : BaseIrElementToLuaNodeTransformer<LuaState
             return LuaStatement.Empty
         }
         return declaration.accept(IrFunctionToLuaTransformer(), data)
+    }
+
+    override fun visitProperty(
+        declaration: IrProperty,
+        data: LuaGenerationContext,
+    ): LuaStatement {
+        if (declaration.isEffectivelyExternal()) return LuaStatement.Empty
+        return super.visitProperty(declaration, data)
     }
 
     override fun visitConstructor(

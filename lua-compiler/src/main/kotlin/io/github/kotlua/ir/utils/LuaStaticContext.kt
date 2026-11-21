@@ -22,12 +22,14 @@ import io.github.kotlua.ast.scope.LuaScope
 import io.github.kotlua.ir.LuaIrBackendContext
 import io.github.kotlua.ir.transformers.LuaExpressionIntrinsicTransformers
 import io.github.kotlua.ir.transformers.LuaStatementIntrinsicTransformers
+import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 
 class LuaStaticContext(
     val backendContext: LuaIrBackendContext,
     val irNamer: LuaIrNamer = LuaNameLinkingNamer(),
     val rootScope: LuaScope = LuaRootScope(),
 ) : LuaIrNamer by irNamer {
+    val externalImportModuleVars = mutableMapOf<IrDeclaration, LuaName>()
     val statementIntrinsics = LuaStatementIntrinsicTransformers(backendContext)
     val expressionIntrinsics = LuaExpressionIntrinsicTransformers(backendContext)
     val initializerBlock = mutableListOf<LuaStatement>()

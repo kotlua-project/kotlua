@@ -27,9 +27,12 @@ import io.github.kotlua.ir.lower.LuaMultiReturnLowering
 import io.github.kotlua.ir.utils.LuaGenerationContext
 import io.github.kotlua.ir.utils.buildLuaIf
 import io.github.kotlua.ir.utils.luaElementAccess
+import io.github.kotlua.ir.utils.resolveExternalPropertyTarget
 import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
+import io.github.kotlua.ir.utils.translateExternalArguments
 import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
@@ -37,6 +40,7 @@ import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
 import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.irError
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isElseBranch
 import org.jetbrains.kotlin.ir.util.nonDispatchParameters
 import org.jetbrains.kotlin.ir.util.parentAsClass
@@ -221,6 +225,15 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         }
         data.staticContext.statementIntrinsics[expression.symbol]?.let {
             return it(expression, data)
+        }
+        val targetFn = expression.symbol.owner.realOverrideTarget
+        if (targetFn.isEffectivelyExternal()) {
+            val property = targetFn.correspondingPropertySymbol?.owner
+            if (property != null && targetFn == property.setter) {
+                val target = resolveExternalPropertyTarget(expression, targetFn, property, data, exprTransformer)
+                val args = translateExternalArguments(expression, targetFn, data, exprTransformer)
+                return LuaStatement.Assignment(targets = listOf(target), values = listOf(args.single()))
+            }
         }
         return when (val result = translateCall(expression, data, exprTransformer)) {
             is LuaStatement -> {

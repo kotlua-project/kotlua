@@ -16,6 +16,7 @@
 package io.github.kotlua.ir.utils
 
 import io.github.kotlua.ast.LuaName
+import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrConstructor
@@ -27,6 +28,8 @@ import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.types.IrSimpleType
+import org.jetbrains.kotlin.ir.util.hasAnnotation
+import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.utils.DFS
 
@@ -66,9 +69,32 @@ class LuaNameLinkingNamer : LuaIrNamerBase() {
 
     override fun getNameForStaticDeclaration(declaration: IrDeclarationWithName): LuaName =
         staticNameMap.getOrPut(declaration) {
-            val suggestedName = declaration.nameIfPropertyAccessor() ?: declaration.name.asString()
-            val table = if (isPrivateToModule(declaration)) privateNames else publicNames
-            LuaName(table.declareFreshName(declaration, suggestedName))
+            if (declaration.isEffectivelyExternal()) {
+                val luaName = declaration.getEffectiveExternalLuaName()
+                val hasImport =
+                    declaration.hasAnnotation(LuaStandardClassIds.Annotations.LuaImport) ||
+                        (
+                            (declaration as? IrSimpleFunction)?.correspondingPropertySymbol?.owner?.hasAnnotation(
+                                LuaStandardClassIds.Annotations.LuaImport,
+                            ) ==
+                                true
+                        ) ||
+                        (
+                            (declaration as? IrField)?.correspondingPropertySymbol?.owner?.hasAnnotation(
+                                LuaStandardClassIds.Annotations.LuaImport,
+                            ) ==
+                                true
+                        )
+                if (hasImport) {
+                    LuaName(privateNames.declareFreshName(declaration, luaName))
+                } else {
+                    LuaName(luaName)
+                }
+            } else {
+                val suggestedName = declaration.nameIfPropertyAccessor() ?: declaration.name.asString()
+                val table = if (isPrivateToModule(declaration)) privateNames else publicNames
+                LuaName(table.declareFreshName(declaration, suggestedName))
+            }
         }
 
     override fun getNameForMemberFunction(function: IrSimpleFunction): LuaName {

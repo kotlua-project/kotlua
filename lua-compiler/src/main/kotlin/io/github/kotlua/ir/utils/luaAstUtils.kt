@@ -24,10 +24,12 @@ import io.github.kotlua.ir.transformers.IrElementToLuaStatementTransformer
 import io.github.kotlua.ir.transformers.translateLuaCodeIntoStatementList
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.descriptors.DescriptorVisibilities
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.*
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.irAttribute
 import org.jetbrains.kotlin.ir.util.*
 import org.jetbrains.kotlin.name.ClassId
@@ -62,6 +64,66 @@ internal fun translateCall(
     }
 
     val function = calledFunction.realOverrideTarget
+
+    if (function.isEffectivelyExternal()) {
+        val args = translateExternalArguments(expression, function, data, exprTransformer)
+        val property = function.correspondingPropertySymbol?.owner
+        if (property != null) {
+            val target = resolveExternalPropertyTarget(expression, function, property, data, exprTransformer)
+            return when (function) {
+                property.getter -> {
+                    target
+                }
+
+                property.setter -> {
+                    val fnScope = LuaFunctionScope(data.currentScope)
+                    val assignment = LuaStatement.Assignment(targets = listOf(target), values = listOf(args.single()))
+                    val anonFn =
+                        LuaExpression.AnonymousFunction(
+                            parameters = emptyList(),
+                            isVararg = false,
+                            block = LuaBlock(listOf(assignment), fnScope),
+                            scope = fnScope,
+                        )
+                    LuaExpression.FunctionCall(target = anonFn, args = emptyList())
+                }
+
+                else -> {
+                    compilationException("Function must be an accessor of corresponding property", function)
+                }
+            }
+        }
+
+        val dispatchParam = function.dispatchReceiverParameter
+        if (dispatchParam != null) {
+            val receiver =
+                expression.arguments[dispatchParam.indexInParameters]
+                    ?.accept(exprTransformer, data)
+                    ?: compilationException("Member call must have dispatch receiver", expression)
+            val luaName = function.getEffectiveExternalLuaName()
+            val parentClass = function.parentAsClass
+            val useColon =
+                when {
+                    function.hasAnnotation(LuaStandardClassIds.Annotations.LuaMethod) -> true
+                    function.hasAnnotation(LuaStandardClassIds.Annotations.LuaFunction) -> false
+                    parentClass.kind == ClassKind.OBJECT -> false
+                    else -> true
+                }
+            return if (useColon && luaName.isValidLuaIdentifier()) {
+                LuaExpression.MethodCall(target = receiver, methodName = luaName, args = args)
+            } else {
+                LuaExpression.FunctionCall(
+                    target = luaElementAccess(luaName, receiver),
+                    args = if (useColon) listOf(receiver) + args else args,
+                )
+            }
+        }
+
+        return LuaExpression.FunctionCall(
+            target = data.getRefForStaticDeclaration(function),
+            args = args,
+        )
+    }
 
     val args =
         function.nonDispatchParameters.map { param ->
@@ -117,6 +179,59 @@ internal fun translateCall(
         }
 
     return LuaExpression.FunctionCall(target = target, args = args)
+}
+
+internal fun translateExternalArguments(
+    expression: IrCall,
+    function: IrSimpleFunction,
+    data: LuaGenerationContext,
+    exprTransformer: IrElementToLuaExpressionTransformer,
+): List<LuaExpression> =
+    buildList {
+        for (param in function.nonDispatchParameters) {
+            val argExpr = expression.arguments[param.indexInParameters]
+            if (param.isVararg) {
+                when (argExpr) {
+                    null -> {
+                        Unit
+                    }
+
+                    is IrVararg if argExpr.elements.none { it is IrSpreadElement } -> {
+                        for (elem in argExpr.elements) {
+                            add((elem as IrExpression).accept(exprTransformer, data))
+                        }
+                    }
+
+                    else -> {
+                        val arrLua = argExpr.accept(exprTransformer, data)
+                        val unpackRef = data.getRefForStaticDeclaration(data.staticContext.backendContext.symbols.luaUnpack.owner)
+                        add(LuaExpression.FunctionCall(target = unpackRef, args = listOf(arrLua)))
+                    }
+                }
+            } else {
+                add(argExpr?.accept(exprTransformer, data) ?: LuaExpression.NilLiteral)
+            }
+        }
+    }
+
+internal fun resolveExternalPropertyTarget(
+    expression: IrCall,
+    function: IrSimpleFunction,
+    property: IrProperty,
+    data: LuaGenerationContext,
+    exprTransformer: IrElementToLuaExpressionTransformer,
+): LuaLValue {
+    val dispatchParam = function.dispatchReceiverParameter
+    return if (dispatchParam != null) {
+        val receiver =
+            expression.arguments[dispatchParam.indexInParameters]
+                ?.accept(exprTransformer, data)
+                ?: compilationException("External property access must have dispatch receiver", expression)
+        val propName = function.getEffectiveExternalLuaName()
+        luaElementAccess(propName, receiver)
+    } else {
+        data.getRefForStaticDeclaration(property)
+    }
 }
 
 private fun IrSimpleFunction.isFunctionalInvoke(): Boolean {
@@ -290,6 +405,60 @@ private fun parseLuaFromAnnotation(
 
     return annotation to parsedLuaFunction
 }
+
+internal fun parseLuaExpressionFromAnnotation(
+    declaration: IrDeclaration,
+    annotationClassId: ClassId,
+    annotationParam: String,
+): LuaExpression? {
+    val annotation =
+        declaration.getAnnotation(annotationClassId.asSingleFqName())
+            ?: return null
+    val luaCode =
+        annotation.argumentMapping[Name.identifier(annotationParam)]
+            ?: return null
+
+    val wrappedExpr =
+        if (luaCode is IrConst && luaCode.kind == IrConstKind.String) {
+            val raw = (luaCode.value as String).trim()
+            if (raw.isEmpty()) return null
+            val withReturn = if (raw.startsWith("return ") || raw.startsWith("return\t")) raw else "return $raw"
+            IrConstImpl.string(luaCode.startOffset, luaCode.endOffset, luaCode.type, withReturn)
+        } else {
+            luaCode
+        }
+
+    val statements =
+        translateLuaCodeIntoStatementList(wrappedExpr)
+            ?: compilationException("Could not parse Lua code in @${annotationClassId.shortClassName}", annotation)
+
+    return (statements.singleOrNull() as? LuaStatement.Return)?.values?.singleOrNull()
+        ?: (statements.singleOrNull() as? LuaExpression)
+        ?: compilationException("Provided Lua code in @${annotationClassId.shortClassName} is not a Lua expression", annotation)
+}
+
+internal fun IrDeclarationWithName.getLuaNameOrNull(): String? {
+    val ann = getAnnotation(LuaStandardClassIds.Annotations.LuaName.asSingleFqName())
+    val custom = (ann?.argumentMapping?.get(Name.identifier("name")) as? IrConst)?.value as? String
+    if (!custom.isNullOrEmpty()) return custom
+    if (this is IrSimpleFunction) {
+        correspondingPropertySymbol?.owner?.let { prop ->
+            val propAnn = prop.getAnnotation(LuaStandardClassIds.Annotations.LuaName.asSingleFqName())
+            val propCustom = (propAnn?.argumentMapping?.get(Name.identifier("name")) as? IrConst)?.value as? String
+            if (!propCustom.isNullOrEmpty()) return propCustom
+        }
+    }
+    return null
+}
+
+internal fun IrDeclarationWithName.getEffectiveExternalLuaName(): String =
+    getLuaNameOrNull() ?: run {
+        if (this is IrSimpleFunction) {
+            correspondingPropertySymbol?.owner?.name?.asString() ?: name.asString()
+        } else {
+            name.asString()
+        }
+    }
 
 internal fun isIgnoredClass(
     klass: IrClass,

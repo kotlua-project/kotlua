@@ -6,7 +6,7 @@ package kotlin
  * Returns a string representation of the object. Can be called with a null receiver, in which case
  * it returns the string "null".
  */
-public actual fun Any?.toString(): String
+public actual fun Any?.toString(): String = this?.toString() ?: "null"
 
 /**
  * Concatenates this string with the string representation of the given [other] object. If either the receiver
@@ -14,21 +14,22 @@ public actual fun Any?.toString(): String
  *
  * @sample samples.text.Strings.nullableStringPlus
  */
-public actual operator fun String?.plus(other: Any?): String
+public actual operator fun String?.plus(other: Any?): String =
+    (this ?: "null").plus(other?.toString() ?: "null")
 
 /**
  * Returns an array of objects of the given type with the given [size], initialized with null values.
  *
  * @throws RuntimeException if the specified [size] is negative.
  */
-public actual fun <reified T> arrayOfNulls(size: Int): Array<T?>
+public actual fun <reified T> arrayOfNulls(size: Int): Array<T?> = Array<T?>(size)
 
 /**
  * Returns an array containing the specified elements.
  *
  * @sample samples.collections.Arrays.Constructors.arrayOfSample
  */
-public actual inline fun <reified T> arrayOf(vararg elements: T): Array<T>
+public actual inline fun <reified T> arrayOf(vararg elements: T): Array<T> = elements.unsafeCast<Array<T>>()
 
 /**
  * Returns an array containing enum entries of the enum type [T].

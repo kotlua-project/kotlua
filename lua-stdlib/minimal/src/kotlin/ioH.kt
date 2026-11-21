@@ -7,14 +7,17 @@ package kotlin.io
 
 /** Prints the line separator to the standard output stream. */
 public actual fun println() {
+    luaPrintln(null)
 }
 
 /** Prints the given [message] and the line separator to the standard output stream. */
 public actual fun println(message: Any?) {
+    luaPrintln(message)
 }
 
 /** Prints the given [message] to the standard output stream. */
 public actual fun print(message: Any?) {
+    LuaIO.write(message)
 }
 
 /**
@@ -26,7 +29,7 @@ public actual fun print(message: Any?) {
  * Currently this function is not supported in Kotlin/JS and in Kotlin/WasmJS, and throws [UnsupportedOperationException].
  */
 public actual fun readln(): String {
-    TODO()
+    return readlnOrNull()!!
 }
 
 /**
@@ -38,7 +41,19 @@ public actual fun readln(): String {
  * Currently this function is not supported in Kotlin/JS and in Kotlin/WasmJS, and throws [UnsupportedOperationException].
  */
 public actual fun readlnOrNull(): String? {
-    TODO()
+    return LuaIO.read()
+}
+
+@LuaGlobal
+@LuaName("print")
+internal external fun luaPrintln(message: Any?)
+
+@LuaGlobal
+@LuaName("io")
+internal external object LuaIO {
+    fun read(): String?
+
+    fun write(message: Any?)
 }
 
 internal actual interface Serializable

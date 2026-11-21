@@ -169,7 +169,11 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         val klass = expression.symbol.owner
         val classRef = data.getRefForStaticDeclaration(klass)
         if (klass.isEffectivelyExternal()) {
-            return classRef
+            return if (klass.isCompanion) {
+                data.getRefForStaticDeclaration(klass.parentAsClass)
+            } else {
+                classRef
+            }
         }
 
         return LuaExpression.FunctionCall(
@@ -226,7 +230,20 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
             return intrinsic(expression, data)
         }
         val ctor = expression.symbol.owner
-        val classRef = data.getRefForStaticDeclaration(ctor.parentAsClass)
+        val constructedClass = ctor.parentAsClass
+        if (constructedClass.isEffectivelyExternal()) {
+            val classRef = data.getRefForStaticDeclaration(constructedClass)
+            val args =
+                ctor.nonDispatchParameters.map { param ->
+                    expression.arguments[param.indexInParameters]
+                        ?.accept(this, data)
+                        ?: LuaExpression.NilLiteral
+                }
+            val ctorName = ctor.getLuaNameOrNull()
+            val target = if (ctorName != null) luaElementAccess(ctorName, classRef) else classRef
+            return LuaExpression.FunctionCall(target = target, args = args)
+        }
+        val classRef = data.getRefForStaticDeclaration(constructedClass)
         val ctorName = data.staticContext.irNamer.getNameForConstructor(ctor)
         val instanceExpr =
             LuaExpression.FunctionCall(

@@ -37,6 +37,21 @@ object LuaStandardClassIds {
 
         @JvmField
         val LuaMultiReturn = "LuaMultiReturn".luaId()
+
+        @JvmField
+        val LuaImport = "LuaImport".luaId()
+
+        @JvmField
+        val LuaGlobal = "LuaGlobal".luaId()
+
+        @JvmField
+        val LuaName = "LuaName".luaId()
+
+        @JvmField
+        val LuaMethod = "LuaMethod".luaId()
+
+        @JvmField
+        val LuaFunction = "LuaFunction".luaId()
     }
 
     object Callables {

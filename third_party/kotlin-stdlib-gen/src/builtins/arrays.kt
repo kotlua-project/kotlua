@@ -296,7 +296,7 @@ class GenerateLuaArrays(writer: PrintWriter, primitiveArrays: Boolean) : Generat
 
             classBody(
                 $$"""
-                private var storage: dynamic
+                internal var storage: dynamic
 
                 private var _size: Int
 
