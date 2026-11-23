@@ -1,0 +1,1475 @@
+@file:OptIn(LuaIntrinsic::class)
+
+package kotlin.math
+
+import kotlin.lua.LuaIntrinsic
+import kotlin.lua.LuaMath
+import kotlin.lua.lua
+import kotlin.lua.luaMod
+import kotlin.lua.luaPow
+
+private const val LN2: Double = 0.6931471805599453
+private val NEG_ZERO: Double = -1.0 / Double.POSITIVE_INFINITY
+private val NEG_ZERO_F: Float = -1.0f / Float.POSITIVE_INFINITY
+
+internal fun frexpMantissa(x: Double): Double = lua("(math.frexp(x))")
+
+internal fun frexpExponent(x: Double): Int = lua("select(2, math.frexp(x))")
+
+// region ================ Double Math ========================================
+
+/**
+ * Computes the sine of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `sin(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.sin
+ */
+@SinceKotlin("1.2")
+public actual fun sin(x: Double): Double =
+    if (!x.isFinite()) Double.NaN else LuaMath.sin(x)
+
+/**
+ * Computes the cosine of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `cos(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.cos
+ */
+@SinceKotlin("1.2")
+public actual fun cos(x: Double): Double =
+    if (!x.isFinite()) Double.NaN else LuaMath.cos(x)
+
+/**
+ * Computes the tangent of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `tan(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.tan
+ */
+@SinceKotlin("1.2")
+public actual fun tan(x: Double): Double =
+    if (!x.isFinite()) Double.NaN else LuaMath.tan(x)
+
+/**
+ * Computes the arc sine of the value [x];
+ * the returned value is an angle in the range from `-PI/2` to `PI/2` radians.
+ *
+ * Special cases:
+ *   - `asin(x)` is `NaN`, when `abs(x) > 1` or x is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.asin
+ */
+@SinceKotlin("1.2")
+public actual fun asin(x: Double): Double =
+    if (x.isNaN() || abs(x) > 1.0) Double.NaN else LuaMath.asin(x)
+
+/**
+ * Computes the arc cosine of the value [x];
+ * the returned value is an angle in the range from `0.0` to `PI` radians.
+ *
+ * Special cases:
+ *   - `acos(x)` is `NaN`, when `abs(x) > 1` or x is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.acos
+ */
+@SinceKotlin("1.2")
+public actual fun acos(x: Double): Double =
+    if (x.isNaN() || abs(x) > 1.0) Double.NaN else LuaMath.acos(x)
+
+/**
+ * Computes the arc tangent of the value [x];
+ * the returned value is an angle in the range from `-PI/2` to `PI/2` radians.
+ *
+ * Special cases:
+ *   - `atan(NaN)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Doubles.atan
+ */
+@SinceKotlin("1.2")
+public actual fun atan(x: Double): Double =
+    if (x.isNaN()) Double.NaN else LuaMath.atan(x)
+
+/**
+ * Returns the angle `theta` of the polar coordinates `(r, theta)` that correspond
+ * to the rectangular coordinates `(x, y)` by computing the arc tangent of the value [y] / [x];
+ * the returned value is an angle in the range from `-PI` to `PI` radians.
+ *
+ * In other words, this function returns an angle in radians between the positive x-axis and
+ * a ray from the origin (`(0, 0)`) to the point `(x, y)` confined to the interval `(-π, π]`.
+ *
+ * The `r` component (the distance) of the polar coordinates `(r, theta)` could be calculated as `hypot(x, y)`.
+ *
+ * Special cases:
+ *   - `atan2(0.0, 0.0)` is `0.0`
+ *   - `atan2(0.0, x)` is  `0.0` for `x > 0` and `PI` for `x < 0`
+ *   - `atan2(-0.0, x)` is `-0.0` for `x > 0` and `-PI` for `x < 0`
+ *   - `atan2(y, +Inf)` is `0.0` for `0 < y < +Inf` and `-0.0` for `-Inf < y < 0`
+ *   - `atan2(y, -Inf)` is `PI` for `0 < y < +Inf` and `-PI` for `-Inf < y < 0`
+ *   - `atan2(y, 0.0)` is `PI/2` for `y > 0` and `-PI/2` for `y < 0`
+ *   - `atan2(+Inf, x)` is `PI/2` for finite `x`
+ *   - `atan2(-Inf, x)` is `-PI/2` for finite `x`
+ *   - `atan2(NaN, x)` and `atan2(y, NaN)` is `NaN`
+ *
+ * @see hypot function.
+ * @sample samples.math.MathSamples.Doubles.atan2
+ */
+@SinceKotlin("1.2")
+public actual fun atan2(y: Double, x: Double): Double {
+    if (y.isNaN() || x.isNaN()) return Double.NaN
+    if (y.isInfinite() && x.isInfinite()) {
+        val quarter = LuaMath.pi * 0.25
+        val base = if (x > 0.0) quarter else 3.0 * quarter
+        return if (y > 0.0) base else -base
+    }
+    return LuaMath.atan2(y, x)
+}
+
+/**
+ * Computes the hyperbolic sine of the value [x].
+ *
+ * Special cases:
+ *   - `sinh(NaN)` is `NaN`
+ *   - `sinh(+Inf)` is `+Inf`
+ *   - `sinh(-Inf)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun sinh(x: Double): Double =
+    if (!x.isFinite()) x else LuaMath.sinh(x)
+
+/**
+ * Computes the hyperbolic cosine of the value [x].
+ *
+ * Special cases:
+ *   - `cosh(NaN)` is `NaN`
+ *   - `cosh(+Inf|-Inf)` is `+Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun cosh(x: Double): Double =
+    when {
+        x.isNaN() -> Double.NaN
+        x.isInfinite() -> Double.POSITIVE_INFINITY
+        else -> LuaMath.cosh(x)
+    }
+
+/**
+ * Computes the hyperbolic tangent of the value [x].
+ *
+ * Special cases:
+ *   - `tanh(NaN)` is `NaN`
+ *   - `tanh(+Inf)` is `1.0`
+ *   - `tanh(-Inf)` is `-1.0`
+ */
+@SinceKotlin("1.2")
+public actual fun tanh(x: Double): Double =
+    when {
+        x.isNaN() -> Double.NaN
+        x == Double.POSITIVE_INFINITY -> 1.0
+        x == Double.NEGATIVE_INFINITY -> -1.0
+        else -> LuaMath.tanh(x)
+    }
+
+/**
+ * Computes the inverse hyperbolic sine of the value [x].
+ *
+ * The returned value is `y` such that `sinh(y) == x`.
+ *
+ * Special cases:
+ *   - `asinh(NaN)` is `NaN`
+ *   - `asinh(+Inf)` is `+Inf`
+ *   - `asinh(-Inf)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun asinh(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    val ax = abs(x)
+    val res =
+        when {
+            ax > 1e8 -> ln(ax) + LN2
+            ax < 1e-8 -> ax
+            else -> ln1p(ax + ax * ax / (1.0 + sqrt(1.0 + ax * ax)))
+        }
+    return if (x < 0.0) -res else res
+}
+
+/**
+ * Computes the inverse hyperbolic cosine of the value [x].
+ *
+ * The returned value is positive `y` such that `cosh(y) == x`.
+ *
+ * Special cases:
+ *   - `acosh(NaN)` is `NaN`
+ *   - `acosh(x)` is `NaN` when `x < 1`
+ *   - `acosh(+Inf)` is `+Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun acosh(x: Double): Double {
+    if (x.isNaN() || x < 1.0) return Double.NaN
+    if (x == Double.POSITIVE_INFINITY) return Double.POSITIVE_INFINITY
+    if (x > 1e8) return ln(x) + LN2
+    val t = x - 1.0
+    return ln1p(t + sqrt(t * (x + 1.0)))
+}
+
+/**
+ * Computes the inverse hyperbolic tangent of the value [x].
+ *
+ * The returned value is `y` such that `tanh(y) == x`.
+ *
+ * Special cases:
+ *   - `tanh(NaN)` is `NaN`
+ *   - `tanh(x)` is `NaN` when `x > 1` or `x < -1`
+ *   - `tanh(1.0)` is `+Inf`
+ *   - `tanh(-1.0)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun atanh(x: Double): Double {
+    if (x.isNaN() || abs(x) > 1.0) return Double.NaN
+    if (x == 1.0) return Double.POSITIVE_INFINITY
+    if (x == -1.0) return Double.NEGATIVE_INFINITY
+    if (x == 0.0) return x
+    val ax = abs(x)
+    val res = 0.5 * ln1p(2.0 * ax / (1.0 - ax))
+    return if (x < 0.0) -res else res
+}
+
+/**
+ * Computes `sqrt(x^2 + y^2)` without intermediate overflow or underflow.
+ *
+ * Special cases:
+ *   - returns `+Inf` if any of arguments is infinite
+ *   - returns `NaN` if any of arguments is `NaN` and the other is not infinite
+ *
+ * @sample samples.math.MathSamples.Doubles.hypot
+ */
+@SinceKotlin("1.2")
+public actual fun hypot(x: Double, y: Double): Double {
+    if (x.isInfinite() || y.isInfinite()) return Double.POSITIVE_INFINITY
+    if (x.isNaN() || y.isNaN()) return Double.NaN
+    var ax = abs(x)
+    var ay = abs(y)
+    if (ax < ay) {
+        val tmp = ax
+        ax = ay
+        ay = tmp
+    }
+    if (ax == 0.0) return 0.0
+    val r = ay / ax
+    return ax * sqrt(1.0 + r * r)
+}
+
+/**
+ * Computes the positive square root of the value [x].
+ *
+ * Special cases:
+ *   - `sqrt(NaN)` is `NaN`
+ *   - `sqrt(-0.0)` is `-0.0`
+ *   - `sqrt(x)` is `NaN` when `x < 0`
+ *
+ * @sample samples.math.MathSamples.Doubles.sqrt
+ */
+@SinceKotlin("1.2")
+public actual fun sqrt(x: Double): Double {
+    if (x.isNaN() || x < 0.0) return Double.NaN
+    if (x == 0.0) return x
+    return LuaMath.sqrt(x)
+}
+
+/**
+ * Computes Euler's number `e` raised to the power of the value [x].
+ *
+ * Special cases:
+ *   - `exp(NaN)` is `NaN`
+ *   - `exp(+Inf)` is `+Inf`
+ *   - `exp(-Inf)` is `0.0`
+ *
+ * @sample samples.math.MathSamples.Doubles.exp
+ */
+@SinceKotlin("1.2")
+public actual fun exp(x: Double): Double =
+    when {
+        x.isNaN() -> Double.NaN
+        x == Double.POSITIVE_INFINITY -> Double.POSITIVE_INFINITY
+        x == Double.NEGATIVE_INFINITY -> 0.0
+        else -> LuaMath.exp(x)
+    }
+
+/**
+ * Computes `exp(x) - 1`.
+ *
+ * This function can be implemented to produce more precise result for [x] near zero.
+ *
+ * Special cases:
+ *   - `expm1(NaN)` is `NaN`
+ *   - `expm1(+Inf)` is `+Inf`
+ *   - `expm1(-Inf)` is `-1.0`
+ *
+ * @see [exp] function.
+ * @see [ln1p] function.
+ * @sample samples.math.MathSamples.Doubles.expm1
+ */
+@SinceKotlin("1.2")
+public actual fun expm1(x: Double): Double {
+    if (x.isNaN()) return Double.NaN
+    if (x == Double.POSITIVE_INFINITY) return Double.POSITIVE_INFINITY
+    if (x == Double.NEGATIVE_INFINITY) return -1.0
+    if (x == 0.0) return x
+    if (abs(x) < 0.5) {
+        val u = exp(x)
+        return if (u == 1.0) x else (u - 1.0) * x / ln(u)
+    }
+    return exp(x) - 1.0
+}
+
+/**
+ * Computes the logarithm of the value [x] to the given [base].
+ *
+ * Special cases:
+ *   - `log(x, b)` is `NaN` if either `x` or `b` are `NaN`
+ *   - `log(x, b)` is `NaN` when `x < 0` or `b <= 0` or `b == 1.0`
+ *   - `log(+Inf, +Inf)` is `NaN`
+ *   - `log(+Inf, b)` is `+Inf` for `b > 1` and `-Inf` for `b < 1`
+ *   - `log(0.0, b)` is `-Inf` for `b > 1` and `+Inf` for `b < 1`
+ *
+ * See also logarithm functions for common fixed bases: [ln], [log10] and [log2].
+ *
+ * @sample samples.math.MathSamples.Doubles.logarithm
+ */
+@SinceKotlin("1.2")
+public actual fun log(x: Double, base: Double): Double {
+    if (x.isNaN() || base.isNaN()) return Double.NaN
+    if (x < 0.0 || base <= 0.0 || base == 1.0) return Double.NaN
+    if (x == Double.POSITIVE_INFINITY && base == Double.POSITIVE_INFINITY) return Double.NaN
+    return ln(x) / ln(base)
+}
+
+/**
+ * Computes the natural logarithm (base `E`) of the value [x].
+ *
+ * Special cases:
+ *   - `ln(NaN)` is `NaN`
+ *   - `ln(x)` is `NaN` when `x < 0.0`
+ *   - `ln(+Inf)` is `+Inf`
+ *   - `ln(0.0)` is `-Inf`
+ *
+ * @sample samples.math.MathSamples.Doubles.naturalLogarithm
+ */
+@SinceKotlin("1.2")
+public actual fun ln(x: Double): Double =
+    when {
+        x.isNaN() || x < 0.0 -> Double.NaN
+        x == 0.0 -> Double.NEGATIVE_INFINITY
+        x == Double.POSITIVE_INFINITY -> Double.POSITIVE_INFINITY
+        else -> LuaMath.log(x)
+    }
+
+/**
+ * Computes the common logarithm (base 10) of the value [x].
+ *
+ * @see [ln] function for special cases.
+ *
+ * @sample samples.math.MathSamples.Doubles.logBase10
+ */
+@SinceKotlin("1.2")
+public actual fun log10(x: Double): Double =
+    when {
+        x.isNaN() || x < 0.0 -> Double.NaN
+        x == 0.0 -> Double.NEGATIVE_INFINITY
+        x == Double.POSITIVE_INFINITY -> Double.POSITIVE_INFINITY
+        else -> LuaMath.log10(x)
+    }
+
+/**
+ * Computes the binary logarithm (base 2) of the value [x].
+ *
+ * @see [ln] function for special cases.
+ *
+ * @sample samples.math.MathSamples.Doubles.logBase2
+ */
+@SinceKotlin("1.2")
+public actual fun log2(x: Double): Double = ln(x) / LN2
+
+/**
+ * Computes `ln(x + 1)`.
+ *
+ * This function can be implemented to produce more precise result for [x] near zero.
+ *
+ * Special cases:
+ *   - `ln1p(NaN)` is `NaN`
+ *   - `ln1p(x)` is `NaN` where `x < -1.0`
+ *   - `ln1p(-1.0)` is `-Inf`
+ *   - `ln1p(+Inf)` is `+Inf`
+ *
+ * @see [ln] function
+ * @see [expm1] function
+ *
+ * @sample samples.math.MathSamples.Doubles.naturalLogarithmPlusOne
+ */
+@SinceKotlin("1.2")
+public actual fun ln1p(x: Double): Double {
+    if (x.isNaN() || x < -1.0) return Double.NaN
+    if (x == -1.0) return Double.NEGATIVE_INFINITY
+    if (x == Double.POSITIVE_INFINITY) return Double.POSITIVE_INFINITY
+    if (x == 0.0) return x
+    val u = 1.0 + x
+    return if (u == 1.0) x else ln(u) * (x / (u - 1.0))
+}
+
+/**
+ * Rounds the given value [x] to an integer towards positive infinity.
+ *
+ * Special cases:
+ *   - `ceil(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the smallest double value that is greater than or equal to the given value [x] and is a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Doubles.ceil
+ * @sample samples.math.MathSamples.Doubles.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun ceil(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    val r = LuaMath.ceil(x).toDouble()
+    return if (r == 0.0 && x < 0.0) NEG_ZERO else r
+}
+
+/**
+ * Rounds the given value [x] to an integer towards negative infinity.
+ *
+ * Special cases:
+ *   - `floor(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the largest double value that is smaller than or equal to the given value [x] and is a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Doubles.floor
+ * @sample samples.math.MathSamples.Doubles.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun floor(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    return LuaMath.floor(x).toDouble()
+}
+
+/**
+ * Rounds the given value [x] to an integer towards zero.
+ *
+ * Special cases:
+ *   - `truncate(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the value [x] having its fractional part truncated.
+ *
+ * @sample samples.math.MathSamples.Doubles.truncate
+ * @sample samples.math.MathSamples.Doubles.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun truncate(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    return if (x < 0.0) ceil(x) else floor(x)
+}
+
+/**
+ * Rounds the given value [x] towards the closest integer with ties rounded towards even integer.
+ *
+ * Special cases:
+ *   - `round(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Doubles.round
+ * @sample samples.math.MathSamples.Doubles.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun round(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    if (abs(x) >= 4503599627370496.0) return x
+    val f = floor(x)
+    val diff = x - f
+    if (diff < 0.5) return f
+    if (diff > 0.5) return ceil(x)
+    if (luaMod(f, 2.0) == 0.0) return f
+    val res = f + 1.0
+    return if (res == 0.0 && x < 0.0) NEG_ZERO else res
+}
+
+/**
+ * Returns the absolute value of the given value [x].
+ *
+ * Special cases:
+ *   - `abs(NaN)` is `NaN`
+ *
+ * @see absoluteValue extension property for [Double]
+ * @sample samples.math.MathSamples.Doubles.abs
+ */
+@SinceKotlin("1.2")
+public actual fun abs(x: Double): Double =
+    if (x == 0.0) 0.0 else if (x < 0.0) -x else x
+
+/**
+ * Returns the sign of the given value [x]:
+ *   - `-1.0` if the value is negative,
+ *   - zero if the value is zero,
+ *   - `1.0` if the value is positive
+ *
+ * Special cases:
+ *   - `sign(NaN)` is `NaN`
+ *   - `sign(-0.0)` is `-0.0`
+ *
+ * @sample samples.math.MathSamples.Doubles.signFun
+ */
+@SinceKotlin("1.2")
+public actual fun sign(x: Double): Double =
+    when {
+        x.isNaN() -> Double.NaN
+        x > 0.0 -> 1.0
+        x < 0.0 -> -1.0
+        else -> x
+    }
+
+
+/**
+ * Returns the smaller of two values.
+ *
+ * If either value is `NaN`, then the result is `NaN`.
+ *
+ * @sample samples.math.MathSamples.Doubles.min
+ */
+@SinceKotlin("1.2")
+public actual fun min(a: Double, b: Double): Double {
+    if (a.isNaN() || b.isNaN()) return Double.NaN
+    if (a == 0.0 && b == 0.0) {
+        return if (1.0 / a < 0.0 || 1.0 / b < 0.0) NEG_ZERO else 0.0
+    }
+    return if (a < b) a else b
+}
+
+/**
+ * Returns the greater of two values.
+ *
+ * If either value is `NaN`, then the result is `NaN`.
+ *
+ * @sample samples.math.MathSamples.Doubles.max
+ */
+@SinceKotlin("1.2")
+public actual fun max(a: Double, b: Double): Double {
+    if (a.isNaN() || b.isNaN()) return Double.NaN
+    if (a == 0.0 && b == 0.0) {
+        return if (1.0 / a > 0.0 || 1.0 / b > 0.0) 0.0 else NEG_ZERO
+    }
+    return if (a > b) a else b
+}
+
+
+/**
+ * Returns the cube root of [x]. For any `x`, `cbrt(-x) == -cbrt(x)`;
+ * that is, the cube root of a negative value is the negative of the cube root
+ * of that value's magnitude.
+ *
+ * Special cases:
+ *   - If the argument is `NaN`, then the result is `NaN`.
+ *   - If the argument is infinite, then the result is an infinity with the same sign as the argument.
+ *   - If the argument is zero, then the result is a zero with the same sign as the argument.
+ *
+ * @sample samples.math.MathSamples.Doubles.cbrt
+ */
+@SinceKotlin("1.8")
+public actual fun cbrt(x: Double): Double {
+    if (!x.isFinite() || x == 0.0) return x
+    val ax = abs(x)
+    var r = LuaMath.pow(ax, 1.0 / 3.0)
+    r = (2.0 * r + ax / (r * r)) / 3.0
+    r = (2.0 * r + ax / (r * r)) / 3.0
+    return if (x < 0.0) -r else r
+}
+
+// extensions
+
+/**
+ * Raises this value to the power [x].
+ *
+ * Special cases:
+ *   - `b.pow(0.0)` is `1.0`
+ *   - `b.pow(1.0) == b`
+ *   - `b.pow(NaN)` is `NaN`
+ *   - `NaN.pow(x)` is `NaN` for `x != 0.0`
+ *   - `b.pow(Inf)` is `NaN` for `abs(b) == 1.0`
+ *   - `b.pow(x)` is `NaN` for `b < 0` and `x` is finite and not an integer
+ *
+ * @sample samples.math.MathSamples.Doubles.powDouble
+ */
+@SinceKotlin("1.2")
+public actual fun Double.pow(x: Double): Double {
+    if (x == 0.0) return 1.0
+    if (isNaN() || x.isNaN()) return Double.NaN
+    if (x == 1.0) return this
+    if (abs(this) == 1.0 && x.isInfinite()) return Double.NaN
+    if (this < 0.0 && x.isFinite() && floor(x) != x) return Double.NaN
+    return LuaMath.pow(this, x)
+}
+
+/**
+ * Raises this value to the integer power [n].
+ *
+ * See the other overload of [pow] for details.
+ *
+ * @sample samples.math.MathSamples.Doubles.powInt
+ */
+@SinceKotlin("1.2")
+public actual fun Double.pow(n: Int): Double = pow(n.toDouble())
+
+/**
+ * Returns the absolute value of this value.
+ *
+ * Special cases:
+ *   - `NaN.absoluteValue` is `NaN`
+ *
+ * @see abs function
+ * @sample samples.math.MathSamples.Doubles.absoluteValue
+ */
+@SinceKotlin("1.2")
+public actual val Double.absoluteValue: Double
+    get() = abs(this)
+
+/**
+ * Returns the sign of this value:
+ *   - `-1.0` if the value is negative,
+ *   - zero if the value is zero,
+ *   - `1.0` if the value is positive
+ *
+ * Special cases:
+ *   - `NaN.sign` is `NaN`
+ *   - `(-0.0).sign` is `-0.0`
+ *
+ * @sample samples.math.MathSamples.Doubles.sign
+ */
+@SinceKotlin("1.2")
+public actual val Double.sign: Double
+    get() = sign(this)
+
+/**
+ * Returns this value with the sign bit same as of the [sign] value.
+ *
+ * If [sign] is `NaN` the sign of the result is undefined.
+ *
+ * @sample samples.math.MathSamples.Doubles.withSignDouble
+ */
+@SinceKotlin("1.2")
+public actual fun Double.withSign(sign: Double): Double {
+    val mag = abs(this)
+    val isNeg = sign < 0.0 || (sign == 0.0 && 1.0 / sign < 0.0)
+    return if (mag == 0.0) (if (isNeg) NEG_ZERO else 0.0) else (if (isNeg) -mag else mag)
+}
+
+/**
+ * Returns this value with the sign bit same as of the [sign] value.
+ *
+ * @sample samples.math.MathSamples.Doubles.withSignInt
+ */
+@SinceKotlin("1.2")
+public actual fun Double.withSign(sign: Int): Double {
+    val mag = abs(this)
+    return if (sign < 0) -mag else mag
+}
+
+/**
+ * Returns the ulp (unit in the last place) of this value.
+ *
+ * An ulp is a positive distance between this value and the next nearest [Double] value larger in magnitude.
+ *
+ * Special cases:
+ *   - `NaN.ulp` is `NaN`
+ *   - `x.ulp` is `+Inf` when `x` is `+Inf` or `-Inf`
+ *   - `0.0.ulp` is `Double.MIN_VALUE`
+ *
+ * @see nextUp
+ * @see nextDown
+ * @see nextTowards
+ * @sample samples.math.MathSamples.Doubles.ulp
+ * @sample samples.math.MathSamples.Doubles.discreteValues
+ */
+@SinceKotlin("1.2")
+public actual val Double.ulp: Double
+    get() {
+        if (isNaN()) return Double.NaN
+        if (isInfinite()) return Double.POSITIVE_INFINITY
+        val ax = abs(this)
+        if (ax < 2.2250738585072014E-308) return Double.MIN_VALUE
+        if (ax == 0.0) return Double.MIN_VALUE
+        val exp = frexpExponent(ax) - 1
+        return if (exp <= -1022) Double.MIN_VALUE else luaPow(2.0, exp - 52).unsafeCast<Double>()
+    }
+
+/**
+ * Returns the [Double] value nearest to this value in a direction of positive infinity.
+ *
+ * Special cases:
+ *   - `NaN.nextUp() is `NaN`
+ *   - `Double.POSITIVE_INFINITY.nextUp() is `+Infinity`
+ *   - `0.0.nextUp()` is `Double.MIN_VALUE`
+ *
+ * @see nextTowards
+ * @see nextDown
+ * @see ulp
+ * @sample samples.math.MathSamples.Doubles.nextUp
+ * @sample samples.math.MathSamples.Doubles.discreteValues
+ */
+@SinceKotlin("1.2")
+public actual fun Double.nextUp(): Double {
+    if (isNaN() || this == Double.POSITIVE_INFINITY) return this
+    if (this == 0.0) return Double.MIN_VALUE
+    if (this > 0.0) return this + ulp
+    if (this == -Double.MIN_VALUE) return NEG_ZERO
+    val m = frexpMantissa(this)
+    val exp = frexpExponent(this) - 1
+    val step = if (m == -0.5 && exp > -1022) ulp * 0.5 else ulp
+    val next = this + step
+    return if (next == 0.0) NEG_ZERO else next
+}
+
+/**
+ * Returns the [Double] value nearest to this value in a direction of negative infinity.
+ *
+ * Special cases:
+ *   - `NaN.nextDown() is `NaN`
+ *   - `Double.NEGATIVE_INFINITY.nextDown() is `-Infinity`
+ *   - `0.0.nextDown()` is `-Double.MIN_VALUE`
+ *
+ * @see nextUp
+ * @see nextTowards
+ * @see ulp
+ * @sample samples.math.MathSamples.Doubles.nextDown
+ * @sample samples.math.MathSamples.Doubles.discreteValues
+ */
+@SinceKotlin("1.2")
+public actual fun Double.nextDown(): Double = -((-this).nextUp())
+
+/**
+ * Returns the [Double] value nearest to this value in a direction from this value towards the value [to].
+ *
+ * Special cases:
+ *   - `x.nextTowards(y)` is `NaN` if either `x` or `y` are `NaN`
+ *   - `x.nextTowards(x) == x`
+ *
+ * @see nextUp
+ * @see nextDown
+ * @see ulp
+ * @sample samples.math.MathSamples.Doubles.nextTowards
+ * @sample samples.math.MathSamples.Doubles.discreteValues
+ */
+@SinceKotlin("1.2")
+public actual fun Double.nextTowards(to: Double): Double {
+    if (isNaN() || to.isNaN()) return Double.NaN
+    if (this == to) return to
+    return if (to > this) nextUp() else nextDown()
+}
+
+/**
+ * Rounds this [Double] value to the nearest integer and converts the result to [Int].
+ * Ties are rounded towards positive infinity.
+ *
+ * Special cases:
+ *   - `x.roundToInt() == Int.MAX_VALUE` when `x > Int.MAX_VALUE`
+ *   - `x.roundToInt() == Int.MIN_VALUE` when `x < Int.MIN_VALUE`
+ *
+ * @throws IllegalArgumentException when this value is `NaN`
+ * @sample samples.math.MathSamples.Doubles.roundToInt
+ */
+@SinceKotlin("1.2")
+public actual fun Double.roundToInt(): Int {
+    if (isNaN()) throw IllegalArgumentException("Cannot round NaN value.")
+    if (this >= Int.MAX_VALUE.toDouble()) return Int.MAX_VALUE
+    if (this <= Int.MIN_VALUE.toDouble()) return Int.MIN_VALUE
+    return floor(this + 0.5).toInt()
+}
+
+/**
+ * Rounds this [Double] value to the nearest integer and converts the result to [Long].
+ * Ties are rounded towards positive infinity.
+ *
+ * Special cases:
+ *   - `x.roundToLong() == Long.MAX_VALUE` when `x > Long.MAX_VALUE`
+ *   - `x.roundToLong() == Long.MIN_VALUE` when `x < Long.MIN_VALUE`
+ *
+ * @throws IllegalArgumentException when this value is `NaN`
+ * @sample samples.math.MathSamples.Doubles.roundToLong
+ */
+@SinceKotlin("1.2")
+public actual fun Double.roundToLong(): Long {
+    if (isNaN()) throw IllegalArgumentException("Cannot round NaN value.")
+    if (this >= Long.MAX_VALUE.toDouble()) return Long.MAX_VALUE
+    if (this <= Long.MIN_VALUE.toDouble()) return Long.MIN_VALUE
+    if (abs(this) >= 4503599627370496.0) return toLong()
+    return floor(this + 0.5).toLong()
+}
+
+// endregion
+
+
+
+// region ================ Float Math ========================================
+
+/**
+ * Computes the sine of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `sin(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.sin
+ */
+@SinceKotlin("1.2")
+public actual fun sin(x: Float): Float = sin(x.toDouble()).toFloat()
+
+/**
+ * Computes the cosine of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `cos(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.cos
+ */
+@SinceKotlin("1.2")
+public actual fun cos(x: Float): Float = cos(x.toDouble()).toFloat()
+
+/**
+ * Computes the tangent of the angle [x] given in radians.
+ *
+ * Special cases:
+ *  - `tan(NaN|+Inf|-Inf)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.tan
+ */
+@SinceKotlin("1.2")
+public actual fun tan(x: Float): Float = tan(x.toDouble()).toFloat()
+
+/**
+ * Computes the arc sine of the value [x];
+ * the returned value is an angle in the range from `-PI/2` to `PI/2` radians.
+ *
+ * Special cases:
+ *   - `asin(x)` is `NaN`, when `abs(x) > 1` or x is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.asin
+ */
+@SinceKotlin("1.2")
+public actual fun asin(x: Float): Float = asin(x.toDouble()).toFloat()
+
+/**
+ * Computes the arc cosine of the value [x];
+ * the returned value is an angle in the range from `0.0` to `PI` radians.
+ *
+ * Special cases:
+ *   - `acos(x)` is `NaN`, when `abs(x) > 1` or x is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.acos
+ */
+@SinceKotlin("1.2")
+public actual fun acos(x: Float): Float = acos(x.toDouble()).toFloat()
+
+/**
+ * Computes the arc tangent of the value [x];
+ * the returned value is an angle in the range from `-PI/2` to `PI/2` radians.
+ *
+ * Special cases:
+ *   - `atan(NaN)` is `NaN`
+ *
+ * @sample samples.math.MathSamples.Floats.atan
+ */
+@SinceKotlin("1.2")
+public actual fun atan(x: Float): Float = atan(x.toDouble()).toFloat()
+
+/**
+ * Returns the angle `theta` of the polar coordinates `(r, theta)` that correspond
+ * to the rectangular coordinates `(x, y)` by computing the arc tangent of the value [y] / [x];
+ * the returned value is an angle in the range from `-PI` to `PI` radians.
+ *
+ * In other words, this function returns an angle in radians between the positive x-axis and
+ * a ray from the origin (`(0, 0)`) to the point `(x, y)` confined to the interval `(-π, π]`.
+ *
+ * The `r` component (the distance) of the polar coordinates `(r, theta)` could be calculated as `hypot(x, y)`.
+ *
+ * Special cases:
+ *   - `atan2(0.0, 0.0)` is `0.0`
+ *   - `atan2(0.0, x)` is  `0.0` for `x > 0` and `PI` for `x < 0`
+ *   - `atan2(-0.0, x)` is `-0.0` for `x > 0` and `-PI` for `x < 0`
+ *   - `atan2(y, +Inf)` is `0.0` for `0 < y < +Inf` and `-0.0` for `-Inf < y < 0`
+ *   - `atan2(y, -Inf)` is `PI` for `0 < y < +Inf` and `-PI` for `-Inf < y < 0`
+ *   - `atan2(y, 0.0)` is `PI/2` for `y > 0` and `-PI/2` for `y < 0`
+ *   - `atan2(+Inf, x)` is `PI/2` for finite `x`
+ *   - `atan2(-Inf, x)` is `-PI/2` for finite `x`
+ *   - `atan2(NaN, x)` and `atan2(y, NaN)` is `NaN`
+ *
+ * @see hypot function.
+ * @sample samples.math.MathSamples.Floats.atan2
+ */
+@SinceKotlin("1.2")
+public actual fun atan2(y: Float, x: Float): Float = atan2(y.toDouble(), x.toDouble()).toFloat()
+
+/**
+ * Computes the hyperbolic sine of the value [x].
+ *
+ * Special cases:
+ *   - `sinh(NaN)` is `NaN`
+ *   - `sinh(+Inf)` is `+Inf`
+ *   - `sinh(-Inf)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun sinh(x: Float): Float = sinh(x.toDouble()).toFloat()
+
+/**
+ * Computes the hyperbolic cosine of the value [x].
+ *
+ * Special cases:
+ *   - `cosh(NaN)` is `NaN`
+ *   - `cosh(+Inf|-Inf)` is `+Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun cosh(x: Float): Float = cosh(x.toDouble()).toFloat()
+
+/**
+ * Computes the hyperbolic tangent of the value [x].
+ *
+ * Special cases:
+ *   - `tanh(NaN)` is `NaN`
+ *   - `tanh(+Inf)` is `1.0`
+ *   - `tanh(-Inf)` is `-1.0`
+ */
+@SinceKotlin("1.2")
+public actual fun tanh(x: Float): Float = tanh(x.toDouble()).toFloat()
+
+/**
+ * Computes the inverse hyperbolic sine of the value [x].
+ *
+ * The returned value is `y` such that `sinh(y) == x`.
+ *
+ * Special cases:
+ *   - `asinh(NaN)` is `NaN`
+ *   - `asinh(+Inf)` is `+Inf`
+ *   - `asinh(-Inf)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun asinh(x: Float): Float = asinh(x.toDouble()).toFloat()
+
+/**
+ * Computes the inverse hyperbolic cosine of the value [x].
+ *
+ * The returned value is positive `y` such that `cosh(y) == x`.
+ *
+ * Special cases:
+ *   - `acosh(NaN)` is `NaN`
+ *   - `acosh(x)` is `NaN` when `x < 1`
+ *   - `acosh(+Inf)` is `+Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun acosh(x: Float): Float = acosh(x.toDouble()).toFloat()
+
+/**
+ * Computes the inverse hyperbolic tangent of the value [x].
+ *
+ * The returned value is `y` such that `tanh(y) == x`.
+ *
+ * Special cases:
+ *   - `tanh(NaN)` is `NaN`
+ *   - `tanh(x)` is `NaN` when `x > 1` or `x < -1`
+ *   - `tanh(1.0)` is `+Inf`
+ *   - `tanh(-1.0)` is `-Inf`
+ */
+@SinceKotlin("1.2")
+public actual fun atanh(x: Float): Float = atanh(x.toDouble()).toFloat()
+
+/**
+ * Computes `sqrt(x^2 + y^2)` without intermediate overflow or underflow.
+ *
+ * Special cases:
+ *   - returns `+Inf` if any of arguments is infinite
+ *   - returns `NaN` if any of arguments is `NaN` and the other is not infinite
+ *
+ * @sample samples.math.MathSamples.Floats.hypot
+ */
+@SinceKotlin("1.2")
+public actual fun hypot(x: Float, y: Float): Float = hypot(x.toDouble(), y.toDouble()).toFloat()
+
+/**
+ * Computes the positive square root of the value [x].
+ *
+ * Special cases:
+ *   - `sqrt(NaN)` is `NaN`
+ *   - `sqrt(-0.0)` is `-0.0`
+ *   - `sqrt(x)` is `NaN` when `x < 0`
+ *
+ * @sample samples.math.MathSamples.Floats.sqrt
+ */
+@SinceKotlin("1.2")
+public actual fun sqrt(x: Float): Float = sqrt(x.toDouble()).toFloat()
+
+/**
+ * Computes Euler's number `e` raised to the power of the value [x].
+ *
+ * Special cases:
+ *   - `exp(NaN)` is `NaN`
+ *   - `exp(+Inf)` is `+Inf`
+ *   - `exp(-Inf)` is `0.0`
+ *
+ * @sample samples.math.MathSamples.Floats.exp
+ */
+@SinceKotlin("1.2")
+public actual fun exp(x: Float): Float = exp(x.toDouble()).toFloat()
+
+/**
+ * Computes `exp(x) - 1`.
+ *
+ * This function can be implemented to produce a more precise result for [x] near zero.
+ *
+ * Special cases:
+ *   - `expm1(NaN)` is `NaN`
+ *   - `expm1(+Inf)` is `+Inf`
+ *   - `expm1(-Inf)` is `-1.0`
+ *
+ * @see [exp] function.
+ * @see [ln1p] function.
+ * @sample samples.math.MathSamples.Floats.expm1
+ */
+@SinceKotlin("1.2")
+public actual fun expm1(x: Float): Float = expm1(x.toDouble()).toFloat()
+
+/**
+ * Computes the logarithm of the value [x] to the given [base].
+ *
+ * Special cases:
+ *   - `log(x, b)` is `NaN` if either `x` or `b` are `NaN`
+ *   - `log(x, b)` is `NaN` when `x < 0` or `b <= 0` or `b == 1.0`
+ *   - `log(+Inf, +Inf)` is `NaN`
+ *   - `log(+Inf, b)` is `+Inf` for `b > 1` and `-Inf` for `b < 1`
+ *   - `log(0.0, b)` is `-Inf` for `b > 1` and `+Inf` for `b < 1`
+ *
+ * See also logarithm functions for common fixed bases: [ln], [log10] and [log2].
+ *
+ * @sample samples.math.MathSamples.Floats.logarithm
+ */
+@SinceKotlin("1.2")
+public actual fun log(x: Float, base: Float): Float = log(x.toDouble(), base.toDouble()).toFloat()
+
+/**
+ * Computes the natural logarithm (base `E`) of the value [x].
+ *
+ * Special cases:
+ *   - `ln(NaN)` is `NaN`
+ *   - `ln(x)` is `NaN` when `x < 0.0`
+ *   - `ln(+Inf)` is `+Inf`
+ *   - `ln(0.0)` is `-Inf`
+ *
+ * @sample samples.math.MathSamples.Floats.naturalLogarithm
+ */
+@SinceKotlin("1.2")
+public actual fun ln(x: Float): Float = ln(x.toDouble()).toFloat()
+
+/**
+ * Computes the common logarithm (base 10) of the value [x].
+ *
+ * @see [ln] function for special cases.
+ *
+ * @sample samples.math.MathSamples.Floats.logBase10
+ */
+@SinceKotlin("1.2")
+public actual fun log10(x: Float): Float = log10(x.toDouble()).toFloat()
+
+/**
+ * Computes the binary logarithm (base 2) of the value [x].
+ *
+ * @see [ln] function for special cases.
+ *
+ * @sample samples.math.MathSamples.Floats.logBase2
+ */
+@SinceKotlin("1.2")
+public actual fun log2(x: Float): Float = log2(x.toDouble()).toFloat()
+
+/**
+ * Computes `ln(x + 1)`.
+ *
+ * This function can be implemented to produce more precise result for [x] near zero.
+ *
+ * Special cases:
+ *   - `ln1p(NaN)` is `NaN`
+ *   - `ln1p(x)` is `NaN` where `x < -1.0`
+ *   - `ln1p(-1.0)` is `-Inf`
+ *   - `ln1p(+Inf)` is `+Inf`
+ *
+ * @see [ln] function
+ * @see [expm1] function
+ *
+ * @sample samples.math.MathSamples.Floats.naturalLogarithmPlusOne
+ */
+@SinceKotlin("1.2")
+public actual fun ln1p(x: Float): Float = ln1p(x.toDouble()).toFloat()
+
+/**
+ * Rounds the given value [x] to an integer towards positive infinity.
+ *
+ * Special cases:
+ *   - `ceil(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the smallest Float value that is greater than or equal to the given value [x] and is a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Floats.ceil
+ * @sample samples.math.MathSamples.Floats.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun ceil(x: Float): Float = ceil(x.toDouble()).toFloat()
+
+/**
+ * Rounds the given value [x] to an integer towards negative infinity.
+ *
+ * Special cases:
+ *   - `floor(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the largest Float value that is smaller than or equal to the given value [x] and is a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Floats.floor
+ * @sample samples.math.MathSamples.Floats.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun floor(x: Float): Float = floor(x.toDouble()).toFloat()
+
+/**
+ * Rounds the given value [x] to an integer towards zero.
+ *
+ * Special cases:
+ *   - `truncate(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @return the value [x] having its fractional part truncated.
+ *
+ * @sample samples.math.MathSamples.Floats.truncate
+ * @sample samples.math.MathSamples.Floats.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun truncate(x: Float): Float = truncate(x.toDouble()).toFloat()
+
+/**
+ * Rounds the given value [x] towards the closest integer with ties rounded towards even integer.
+ *
+ * Special cases:
+ *   - `round(x)` is `x` where `x` is `NaN` or `+Inf` or `-Inf` or already a mathematical integer.
+ *
+ * @sample samples.math.MathSamples.Floats.round
+ * @sample samples.math.MathSamples.Floats.roundingModes
+ */
+@SinceKotlin("1.2")
+public actual fun round(x: Float): Float = round(x.toDouble()).toFloat()
+
+
+/**
+ * Returns the absolute value of the given value [x].
+ *
+ * Special cases:
+ *   - `abs(NaN)` is `NaN`
+ *
+ * @see absoluteValue extension property for [Float]
+ * @sample samples.math.MathSamples.Floats.absoluteValue
+ */
+@SinceKotlin("1.2")
+public actual fun abs(x: Float): Float =
+    if (x == 0.0f) 0.0f else if (x < 0.0f) -x else x
+
+/**
+ * Returns the sign of the given value [x]:
+ *   - `-1.0` if the value is negative,
+ *   - zero if the value is zero,
+ *   - `1.0` if the value is positive
+ *
+ * Special cases:
+ *   - `sign(NaN)` is `NaN`
+ *   - `sign(-0.0)` is `-0.0`
+ *
+ * @sample samples.math.MathSamples.Floats.signFun
+ */
+@SinceKotlin("1.2")
+public actual fun sign(x: Float): Float =
+    when {
+        x.isNaN() -> Float.NaN
+        x > 0.0f -> 1.0f
+        x < 0.0f -> -1.0f
+        else -> x
+    }
+
+
+/**
+ * Returns the smaller of two values.
+ *
+ * If either value is `NaN`, then the result is `NaN`.
+ *
+ * @sample samples.math.MathSamples.Floats.min
+ */
+@SinceKotlin("1.2")
+public actual fun min(a: Float, b: Float): Float {
+    if (a.isNaN() || b.isNaN()) return Float.NaN
+    if (a == 0.0f && b == 0.0f) {
+        return if (1.0f / a < 0.0f || 1.0f / b < 0.0f) NEG_ZERO_F else 0.0f
+    }
+    return if (a < b) a else b
+}
+
+/**
+ * Returns the greater of two values.
+ *
+ * If either value is `NaN`, then the result is `NaN`.
+ *
+ * @sample samples.math.MathSamples.Floats.max
+ */
+@SinceKotlin("1.2")
+public actual fun max(a: Float, b: Float): Float {
+    if (a.isNaN() || b.isNaN()) return Float.NaN
+    if (a == 0.0f && b == 0.0f) {
+        return if (1.0f / a > 0.0f || 1.0f / b > 0.0f) 0.0f else NEG_ZERO_F
+    }
+    return if (a > b) a else b
+}
+
+
+/**
+ * Returns the cube root of [x]. For any `x`, `cbrt(-x) == -cbrt(x)`;
+ * that is, the cube root of a negative value is the negative of the cube root
+ * of that value's magnitude.
+ *
+ * Special cases:
+ *   - If the argument is `NaN`, then the result is `NaN`.
+ *   - If the argument is infinite, then the result is an infinity with the same sign as the argument.
+ *   - If the argument is zero, then the result is a zero with the same sign as the argument.
+ *
+ * @sample samples.math.MathSamples.Floats.cbrt
+ */
+@SinceKotlin("1.8")
+@WasExperimental(ExperimentalStdlibApi::class)
+public actual fun cbrt(x: Float): Float = cbrt(x.toDouble()).toFloat()
+
+// extensions
+
+
+/**
+ * Raises this value to the power [x].
+ *
+ * Special cases:
+ *   - `b.pow(0.0)` is `1.0`
+ *   - `b.pow(1.0) == b`
+ *   - `b.pow(NaN)` is `NaN`
+ *   - `NaN.pow(x)` is `NaN` for `x != 0.0`
+ *   - `b.pow(Inf)` is `NaN` for `abs(b) == 1.0`
+ *   - `b.pow(x)` is `NaN` for `b < 0` and `x` is finite and not an integer
+ *
+ * @sample samples.math.MathSamples.Floats.powFloat
+ */
+@SinceKotlin("1.2")
+public actual fun Float.pow(x: Float): Float = toDouble().pow(x.toDouble()).toFloat()
+
+/**
+ * Raises this value to the integer power [n].
+ *
+ * See the other overload of [pow] for details.
+ *
+ * @sample samples.math.MathSamples.Floats.powInt
+ */
+@SinceKotlin("1.2")
+public actual fun Float.pow(n: Int): Float = toDouble().pow(n).toFloat()
+
+/**
+ * Returns the absolute value of this value.
+ *
+ * Special cases:
+ *   - `NaN.absoluteValue` is `NaN`
+ *
+ * @see abs function
+ * @sample samples.math.MathSamples.Floats.absoluteValue
+ */
+@SinceKotlin("1.2")
+public actual val Float.absoluteValue: Float
+    get() = abs(this)
+
+/**
+ * Returns the sign of this value:
+ *   - `-1.0` if the value is negative,
+ *   - zero if the value is zero,
+ *   - `1.0` if the value is positive
+ *
+ * Special cases:
+ *   - `NaN.sign` is `NaN`
+ *   - `(-0.0).sign` is `-0.0`
+ *
+ * @sample samples.math.MathSamples.Floats.sign
+ */
+@SinceKotlin("1.2")
+public actual val Float.sign: Float
+    get() = sign(this)
+
+/**
+ * Returns this value with the sign bit same as of the [sign] value.
+ *
+ * If [sign] is `NaN` the sign of the result is undefined.
+ *
+ * @sample samples.math.MathSamples.Floats.withSignFloat
+ */
+@SinceKotlin("1.2")
+public actual fun Float.withSign(sign: Float): Float {
+    val mag = abs(this)
+    val isNeg = sign < 0.0f || (sign == 0.0f && 1.0f / sign < 0.0f)
+    return if (mag == 0.0f) (if (isNeg) NEG_ZERO_F else 0.0f) else (if (isNeg) -mag else mag)
+}
+
+/**
+ * Returns this value with the sign bit same as of the [sign] value.
+ *
+ * @sample samples.math.MathSamples.Floats.withSignInt
+ */
+@SinceKotlin("1.2")
+public actual fun Float.withSign(sign: Int): Float {
+    val mag = abs(this)
+    return if (sign < 0) -mag else mag
+}
+
+
+/**
+ * Rounds this [Float] value to the nearest integer and converts the result to [Int].
+ * Ties are rounded towards positive infinity.
+ *
+ * Special cases:
+ *   - `x.roundToInt() == Int.MAX_VALUE` when `x > Int.MAX_VALUE`
+ *   - `x.roundToInt() == Int.MIN_VALUE` when `x < Int.MIN_VALUE`
+ *
+ * @throws IllegalArgumentException when this value is `NaN`
+ * @sample samples.math.MathSamples.Floats.roundToInt
+ */
+@SinceKotlin("1.2")
+public actual fun Float.roundToInt(): Int {
+    if (isNaN()) throw IllegalArgumentException("Cannot round NaN value.")
+    return toDouble().roundToInt()
+}
+
+/**
+ * Rounds this [Float] value to the nearest integer and converts the result to [Long].
+ * Ties are rounded towards positive infinity.
+ *
+ * Special cases:
+ *   - `x.roundToLong() == Long.MAX_VALUE` when `x > Long.MAX_VALUE`
+ *   - `x.roundToLong() == Long.MIN_VALUE` when `x < Long.MIN_VALUE`
+ *
+ * @throws IllegalArgumentException when this value is `NaN`
+ * @sample samples.math.MathSamples.Floats.roundToLong
+ */
+@SinceKotlin("1.2")
+public actual fun Float.roundToLong(): Long {
+    if (isNaN()) throw IllegalArgumentException("Cannot round NaN value.")
+    return toDouble().roundToLong()
+}
+
+// endregion
+
+// region ================ Integer Math ========================================
+
+
+/**
+ * Returns the absolute value of the given value [n].
+ *
+ * Special cases:
+ *   - `abs(Int.MIN_VALUE)` is `Int.MIN_VALUE` due to an overflow
+ *
+ * @see absoluteValue extension property for [Int]
+ * @sample samples.math.MathSamples.Ints.abs
+ */
+@SinceKotlin("1.2")
+public actual fun abs(n: Int): Int =
+    if (n == Int.MIN_VALUE) Int.MIN_VALUE else if (n < 0) -n else n
+
+/**
+ * Returns the smaller of two values.
+ *
+ * @sample samples.math.MathSamples.Ints.min
+ */
+@SinceKotlin("1.2")
+public actual fun min(a: Int, b: Int): Int = if (a <= b) a else b
+
+/**
+ * Returns the greater of two values.
+ *
+ * @sample samples.math.MathSamples.Ints.max
+ */
+@SinceKotlin("1.2")
+public actual fun max(a: Int, b: Int): Int = if (a >= b) a else b
+
+/**
+ * Returns the absolute value of this value.
+ *
+ * Special cases:
+ *   - `Int.MIN_VALUE.absoluteValue` is `Int.MIN_VALUE` due to an overflow
+ *
+ * @see abs function
+ * @sample samples.math.MathSamples.Ints.absoluteValue
+ */
+@SinceKotlin("1.2")
+public actual val Int.absoluteValue: Int
+    get() = abs(this)
+
+/**
+ * Returns the sign of this value:
+ *   - `-1` if the value is negative,
+ *   - `0` if the value is zero,
+ *   - `1` if the value is positive
+ *
+ * @sample samples.math.MathSamples.Ints.sign
+ */
+@SinceKotlin("1.2")
+public actual val Int.sign: Int
+    get() = if (this < 0) -1 else if (this > 0) 1 else 0
+
+
+/**
+ * Returns the absolute value of the given value [n].
+ *
+ * Special cases:
+ *   - `abs(Long.MIN_VALUE)` is `Long.MIN_VALUE` due to an overflow
+ *
+ * @see absoluteValue extension property for [Long]
+ * @sample samples.math.MathSamples.Longs.abs
+ */
+@SinceKotlin("1.2")
+public actual fun abs(n: Long): Long =
+    if (n == Long.MIN_VALUE) Long.MIN_VALUE else if (n < 0L) -n else n
+
+/**
+ * Returns the smaller of two values.
+ *
+ * @sample samples.math.MathSamples.Longs.min
+ */
+@SinceKotlin("1.2")
+public actual fun min(a: Long, b: Long): Long = if (a <= b) a else b
+
+/**
+ * Returns the greater of two values.
+ *
+ * @sample samples.math.MathSamples.Longs.max
+ */
+@SinceKotlin("1.2")
+public actual fun max(a: Long, b: Long): Long = if (a >= b) a else b
+
+/**
+ * Returns the absolute value of this value.
+ *
+ * Special cases:
+ *   - `Long.MIN_VALUE.absoluteValue` is `Long.MIN_VALUE` due to an overflow
+ *
+ * @see abs function
+ * @sample samples.math.MathSamples.Longs.absoluteValue
+ */
+@SinceKotlin("1.2")
+public actual val Long.absoluteValue: Long
+    get() = abs(this)
+
+/**
+ * Returns the sign of this value:
+ *   - `-1` if the value is negative,
+ *   - `0` if the value is zero,
+ *   - `1` if the value is positive
+ *
+ * @sample samples.math.MathSamples.Longs.sign
+ */
+@SinceKotlin("1.2")
+public actual val Long.sign: Int
+    get() = if (this < 0L) -1 else if (this > 0L) 1 else 0
+
+// endregion

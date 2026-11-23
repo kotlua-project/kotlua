@@ -107,63 +107,261 @@ public actual inline fun CharArray.elementAt(index: Int): Char {
  * Returns a [List] that wraps the original array.
  */
 public actual fun <T> Array<out T>.asList(): List<T> {
-    TODO("Body is not provided")
+    return object : AbstractList<T>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: T): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): T = this@asList[index]
+        override fun indexOf(element: T): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: T): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun ByteArray.asList(): List<Byte> {
-    TODO("Body is not provided")
+    return object : AbstractList<Byte>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Byte): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Byte = this@asList[index]
+        override fun indexOf(element: Byte): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Byte): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun ShortArray.asList(): List<Short> {
-    TODO("Body is not provided")
+    return object : AbstractList<Short>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Short): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Short = this@asList[index]
+        override fun indexOf(element: Short): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Short): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun IntArray.asList(): List<Int> {
-    TODO("Body is not provided")
+    return object : AbstractList<Int>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Int): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Int = this@asList[index]
+        override fun indexOf(element: Int): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Int): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun LongArray.asList(): List<Long> {
-    TODO("Body is not provided")
+    return object : AbstractList<Long>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Long): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Long = this@asList[index]
+        override fun indexOf(element: Long): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Long): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun FloatArray.asList(): List<Float> {
-    TODO("Body is not provided")
+    return object : AbstractList<Float>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Float): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Float = this@asList[index]
+        override fun indexOf(element: Float): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i].equals(element)) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Float): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i].equals(element)) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun DoubleArray.asList(): List<Double> {
-    TODO("Body is not provided")
+    return object : AbstractList<Double>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Double): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Double = this@asList[index]
+        override fun indexOf(element: Double): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i].equals(element)) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Double): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i].equals(element)) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun BooleanArray.asList(): List<Boolean> {
-    TODO("Body is not provided")
+    return object : AbstractList<Boolean>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Boolean): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Boolean = this@asList[index]
+        override fun indexOf(element: Boolean): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Boolean): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
  * Returns a [List] that wraps the original array.
  */
 public actual fun CharArray.asList(): List<Char> {
-    TODO("Body is not provided")
+    return object : AbstractList<Char>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: Char): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): Char = this@asList[index]
+        override fun indexOf(element: Char): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: Char): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
@@ -258,7 +456,7 @@ public actual fun <T> Array<out T>.contentDeepToString(): String {
  */
 @SinceKotlin("1.4")
 public actual fun <T> Array<out T>?.contentDeepToString(): String {
-    return contentDeepToStringImpl()
+    return luaContentDeepToStringImpl()
 }
 
 /**

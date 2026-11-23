@@ -35,7 +35,7 @@ dependencies {
 }
 
 val stdlibKlibFile =
-    rootProject.layout.projectDirectory.file("lua-stdlib/minimal/build/lua/classes/kotlin-stdlib-lua.klib")
+    rootProject.layout.projectDirectory.file("lua-stdlib/build/lua/classes/kotlin-stdlib-lua.klib")
 val localPropertiesFile = rootProject.layout.projectDirectory.file("local.properties")
 val luaExecutable =
     providers

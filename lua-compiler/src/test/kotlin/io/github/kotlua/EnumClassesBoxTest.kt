@@ -189,4 +189,55 @@ class EnumClassesBoxTest : AbstractKotluaTest() {
             """.trimIndent(),
         )
     }
+
+    @Test
+    fun `enum entries property and enumEntries intrinsic`() {
+        assertBoxOk(
+            """
+            import kotlin.enums.enumEntries
+
+            enum class Color(val code: Int) {
+                RED(1),
+                GREEN(2) {
+                    override fun label(): String = "G"
+                },
+                BLUE(3);
+
+                open fun label(): String = name
+            }
+
+            fun box(): String {
+                val entries = Color.entries
+                val viaIntrinsic = enumEntries<Color>()
+
+                if (entries !== viaIntrinsic) return "fail identity"
+                if (entries.size != 3) return "fail size"
+                if (entries[0] != Color.RED || entries[1] != Color.GREEN || entries[2] != Color.BLUE) {
+                    return "fail order"
+                }
+                if (entries[1].label() != "G" || entries[0].code != 1) return "fail entry member"
+                if (!entries.contains(Color.GREEN)) return "fail contains"
+                if (entries.indexOf(Color.BLUE) != 2 || entries.lastIndexOf(Color.BLUE) != 2) {
+                    return "fail indexOf"
+                }
+
+                var names = ""
+                for (c in entries) {
+                    names += c.name
+                }
+                if (names != "REDGREENBLUE") return "fail iteration"
+
+                var oobCaught = false
+                try {
+                    entries[3]
+                } catch (_: IndexOutOfBoundsException) {
+                    oobCaught = true
+                }
+                if (!oobCaught) return "fail oob"
+
+                return "OK"
+            }
+            """.trimIndent(),
+        )
+    }
 }

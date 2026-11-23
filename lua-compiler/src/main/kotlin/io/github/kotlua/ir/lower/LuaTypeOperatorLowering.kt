@@ -63,6 +63,7 @@ import org.jetbrains.kotlin.ir.types.isComparable
 import org.jetbrains.kotlin.ir.types.isDouble
 import org.jetbrains.kotlin.ir.types.isFloat
 import org.jetbrains.kotlin.ir.types.isInt
+import org.jetbrains.kotlin.ir.types.isLong
 import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.types.isNullableAny
 import org.jetbrains.kotlin.ir.types.isNumber
@@ -391,8 +392,19 @@ class LuaTypeOperatorLowering(
                             buildIsTypeOf(argument, "function")
                         }
 
-                        toType.isFloat() || toType.isDouble() || toType.isNumber() -> {
+                        toType.isFloat() || toType.isDouble() -> {
                             buildIsTypeOf(argument, "number")
+                        }
+
+                        toType.isLong() -> {
+                            buildUnaryCall(symbols.luaIsLong, argument)
+                        }
+
+                        toType.isNumber() -> {
+                            buildOrOr(
+                                buildIsTypeOf(argument, "number"),
+                                buildUnaryCall(symbols.luaIsLong, argument.deepCopyWithSymbols()),
+                            )
                         }
 
                         toType.isInt() -> {
@@ -459,10 +471,11 @@ class LuaTypeOperatorLowering(
                     toType: IrType,
                 ): IrExpression {
                     val isNum = buildIsTypeOf(argument, "number")
+                    val isLong = buildUnaryCall(symbols.luaIsLong, argument.deepCopyWithSymbols())
                     val isStr = buildIsTypeOf(argument.deepCopyWithSymbols(), "string")
                     val isBool = buildIsTypeOf(argument.deepCopyWithSymbols(), "boolean")
                     val isInst = buildIsInstance(argument.deepCopyWithSymbols(), toType)
-                    return buildOrOr(buildOrOr(isNum, isStr), buildOrOr(isBool, isInst))
+                    return buildOrOr(buildOrOr(isNum, isLong), buildOrOr(buildOrOr(isStr, isBool), isInst))
                 }
 
                 private fun buildIsChar(argument: IrExpression): IrExpression {

@@ -20,6 +20,7 @@ import io.github.kotlua.ir.utils.luaFunctionSignature
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.builders.declarations.addFunction
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
@@ -66,25 +67,44 @@ class LuaBridgeLowering(
                         it.body != null
                 }
 
+        val fakeOverrides =
+            klass.declarations
+                .filterIsInstance<IrSimpleFunction>()
+                .filter {
+                    it.isFakeOverride &&
+                        it.dispatchReceiverParameter != null &&
+                        it.modality != Modality.ABSTRACT
+                }
+
         val existingSignatures =
             klass.declarations
                 .filterIsInstance<IrSimpleFunction>()
                 .filter { !it.isFakeOverride && it.dispatchReceiverParameter != null }
                 .mapTo(hashSetOf()) { luaFunctionSignature(it) }
 
-        val bridges = mutableListOf<IrSimpleFunction>()
-
         for (fn in functions) {
             val fnSig = luaFunctionSignature(fn)
             for (overridden in fn.allOverridden()) {
                 val overriddenSig = luaFunctionSignature(overridden)
                 if (overriddenSig != fnSig && existingSignatures.add(overriddenSig)) {
-                    bridges += createBridge(klass, fn, overridden)
+                    createBridge(klass, fn, overridden)
                 }
             }
         }
 
-        klass.declarations.addAll(bridges)
+        for (fake in fakeOverrides) {
+            val target = fake.realOverrideTarget
+            if (target.isFakeOverride || target.modality == Modality.ABSTRACT || target.dispatchReceiverParameter == null) {
+                continue
+            }
+            val targetSig = luaFunctionSignature(target)
+            for (overridden in fake.allOverridden()) {
+                val overriddenSig = luaFunctionSignature(overridden)
+                if (overriddenSig != targetSig && existingSignatures.add(overriddenSig)) {
+                    createBridge(klass, target, overridden)
+                }
+            }
+        }
 
         for (nested in klass.declarations.filterIsInstance<IrClass>()) {
             processClass(nested)

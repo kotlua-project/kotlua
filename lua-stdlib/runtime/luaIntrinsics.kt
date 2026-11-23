@@ -102,7 +102,7 @@ internal fun luaLength(a: Any?): Int
 
 @LuaIntrinsic
 @UsedFromCompilerGeneratedCode
-internal fun luaEmptyTable(): Any?
+internal fun luaEmptyTable(): Any
 
 @LuaIntrinsic
 @UsedFromCompilerGeneratedCode

@@ -18,11 +18,17 @@ package io.github.kotlua.ir.lower.calls
 import io.github.kotlua.ir.LuaIrBackendContext
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
+import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.types.isChar
+import org.jetbrains.kotlin.ir.types.isInt
 import org.jetbrains.kotlin.ir.util.functions
 import org.jetbrains.kotlin.ir.util.getPropertyGetter
+import org.jetbrains.kotlin.util.OperatorNameConventions
 
 class PrimitiveContainerMemberCallTransformer(
-    context: LuaIrBackendContext,
+    private val context: LuaIrBackendContext,
 ) : CallsTransformer {
     private val symbolToTransformer: SymbolToTransformer = hashMapOf()
 
@@ -34,11 +40,70 @@ class PrimitiveContainerMemberCallTransformer(
             irBuiltIns.stringClass.getPropertyGetter("length")?.let {
                 add(it, symbols.luaLength)
             }
-            irBuiltIns.stringClass.owner.functions
-                .firstOrNull { it.name.asString() == "plus" && it.parameters.size == 2 }
-                ?.let { add(it.symbol, symbols.luaConcat) }
+            for (fn in irBuiltIns.stringClass.owner.functions) {
+                when (fn.name.asString()) {
+                    "plus" if fn.parameters.size == 2 -> {
+                        add(fn.symbol, symbols.luaConcat)
+                    }
+
+                    "get" if fn.parameters.size == 2 -> {
+                        add(fn.symbol, symbols.luaStringGet)
+                    }
+
+                    "subSequence" if fn.parameters.size == 3 -> {
+                        add(fn.symbol, symbols.luaStringSubSequence)
+                    }
+                }
+            }
+
+            for (fn in irBuiltIns.charClass.owner.functions) {
+                when (fn.name) {
+                    OperatorNameConventions.PLUS if fn.parameters.size == 2 && fn.parameters[1].type.isInt() -> {
+                        add(fn.symbol, symbols.luaCharPlusInt)
+                    }
+
+                    OperatorNameConventions.MINUS if fn.parameters.size == 2 && fn.parameters[1].type.isChar() -> {
+                        add(fn.symbol, symbols.luaCharMinusChar)
+                    }
+
+                    OperatorNameConventions.MINUS if fn.parameters.size == 2 && fn.parameters[1].type.isInt() -> {
+                        add(fn.symbol, symbols.luaCharMinusInt)
+                    }
+
+                    OperatorNameConventions.INC if fn.parameters.size == 1 -> {
+                        add(fn.symbol) { call -> makeCharStep(call, symbols.luaCharPlusInt) }
+                    }
+
+                    OperatorNameConventions.DEC if fn.parameters.size == 1 -> {
+                        add(fn.symbol) { call -> makeCharStep(call, symbols.luaCharMinusInt) }
+                    }
+                }
+            }
+            symbols.charSequenceClass.getPropertyGetter("length")?.let {
+                add(it, symbols.luaCharSequenceLength)
+            }
+            for (fn in symbols.charSequenceClass.owner.functions) {
+                when (fn.name.asString()) {
+                    "get" if fn.parameters.size == 2 -> {
+                        add(fn.symbol, symbols.luaCharSequenceGet)
+                    }
+
+                    "subSequence" if fn.parameters.size == 3 -> {
+                        add(fn.symbol, symbols.luaCharSequenceSubSequence)
+                    }
+                }
+            }
         }
     }
+
+    private fun makeCharStep(
+        call: IrFunctionAccessExpression,
+        opSymbol: IrSimpleFunctionSymbol,
+    ): IrExpression =
+        IrCallImpl(call.startOffset, call.endOffset, call.type, opSymbol, typeArgumentsCount = 0).apply {
+            arguments[0] = call.arguments[0]
+            arguments[1] = IrConstImpl.int(call.startOffset, call.endOffset, context.irBuiltIns.intType, 1)
+        }
 
     override fun transformFunctionAccess(
         call: IrFunctionAccessExpression,

@@ -10,7 +10,7 @@ package kotlin.internal
  */
 @InlineOnly
 internal actual inline fun throwReadObjectNotSupported(): Nothing {
-    TODO()
+    throw IllegalArgumentException("ReadObjectNotSupported")
 }
 
 /**
@@ -18,7 +18,7 @@ internal actual inline fun throwReadObjectNotSupported(): Nothing {
  */
 @InlineOnly
 internal actual inline fun wrapAsDeserializationException(action: () -> Unit) {
-    TODO()
+    action()
 }
 
 /**

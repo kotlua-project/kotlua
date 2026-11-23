@@ -23,10 +23,13 @@ import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrConst
+import org.jetbrains.kotlin.ir.expressions.IrConstKind
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrFieldAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrConstImpl
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSymbol
 import org.jetbrains.kotlin.ir.util.hasAnnotation
@@ -41,6 +44,8 @@ class CallsLowering(
             EqualityAndComparisonCallsTransformer(context),
             PrimitiveContainerMemberCallTransformer(context),
             MethodsOfAnyCallsTransformer(context),
+            EnumIntrinsicsTransformer(context),
+            NumberConversionCallsTransformer(context),
         )
 
     override fun lower(
@@ -69,6 +74,33 @@ class CallsLowering(
                         }
                     }
                     return call
+                }
+
+                override fun visitConst(
+                    expression: IrConst,
+                    data: IrDeclaration,
+                ): IrExpression {
+                    if (expression.kind == IrConstKind.Long && !data.hasAnnotation(LuaStandardClassIds.Annotations.DoNotIntrinsify)) {
+                        val v = expression.value as Long
+                        return IrCallImpl(
+                            startOffset = expression.startOffset,
+                            endOffset = expression.endOffset,
+                            type = expression.type,
+                            symbol = context.symbols.luaLongFromTwoInts,
+                            typeArgumentsCount = 0,
+                        ).apply {
+                            arguments[0] =
+                                IrConstImpl.int(expression.startOffset, expression.endOffset, context.irBuiltIns.intType, v.toInt())
+                            arguments[1] =
+                                IrConstImpl.int(
+                                    expression.startOffset,
+                                    expression.endOffset,
+                                    context.irBuiltIns.intType,
+                                    (v ushr 32).toInt(),
+                                )
+                        }
+                    }
+                    return super.visitConst(expression, data)
                 }
 
                 override fun visitFieldAccess(

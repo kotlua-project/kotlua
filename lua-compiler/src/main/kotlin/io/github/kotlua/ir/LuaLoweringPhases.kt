@@ -55,7 +55,9 @@ import org.jetbrains.kotlin.backend.common.lower.EnumWhenLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpectDeclarationsRemoveLowering
 import org.jetbrains.kotlin.backend.common.lower.ExpressionBodyTransformer
 import org.jetbrains.kotlin.backend.common.lower.InitializersLowering
+import org.jetbrains.kotlin.backend.common.lower.InnerClassConstructorCallsLowering
 import org.jetbrains.kotlin.backend.common.lower.InnerClassesLowering
+import org.jetbrains.kotlin.backend.common.lower.InnerClassesMemberBodyLowering
 import org.jetbrains.kotlin.backend.common.lower.LateinitLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationPopupLowering
 import org.jetbrains.kotlin.backend.common.lower.LocalDeclarationsLowering
@@ -138,6 +140,8 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::LuaCallableReferenceLowering,
         ::LuaBridgeLowering,
         ::InnerClassesLowering,
+        ::InnerClassesMemberBodyLowering,
+        ::InnerClassConstructorCallsLowering,
         ::PropertiesLowering,
         ::InitializersLowering,
         ::EnumSyntheticFunctionsAndPropertiesLowering,

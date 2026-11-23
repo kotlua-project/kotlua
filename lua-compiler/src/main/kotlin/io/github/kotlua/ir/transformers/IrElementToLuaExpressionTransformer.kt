@@ -124,18 +124,60 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
     ): LuaExpression {
         val kind = expression.kind
         return when (kind) {
-            IrConstKind.Boolean -> LuaExpression.BooleanLiteral(expression.value as Boolean)
-            IrConstKind.Byte -> LuaExpression.IntLiteral((expression.value as Byte).toInt())
-            IrConstKind.Char -> LuaExpression.StringLiteral((expression.value as Char).toString())
-            IrConstKind.Double -> LuaExpression.DoubleLiteral(expression.value as Double)
-            IrConstKind.Float -> LuaExpression.DoubleLiteral((expression.value as Float).toDouble())
-            IrConstKind.Int -> LuaExpression.IntLiteral(expression.value as Int)
-            IrConstKind.Long -> LuaExpression.LongLiteral(expression.value as Long)
-            IrConstKind.Null -> LuaExpression.NilLiteral
-            IrConstKind.Short -> LuaExpression.IntLiteral((expression.value as Short).toInt())
-            IrConstKind.String -> LuaExpression.StringLiteral(expression.value as String)
+            IrConstKind.Boolean -> {
+                LuaExpression.BooleanLiteral(expression.value as Boolean)
+            }
+
+            IrConstKind.Byte -> {
+                LuaExpression.IntLiteral((expression.value as Byte).toInt())
+            }
+
+            IrConstKind.Char -> {
+                LuaExpression.StringLiteral((expression.value as Char).toString())
+            }
+
+            IrConstKind.Double -> {
+                val v = expression.value as Double
+                if (v.toRawBits() == Long.MIN_VALUE) negativeZeroExpr() else LuaExpression.DoubleLiteral(v)
+            }
+
+            IrConstKind.Float -> {
+                val v = (expression.value as Float).toDouble()
+                if (v.toRawBits() == Long.MIN_VALUE) negativeZeroExpr() else LuaExpression.DoubleLiteral(v)
+            }
+
+            IrConstKind.Int -> {
+                LuaExpression.IntLiteral(expression.value as Int)
+            }
+
+            IrConstKind.Long -> {
+                LuaExpression.LongLiteral(expression.value as Long)
+            }
+
+            IrConstKind.Null -> {
+                LuaExpression.NilLiteral
+            }
+
+            IrConstKind.Short -> {
+                LuaExpression.IntLiteral((expression.value as Short).toInt())
+            }
+
+            IrConstKind.String -> {
+                LuaExpression.StringLiteral(expression.value as String)
+            }
         }
     }
+
+    private fun negativeZeroExpr(): LuaExpression =
+        LuaExpression.BinaryOp(
+            LuaExpression.DoubleLiteral(-1.0),
+            LuaBinaryOperator.Divide,
+            LuaExpression.BinaryOp(
+                LuaExpression.DoubleLiteral(1.0),
+                LuaBinaryOperator.Divide,
+                LuaExpression.DoubleLiteral(0.0),
+            ),
+        )
 
     override fun visitStringConcatenation(
         expression: IrStringConcatenation,
@@ -231,6 +273,9 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
         }
         val ctor = expression.symbol.owner
         val constructedClass = ctor.parentAsClass
+        if (constructedClass.symbol == data.staticContext.backendContext.irBuiltIns.anyClass) {
+            return LuaExpression.TableConstructor(emptyList())
+        }
         if (constructedClass.isEffectivelyExternal()) {
             val classRef = data.getRefForStaticDeclaration(constructedClass)
             val args =

@@ -44,6 +44,7 @@ dependencies {
 kotlua {
     multiPlatformEnabled = true
     compilerOptions {
+        nopack = false
         moduleName = "kotlin-stdlib-lua"
         freeCompilerArgs.addAll(
             listOf(

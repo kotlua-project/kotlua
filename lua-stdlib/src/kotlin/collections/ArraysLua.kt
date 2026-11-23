@@ -16,40 +16,6 @@ private external object LuaTable {
     fun concat(list: dynamic): String
 }
 
-//internal fun <T> Array<out T>?.contentDeepEqualsImpl(other: Array<out T>?): Boolean {
-//    if (this === other) return true
-//    if (this === null || other === null) return false
-//    if (this.size != other.size) return false
-//
-//    var i = 0
-//    val n = this.size
-//    while (i < n) {
-//        val e1 = this[i]
-//        val e2 = other[i]
-//        if (e1 === e2) {
-//            i++
-//            continue
-//        }
-//        if (e1 === null || e2 === null) return false
-//
-//        val equal = when (e1) {
-//            is Array<*> if e2 is Array<*> -> e1.contentDeepEqualsImpl(e2)
-//            is ByteArray if e2 is ByteArray -> e1.contentEquals(e2)
-//            is ShortArray if e2 is ShortArray -> e1.contentEquals(e2)
-//            is IntArray if e2 is IntArray -> e1.contentEquals(e2)
-//            is LongArray if e2 is LongArray -> e1.contentEquals(e2)
-//            is FloatArray if e2 is FloatArray -> e1.contentEquals(e2)
-//            is DoubleArray if e2 is DoubleArray -> e1.contentEquals(e2)
-//            is CharArray if e2 is CharArray -> e1.contentEquals(e2)
-//            is BooleanArray if e2 is BooleanArray -> e1.contentEquals(e2)
-//            else -> e1 == e2
-//        }
-//        if (!equal) return false
-//        i++
-//    }
-//    return true
-//}
-
 internal fun <T> Array<out T>?.contentDeepHashCodeImpl(): Int {
     if (this === null) return 0
     var result = 1
@@ -75,13 +41,13 @@ internal fun <T> Array<out T>?.contentDeepHashCodeImpl(): Int {
     return result
 }
 
-//internal fun <T> Array<out T>?.contentDeepToStringImpl(): String {
-//    if (this === null) return "null"
-//    val parts: dynamic = luaEmptyTable()
-//    val processed: dynamic = luaEmptyTable()
-//    appendDeepToString(this, parts, 0, processed)
-//    return LuaTable.concat(parts)
-//}
+internal fun <T> Array<out T>?.luaContentDeepToStringImpl(): String {
+    if (this === null) return "null"
+    val parts: dynamic = luaEmptyTable()
+    val processed: dynamic = luaEmptyTable()
+    appendDeepToString(this, parts, 0, processed)
+    return LuaTable.concat(parts)
+}
 
 private fun appendDeepToString(
     array: Array<*>,

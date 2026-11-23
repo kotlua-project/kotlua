@@ -45,8 +45,8 @@ class LuaIrBackendContext(
     val callMain = configuration.callMain
     override val typeSystem: IrTypeSystemContext = IrTypeSystemContextImpl(irBuiltIns)
     override val inlineClassesUtils = LuaInlineClassesUtils(this)
-    override val innerClassesSupport = LuaInnerClassesSupport()
     override val irFactory: IrFactory = symbolTable.irFactory
+    override val innerClassesSupport = LuaInnerClassesSupport(irFactory)
     override var inVerbosePhase: Boolean = false
     override val diagnosticReporter =
         KtDiagnosticReporterWithImplicitIrBasedContext(

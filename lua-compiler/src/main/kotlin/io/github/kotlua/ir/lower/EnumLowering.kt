@@ -471,17 +471,8 @@ class EnumSyntheticFunctionsAndPropertiesLowering(
         entriesGetter: IrFunction,
         enumClass: IrClass,
     ): IrBlockBody {
-        val enumEntriesSymbol = context.symbols.enumEntriesOrNull
-        val createEnumEntriesFunction = context.symbols.createEnumEntriesOrNull
-        if (enumEntriesSymbol == null || createEnumEntriesFunction == null) {
-            return context.createIrBuilder(entriesGetter.symbol).run {
-                irBlockBody {
-                    +irCall(throwIAESymbol).apply {
-                        arguments[0] = irString("Enum.entries is not supported: kotlin.enums.EnumEntries is missing in stdlib")
-                    }
-                }
-            }
-        }
+        val enumEntriesSymbol = context.symbols.enumEntries
+        val createEnumEntriesFunction = context.symbols.createEnumEntries
 
         val entriesField = enumClass.buildEntriesField(enumEntriesSymbol)
         val valuesFunction = enumClass.searchForValuesFunction()

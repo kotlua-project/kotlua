@@ -15,13 +15,11 @@
  */
 package io.github.kotlua
 
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 
 class ArrayOpsBoxTest : AbstractKotluaTest() {
     @Test
-    @Disabled
     fun `isEmpty isNotEmpty lastIndex and indices`() {
         assertBoxOk(
             """
@@ -105,7 +103,6 @@ class ArrayOpsBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled
     fun `contentToString and contentHashCode`() {
         assertBoxOk(
             """
@@ -197,7 +194,6 @@ class ArrayOpsBoxTest : AbstractKotluaTest() {
     }
 
     @Test
-    @Disabled
     fun `copyOf copyOfRange fill and array conversions`() {
         assertBoxOk(
             """

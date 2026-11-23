@@ -327,6 +327,9 @@ object ArrayOps : TemplateGroupBase() {
             annotation("""@JvmName("contentDeepToStringNullable")""")
         }
         body { "return contentDeepToStringImpl()" }
+        on(Platform.Lua) {
+            body { "return luaContentDeepToStringImpl()" }
+        }
     }
 
     val f_contentHashCode_nullable = fn("contentHashCode()") {
@@ -1769,6 +1772,39 @@ object ArrayOps : TemplateGroupBase() {
                 $iteratorWithSizeField
             }
             """
+
+        val luaEqCheck = if (primitive in PrimitiveType.floatingPointPrimitives) {
+            "this@asList[i].equals(element)"
+        } else {
+            "this@asList[i] == element"
+        }
+
+        val luaObjectLiteralImpl = """
+            return object : AbstractList<T>(), RandomAccess {
+                override val size: Int get() = this@asList.size
+                override fun isEmpty(): Boolean = this@asList.size == 0
+                override fun contains(element: T): Boolean = indexOf(element) >= 0
+                override fun get(index: Int): T = this@asList[index]
+                override fun indexOf(element: T): Int {
+                    var i = 0
+                    val n = this@asList.size
+                    while (i < n) {
+                        if ($luaEqCheck) return i
+                        i++
+                    }
+                    return -1
+                }
+                override fun lastIndexOf(element: T): Int {
+                    var i = this@asList.size - 1
+                    while (i >= 0) {
+                        if ($luaEqCheck) return i
+                        i--
+                    }
+                    return -1
+                }
+            }
+            """
+
         specialFor(ArraysOfPrimitives, ArraysOfUnsigned) {
             on(Platform.JVM) {
                 body { objectLiteralImpl }
@@ -1807,6 +1843,9 @@ object ArrayOps : TemplateGroupBase() {
         }
         on(Platform.Native) {
             body { objectLiteralImpl }
+        }
+        on(Platform.Lua) {
+            body { luaObjectLiteralImpl }
         }
     }
 

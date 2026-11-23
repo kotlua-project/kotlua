@@ -2,19 +2,10 @@
 
 package kotlin.collections
 
-import kotlin.lua.LuaGlobal
 import kotlin.lua.LuaIntrinsic
-import kotlin.lua.LuaName
-import kotlin.lua.luaEmptyTable
 import kotlin.lua.luaEq
 import kotlin.lua.luaTableGet
 import kotlin.lua.luaTableSet
-
-@LuaGlobal
-@LuaName("table")
-private external object LuaTable {
-    fun concat(list: dynamic): String
-}
 
 internal fun <T> Array<out T>?.contentDeepEqualsImpl(other: Array<out T>?): Boolean {
     if (this === other) return true
@@ -48,39 +39,6 @@ internal fun <T> Array<out T>?.contentDeepEqualsImpl(other: Array<out T>?): Bool
         i++
     }
     return true
-}
-
-internal fun <T> Array<out T>?.contentDeepHashCodeImpl(): Int {
-    if (this === null) return 0
-    var result = 1
-    var i = 0
-    val n = this.size
-    while (i < n) {
-        val elementHash = when (val element = this[i]) {
-            null -> 0
-            is Array<*> -> element.contentDeepHashCodeImpl()
-            is ByteArray -> element.contentHashCode()
-            is ShortArray -> element.contentHashCode()
-            is IntArray -> element.contentHashCode()
-            is LongArray -> element.contentHashCode()
-            is FloatArray -> element.contentHashCode()
-            is DoubleArray -> element.contentHashCode()
-            is CharArray -> element.contentHashCode()
-            is BooleanArray -> element.contentHashCode()
-            else -> element.hashCode()
-        }
-        result = 31 * result + elementHash
-        i++
-    }
-    return result
-}
-
-internal fun <T> Array<out T>?.contentDeepToStringImpl(): String {
-    if (this === null) return "null"
-    val parts: dynamic = luaEmptyTable()
-    val processed: dynamic = luaEmptyTable()
-    appendDeepToString(this, parts, 0, processed)
-    return LuaTable.concat(parts)
 }
 
 private fun appendDeepToString(

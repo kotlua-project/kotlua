@@ -14,8 +14,6 @@ package kotlin.comparisons
 // See: https://github.com/JetBrains/kotlin/tree/master/libraries/stdlib
 //
 
-import kotlin.contracts.*
-import kotlin.random.*
 
 /**
  * Returns the greater of two values.
@@ -120,26 +118,6 @@ public expect inline fun maxOf(a: Float, b: Float, c: Float): Float
 public expect inline fun maxOf(a: Double, b: Double, c: Double): Double
 
 /**
- * Returns the greater of three values according to the order specified by the given [comparator].
- * 
- * If there are multiple equal maximal values, returns the first of them.
- */
-@SinceKotlin("1.1")
-public fun <T> maxOf(a: T, b: T, c: T, comparator: Comparator<in T>): T {
-    return maxOf(a, maxOf(b, c, comparator), comparator)
-}
-
-/**
- * Returns the greater of two values according to the order specified by the given [comparator].
- * 
- * If values are equal, returns the first one.
- */
-@SinceKotlin("1.1")
-public fun <T> maxOf(a: T, b: T, comparator: Comparator<in T>): T {
-    return if (comparator.compare(a, b) >= 0) a else b
-}
-
-/**
  * Returns the greater of the given values.
  * 
  * If there are multiple equal maximal values, returns the first of them.
@@ -186,18 +164,6 @@ public expect fun maxOf(a: Float, vararg other: Float): Float
  */
 @SinceKotlin("1.4")
 public expect fun maxOf(a: Double, vararg other: Double): Double
-
-/**
- * Returns the greater of the given values according to the order specified by the given [comparator].
- * 
- * If there are multiple equal maximal values, returns the first of them.
- */
-@SinceKotlin("1.4")
-public fun <T> maxOf(a: T, vararg other: T, comparator: Comparator<in T>): T {
-    var max = a
-    for (e in other) if (comparator.compare(max, e) < 0) max = e
-    return max
-}
 
 /**
  * Returns the smaller of two values.
@@ -302,26 +268,6 @@ public expect inline fun minOf(a: Float, b: Float, c: Float): Float
 public expect inline fun minOf(a: Double, b: Double, c: Double): Double
 
 /**
- * Returns the smaller of three values according to the order specified by the given [comparator].
- * 
- * If there are multiple equal minimal values, returns the first of them.
- */
-@SinceKotlin("1.1")
-public fun <T> minOf(a: T, b: T, c: T, comparator: Comparator<in T>): T {
-    return minOf(a, minOf(b, c, comparator), comparator)
-}
-
-/**
- * Returns the smaller of two values according to the order specified by the given [comparator].
- * 
- * If values are equal, returns the first one.
- */
-@SinceKotlin("1.1")
-public fun <T> minOf(a: T, b: T, comparator: Comparator<in T>): T {
-    return if (comparator.compare(a, b) <= 0) a else b
-}
-
-/**
  * Returns the smaller of the given values.
  * 
  * If there are multiple equal minimal values, returns the first of them.
@@ -368,16 +314,4 @@ public expect fun minOf(a: Float, vararg other: Float): Float
  */
 @SinceKotlin("1.4")
 public expect fun minOf(a: Double, vararg other: Double): Double
-
-/**
- * Returns the smaller of the given values according to the order specified by the given [comparator].
- * 
- * If there are multiple equal minimal values, returns the first of them.
- */
-@SinceKotlin("1.4")
-public fun <T> minOf(a: T, vararg other: T, comparator: Comparator<in T>): T {
-    var min = a
-    for (e in other) if (comparator.compare(min, e) > 0) min = e
-    return min
-}
 

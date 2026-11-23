@@ -23,9 +23,12 @@ import org.jetbrains.kotlin.ir.classSymbol
 import org.jetbrains.kotlin.ir.declarations.StageController
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.functionSymbol
+import org.jetbrains.kotlin.ir.functionSymbolAssociatedBy
 import org.jetbrains.kotlin.ir.getterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
+import org.jetbrains.kotlin.ir.types.IrType
+import org.jetbrains.kotlin.ir.util.hasShape
 import org.jetbrains.kotlin.name.*
 
 class BackendLuaSymbols(
@@ -57,15 +60,11 @@ class BackendLuaSymbols(
         LuaClassIds.FunctionAdapter.classSymbol()
     }
 
-    private val createEnumEntriesDelegate: IrSimpleFunctionSymbol by CallableIds.createEnumEntries.functionSymbol()
+    val enumEntries: IrClassSymbol = LuaClassIds.EnumEntries.classSymbol()
 
-    val enumEntriesOrNull: IrClassSymbol? by lazy {
-        runCatching { LuaClassIds.EnumEntries.classSymbol() }.getOrNull()
-    }
+    val createEnumEntries: IrSimpleFunctionSymbol by CallableIds.createEnumEntries.functionSymbol()
 
-    val createEnumEntriesOrNull: IrSimpleFunctionSymbol? by lazy {
-        runCatching { createEnumEntriesDelegate }.getOrNull()
-    }
+    val enumEntriesIntrinsic: IrSimpleFunctionSymbol by CallableIds.enumEntriesIntrinsic.functionSymbol()
 
     override val continuationClass: IrClassSymbol = LuaClassIds.Continuation.classSymbol()
 
@@ -162,32 +161,115 @@ class BackendLuaSymbols(
 
     val luaCompareTo: IrSimpleFunctionSymbol by LuaCallableIds.compareTo.functionSymbol()
 
+    val luaStringGet: IrSimpleFunctionSymbol by LuaCallableIds.stringGet.functionSymbol()
+    val luaStringSubSequence: IrSimpleFunctionSymbol by LuaCallableIds.stringSubSequence.functionSymbol()
+
+    val luaNumberToInt: IrSimpleFunctionSymbol by LuaCallableIds.numberToInt.functionSymbol()
+    val luaIntToByte: IrSimpleFunctionSymbol by LuaCallableIds.intToByte.functionSymbol()
+    val luaIntToShort: IrSimpleFunctionSymbol by LuaCallableIds.intToShort.functionSymbol()
+    val luaNumberToByte: IrSimpleFunctionSymbol by LuaCallableIds.numberToByte.functionSymbol()
+    val luaNumberToShort: IrSimpleFunctionSymbol by LuaCallableIds.numberToShort.functionSymbol()
+
+    val luaCharToInt: IrSimpleFunctionSymbol by LuaCallableIds.charToInt.functionSymbol()
+    val luaCharToByte: IrSimpleFunctionSymbol by LuaCallableIds.charToByte.functionSymbol()
+    val luaCharToShort: IrSimpleFunctionSymbol by LuaCallableIds.charToShort.functionSymbol()
+    val luaIntToChar: IrSimpleFunctionSymbol by LuaCallableIds.intToChar.functionSymbol()
+    val luaNumberToChar: IrSimpleFunctionSymbol by LuaCallableIds.numberToChar.functionSymbol()
+    val luaCharPlusInt: IrSimpleFunctionSymbol by LuaCallableIds.charPlusInt.functionSymbol()
+    val luaCharMinusChar: IrSimpleFunctionSymbol by LuaCallableIds.charMinusChar.functionSymbol()
+    val luaCharMinusInt: IrSimpleFunctionSymbol by LuaCallableIds.charMinusInt.functionSymbol()
+    val charSequenceClass: IrClassSymbol by lazy {
+        LuaClassIds.CharSequence.classSymbol()
+    }
+
+    val luaCharSequenceLength: IrSimpleFunctionSymbol by LuaCallableIds.charSequenceLength.functionSymbol()
+    val luaCharSequenceGet: IrSimpleFunctionSymbol by LuaCallableIds.charSequenceGet.functionSymbol()
+    val luaCharSequenceSubSequence: IrSimpleFunctionSymbol by LuaCallableIds.charSequenceSubSequence.functionSymbol()
+
+    val luaNumberRangeToNumber: IrSimpleFunctionSymbol by LuaCallableIds.numberRangeToNumber.functionSymbol()
+    val luaCharRangeToChar: IrSimpleFunctionSymbol by LuaCallableIds.charRangeToChar.functionSymbol()
+
+    val rangeUntilFunctions: Map<Pair<IrType, IrType>, IrSimpleFunctionSymbol> by CallableIds.until.functionSymbolAssociatedBy(
+        condition = { it.hasShape(extensionReceiver = true, regularParameters = 1) },
+        getKey = { it.parameters[0].type to it.parameters[1].type },
+    )
+
+    val luaBoolAnd: IrSimpleFunctionSymbol by LuaCallableIds.boolAnd.functionSymbol()
+    val luaBoolOr: IrSimpleFunctionSymbol by LuaCallableIds.boolOr.functionSymbol()
+    val luaBoolXor: IrSimpleFunctionSymbol by LuaCallableIds.boolXor.functionSymbol()
+
+    val luaIsLong: IrSimpleFunctionSymbol by LuaCallableIds.isLong.functionSymbol()
+    val luaLongFromTwoInts: IrSimpleFunctionSymbol by LuaCallableIds.longFromTwoInts.functionSymbol()
+    val luaLongFromInt: IrSimpleFunctionSymbol by LuaCallableIds.longFromInt.functionSymbol()
+    val luaCharToLong: IrSimpleFunctionSymbol by LuaCallableIds.charToLong.functionSymbol()
+    val luaNumberToLong: IrSimpleFunctionSymbol by LuaCallableIds.numberToLong.functionSymbol()
+    val luaLongToInt: IrSimpleFunctionSymbol by LuaCallableIds.longToInt.functionSymbol()
+    val luaLongToByte: IrSimpleFunctionSymbol by LuaCallableIds.longToByte.functionSymbol()
+    val luaLongToShort: IrSimpleFunctionSymbol by LuaCallableIds.longToShort.functionSymbol()
+    val luaLongToChar: IrSimpleFunctionSymbol by LuaCallableIds.longToChar.functionSymbol()
+    val luaLongToNumber: IrSimpleFunctionSymbol by LuaCallableIds.longToNumber.functionSymbol()
+
+    val luaDynamicNumberToByte: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToByte.functionSymbol()
+    val luaDynamicNumberToShort: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToShort.functionSymbol()
+    val luaDynamicNumberToInt: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToInt.functionSymbol()
+    val luaDynamicNumberToLong: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToLong.functionSymbol()
+    val luaDynamicNumberToDouble: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToDouble.functionSymbol()
+    val luaDynamicNumberToChar: IrSimpleFunctionSymbol by LuaCallableIds.dynamicNumberToChar.functionSymbol()
+
+    val luaLongEquals: IrSimpleFunctionSymbol by LuaCallableIds.longEquals.functionSymbol()
+    val luaLongCompare: IrSimpleFunctionSymbol by LuaCallableIds.longCompare.functionSymbol()
+    val luaLongLt: IrSimpleFunctionSymbol by LuaCallableIds.longLt.functionSymbol()
+    val luaLongLte: IrSimpleFunctionSymbol by LuaCallableIds.longLte.functionSymbol()
+    val luaLongGt: IrSimpleFunctionSymbol by LuaCallableIds.longGt.functionSymbol()
+    val luaLongGte: IrSimpleFunctionSymbol by LuaCallableIds.longGte.functionSymbol()
+
+    val luaLongNegate: IrSimpleFunctionSymbol by LuaCallableIds.longNegate.functionSymbol()
+    val luaLongInc: IrSimpleFunctionSymbol by LuaCallableIds.longInc.functionSymbol()
+    val luaLongDec: IrSimpleFunctionSymbol by LuaCallableIds.longDec.functionSymbol()
+    val luaLongAdd: IrSimpleFunctionSymbol by LuaCallableIds.longAdd.functionSymbol()
+    val luaLongSubtract: IrSimpleFunctionSymbol by LuaCallableIds.longSubtract.functionSymbol()
+    val luaLongMultiply: IrSimpleFunctionSymbol by LuaCallableIds.longMultiply.functionSymbol()
+    val luaLongDivide: IrSimpleFunctionSymbol by LuaCallableIds.longDivide.functionSymbol()
+    val luaLongModulo: IrSimpleFunctionSymbol by LuaCallableIds.longModulo.functionSymbol()
+    val luaLongAnd: IrSimpleFunctionSymbol by LuaCallableIds.longAnd.functionSymbol()
+    val luaLongOr: IrSimpleFunctionSymbol by LuaCallableIds.longOr.functionSymbol()
+    val luaLongXor: IrSimpleFunctionSymbol by LuaCallableIds.longXor.functionSymbol()
+    val luaLongInv: IrSimpleFunctionSymbol by LuaCallableIds.longInv.functionSymbol()
+    val luaLongShiftLeft: IrSimpleFunctionSymbol by LuaCallableIds.longShiftLeft.functionSymbol()
+    val luaLongShiftRight: IrSimpleFunctionSymbol by LuaCallableIds.longShiftRight.functionSymbol()
+    val luaLongShiftRightUnsigned: IrSimpleFunctionSymbol by LuaCallableIds.longShiftRightUnsigned.functionSymbol()
+    val luaLongRangeToLong: IrSimpleFunctionSymbol by LuaCallableIds.longRangeToLong.functionSymbol()
+
     override val luaCode: IrSimpleFunctionSymbol by LuaStandardClassIds.Callables.LuaCode.functionSymbol()
 
-    override fun isSideEffectFree(call: IrCall): Boolean = call.symbol == luaEmptyTable || super.isSideEffectFree(call)
+    override fun isSideEffectFree(call: IrCall): Boolean =
+        call.symbol == luaEmptyTable ||
+            call.symbol == luaLongFromTwoInts ||
+            call.symbol == luaLongFromInt ||
+            super.isSideEffectFree(call)
 }
 
 private object LuaClassIds {
-    val BASE_LUA_PACKAGE = FqName("kotlin.lua")
-    val BASE_LUA_INTERNAL_PACKAGE = FqName("kotlin.lua.internal")
-
     val StringBuilder = ClassId(StandardClassIds.BASE_TEXT_PACKAGE, Name.identifier("StringBuilder"))
 
-    private val String.luaInternalClassId get() = ClassId(BASE_LUA_INTERNAL_PACKAGE, Name.identifier(this))
-    private val String.luaClassId get() = ClassId(BASE_LUA_PACKAGE, Name.identifier(this))
+    private val String.enumClassId get() = ClassId(StandardClassIds.BASE_ENUMS_PACKAGE, Name.identifier(this))
+    private val String.luaInternalClassId get() = ClassId(LuaStandardClassIds.BASE_LUA_INTERNAL_PACKAGE, Name.identifier(this))
+    private val String.luaClassId get() = ClassId(LuaStandardClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
 
-    val EnumEntries = "EnumEntries".luaInternalClassId
+    val EnumEntries = "EnumEntries".enumClassId
     val FunctionAdapter = "FunctionAdapter".luaInternalClassId
     val DefaultConstructorMarker = "DefaultConstructorMarker".luaInternalClassId
 
     val LuaInternalError = "LuaInternalError".luaClassId
 
     val Continuation = ClassId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("Continuation"))
+    val CharSequence = ClassId(StandardClassIds.BASE_KOTLIN_PACKAGE, Name.identifier("CharSequence"))
 }
 
 private object CallableIds {
     private val String.internalCallableId get() = CallableId(StandardClassIds.BASE_INTERNAL_PACKAGE, Name.identifier(this))
     private val String.kotlinCallableId get() = CallableId(StandardClassIds.BASE_KOTLIN_PACKAGE, Name.identifier(this))
+    private val String.enumCallableId get() = CallableId(StandardClassIds.BASE_ENUMS_PACKAGE, Name.identifier(this))
     private val String.coroutinesIntrinsicsId get() = CallableId(StandardClassIds.BASE_COROUTINES_INTRINSICS_PACKAGE, Name.identifier(this))
 
     val ensureNotNull = "ensureNotNull".kotlinCallableId
@@ -198,7 +280,8 @@ private object CallableIds {
     val throwIse = "THROW_ISE".kotlinCallableId
     val throwIae = "THROW_IAE".kotlinCallableId
 
-    val createEnumEntries = "createEnumEntries".kotlinCallableId
+    val createEnumEntries = "createEnumEntries".enumCallableId
+    val enumEntriesIntrinsic = "enumEntriesIntrinsic".enumCallableId
 
     val throwUninitializedPropertyAccessException = "throwUninitializedPropertyAccessException".internalCallableId
     val throwUnsupportedOperationException = "throwUnsupportedOperationException".kotlinCallableId
@@ -209,10 +292,12 @@ private object CallableIds {
     val suspendCoroutineUninterceptedOrReturn = "suspendCoroutineUninterceptedOrReturn".coroutinesIntrinsicsId
     val coroutineContext = "coroutineContext".coroutinesIntrinsicsId
     val coroutineGetContext = "coroutineGetContext".coroutinesIntrinsicsId
+
+    val until = CallableId(StandardClassIds.BASE_RANGES_PACKAGE, Name.identifier("until"))
 }
 
 private object LuaCallableIds {
-    private val String.luaCallableId get() = CallableId(LuaClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
+    private val String.luaCallableId get() = CallableId(LuaStandardClassIds.BASE_LUA_PACKAGE, Name.identifier(this))
 
     val luaEq = "luaEq".luaCallableId
     val luaNeq = "luaNeq".luaCallableId
@@ -280,4 +365,73 @@ private object LuaCallableIds {
     val luaUnpack = "luaUnpack".luaCallableId
 
     val compareTo = "compareTo".luaCallableId
+
+    val stringGet = "stringGet".luaCallableId
+    val stringSubSequence = "stringSubSequence".luaCallableId
+
+    val numberToInt = "numberToInt".luaCallableId
+    val intToByte = "intToByte".luaCallableId
+    val intToShort = "intToShort".luaCallableId
+    val numberToByte = "numberToByte".luaCallableId
+    val numberToShort = "numberToShort".luaCallableId
+
+    val charToInt = "charToInt".luaCallableId
+    val charToByte = "charToByte".luaCallableId
+    val charToShort = "charToShort".luaCallableId
+    val intToChar = "intToChar".luaCallableId
+    val numberToChar = "numberToChar".luaCallableId
+    val charPlusInt = "charPlusInt".luaCallableId
+    val charMinusChar = "charMinusChar".luaCallableId
+    val charMinusInt = "charMinusInt".luaCallableId
+    val charSequenceLength = "charSequenceLength".luaCallableId
+    val charSequenceGet = "charSequenceGet".luaCallableId
+    val charSequenceSubSequence = "charSequenceSubSequence".luaCallableId
+
+    val numberRangeToNumber = "numberRangeToNumber".luaCallableId
+    val charRangeToChar = "charRangeToChar".luaCallableId
+    val boolAnd = "boolAnd".luaCallableId
+    val boolOr = "boolOr".luaCallableId
+    val boolXor = "boolXor".luaCallableId
+
+    val isLong = "isLong".luaCallableId
+    val longFromTwoInts = "longFromTwoInts".luaCallableId
+    val longFromInt = "longFromInt".luaCallableId
+    val charToLong = "charToLong".luaCallableId
+    val numberToLong = "numberToLong".luaCallableId
+    val longToInt = "longToInt".luaCallableId
+    val longToByte = "longToByte".luaCallableId
+    val longToShort = "longToShort".luaCallableId
+    val longToChar = "longToChar".luaCallableId
+    val longToNumber = "longToNumber".luaCallableId
+
+    val dynamicNumberToByte = "dynamicNumberToByte".luaCallableId
+    val dynamicNumberToShort = "dynamicNumberToShort".luaCallableId
+    val dynamicNumberToInt = "dynamicNumberToInt".luaCallableId
+    val dynamicNumberToLong = "dynamicNumberToLong".luaCallableId
+    val dynamicNumberToDouble = "dynamicNumberToDouble".luaCallableId
+    val dynamicNumberToChar = "dynamicNumberToChar".luaCallableId
+
+    val longEquals = "longEquals".luaCallableId
+    val longCompare = "longCompare".luaCallableId
+    val longLt = "longLt".luaCallableId
+    val longLte = "longLte".luaCallableId
+    val longGt = "longGt".luaCallableId
+    val longGte = "longGte".luaCallableId
+
+    val longNegate = "longNegate".luaCallableId
+    val longInc = "longInc".luaCallableId
+    val longDec = "longDec".luaCallableId
+    val longAdd = "longAdd".luaCallableId
+    val longSubtract = "longSubtract".luaCallableId
+    val longMultiply = "longMultiply".luaCallableId
+    val longDivide = "longDivide".luaCallableId
+    val longModulo = "longModulo".luaCallableId
+    val longAnd = "longAnd".luaCallableId
+    val longOr = "longOr".luaCallableId
+    val longXor = "longXor".luaCallableId
+    val longInv = "longInv".luaCallableId
+    val longShiftLeft = "longShiftLeft".luaCallableId
+    val longShiftRight = "longShiftRight".luaCallableId
+    val longShiftRightUnsigned = "longShiftRightUnsigned".luaCallableId
+    val longRangeToLong = "longRangeToLong".luaCallableId
 }

@@ -144,4 +144,7 @@ public actual open class UninitializedPropertyAccessException : RuntimeException
  */
 @SinceKotlin("1.4")
 public actual val Throwable.suppressedExceptions: List<Throwable>
-    get() = TODO()
+    get() {
+        val list = getSuppressedExceptionsListOrNull(this) ?: return emptyList()
+        return ArrayList(list).build()
+    }

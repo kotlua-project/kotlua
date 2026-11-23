@@ -24,6 +24,7 @@ import io.github.kotlua.ir.utils.isMethodOfAny
 import io.github.kotlua.name.LuaStandardClassIds
 import org.jetbrains.kotlin.descriptors.ClassKind
 import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.*
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrConstructorCall
@@ -58,7 +59,12 @@ fun runSimpleDce(
             when (decl) {
                 is IrSimpleFunction -> {
                     for (overridden in decl.overriddenSymbols) {
-                        overriddenBy.getOrPut(overridden.owner) { mutableListOf() }.add(decl)
+                        val target = overridden.owner
+                        overriddenBy.getOrPut(target) { mutableListOf() }.add(decl)
+                        val realTarget = target.realOverrideTarget
+                        if (realTarget !== target) {
+                            overriddenBy.getOrPut(realTarget) { mutableListOf() }.add(decl)
+                        }
                     }
                 }
 
@@ -116,6 +122,7 @@ fun runSimpleDce(
                 super.visitCall(expression)
                 val callee = expression.symbol.owner
                 enqueue(callee)
+                enqueue(callee.realOverrideTarget)
                 if (callee.isEffectivelyExternal() && callee.parameters.any { it.isVararg }) {
                     enqueue(backendContext.symbols.luaUnpack.owner)
                 }
@@ -175,6 +182,9 @@ fun runSimpleDce(
     while (queue.isNotEmpty()) {
         when (val current = queue.removeFirst()) {
             is IrSimpleFunction -> {
+                if (current.isFakeOverride) {
+                    enqueue(current.realOverrideTarget)
+                }
                 if (!current.isLuaMultiReturnOrIntrinsic()) {
                     current.returnType.classOrNull
                         ?.owner

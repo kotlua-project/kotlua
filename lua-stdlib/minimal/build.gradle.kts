@@ -47,7 +47,6 @@ val commonMainSources = tasks.register<Sync>("commonMainSources") {
             "generated/_Collections.kt",
             "generated/_Comparisons.kt",
             "generated/_Maps.kt",
-            "generated/_OneToManyTitlecaseMappings.kt",
             "generated/_Sequences.kt",
             "generated/_Sets.kt",
             "generated/_Ranges.kt",
@@ -57,12 +56,7 @@ val commonMainSources = tasks.register<Sync>("commonMainSources") {
             "generated/_UCollections.kt",
             "generated/_UComparisons.kt",
             "generated/_USequences.kt",
-            "kotlin/AutoCloseable.kt",
             "kotlin/CharCode.kt",
-            "kotlin/KotlinH.kt",
-            "kotlin/MathH.kt",
-            "kotlin/SequencesH.kt",
-            "kotlin/TextH.kt",
             "kotlin/UnsignedCommon.kt",
             "kotlin/UProgressionUtil.kt",
             "kotlin/UByte.kt",
@@ -81,18 +75,19 @@ val commonMainSources = tasks.register<Sync>("commonMainSources") {
             "kotlin/UNumbers.kt",
             "kotlin/UStrings.kt",
             "kotlin/collections/**",
-            "kotlin/concurrent/**",
-            "kotlin/enums/**",
+            "kotlin/text/Strings.kt",
+            "kotlin/text/HexExtensions.kt",
+            "kotlin/text/HexFormat.kt",
+            "kotlin/text/Indent.kt",
+            "kotlin/text/UHexExtensions.kt",
+            "kotlin/concurrent/atomics/**",
             "kotlin/io/**",
             "kotlin/properties/Delegates.kt",
-            "kotlin/random/**",
+            "kotlin/random/URandom.kt",
             "kotlin/reflect/findAssociatedObject.kt",
-            "kotlin/text/**",
             "kotlin/time/**",
             "kotlin/util/KotlinVersion.kt",
-            "kotlin/util/Numbers.kt",
             "kotlin/util/FloorDivMod.kt",
-            "kotlin/util/Tuples.kt",
             "kotlin/uuid/**",
         )
     }
@@ -104,6 +99,29 @@ val commonMainCollectionSources = tasks.register<Sync>("commonMainCollectionSour
     from(commonMainFullSourcesConfig) {
         include(
             "kotlin/collections/PrimitiveIterators.kt",
+            "kotlin/collections/AbstractIterator.kt",
+            "kotlin/collections/AbstractCollection.kt",
+            "kotlin/collections/AbstractList.kt",
+            "kotlin/collections/AbstractSet.kt",
+            "kotlin/collections/AbstractMap.kt",
+            "kotlin/collections/AbstractMutableCollection.kt",
+            "kotlin/collections/AbstractMutableList.kt",
+            "kotlin/collections/AbstractMutableSet.kt",
+            "kotlin/collections/AbstractMutableMap.kt",
+            "kotlin/collections/LinkedHashSet.kt",
+            "kotlin/collections/Sequence.kt",
+            "kotlin/collections/LinkedHashMap.kt",
+            "kotlin/collections/HashSet.kt",
+            "kotlin/collections/HashMap.kt",
+            "kotlin/collections/ArrayList.kt",
+            "kotlin/collections/Collections.kt",
+            "kotlin/collections/CollectionsH.kt",
+            "kotlin/collections/Grouping.kt",
+            "kotlin/collections/Iterators.kt",
+            "kotlin/collections/IndexedValue.kt",
+            "kotlin/collections/Maps.kt",
+            "kotlin/collections/Sets.kt",
+            "kotlin/collections/MapWithDefault.kt",
         )
     }
     includeEmptyDirs = false
@@ -124,9 +142,13 @@ val commonNonJvmMainSources = tasks.register<Sync>("commonNonJvmMainSources") {
 val luaMainSources = tasks.register<Sync>("luaMainSources") {
     from(luaMainFullSourcesConfig) {
         exclude(
-            "src/generated/**",
-            "src/kotlin/text/**",
-            "src/kotlin/collections/ArraysLua.kt"
+            "src/generated/_ArraysLua.kt",
+            "src/generated/_UArraysLua.kt",
+            "src/generated/_StringsLua.kt",
+            "src/kotlin/CharCodeLua.kt",
+            "src/kotlin/UnsignedCommonLua.kt",
+            "src/kotlin/time/**",
+            "src/kotlin/uuid/**",
         )
     }
     includeEmptyDirs = false

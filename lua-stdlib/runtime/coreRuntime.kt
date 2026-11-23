@@ -21,6 +21,7 @@ internal fun toString(o: Any?): String {
         return "null"
     }
     if (isTypeOf(o, "table")) {
+        if (isLong(o)) return longToString(o.unsafeCast<Long>())
         val mt: dynamic = luaGetMetatable(o)
         val t = o.asDynamic()
         if (luaNeq(mt, null) && luaNeq(mt.__types, null) && luaNeq(t.toString_k, null)) {
@@ -54,6 +55,9 @@ internal fun equals(
         return true
     }
     if (isTypeOf(obj1, "table")) {
+        if (isLong(obj1)) {
+            return isLong(obj2) && longEquals(obj1.unsafeCast<Long>(), obj2.unsafeCast<Long>())
+        }
         val mt: dynamic = luaGetMetatable(obj1)
         val t = obj1.asDynamic()
         if (luaNeq(mt, null) && luaNeq(mt.__types, null) && luaNeq(t.equals_k, null)) {
@@ -110,6 +114,7 @@ internal fun anyHashCode(o: Any?): Int {
             """
         )
     }
+    if (isLong(o)) return longHashCode(o.unsafeCast<Long>())
     if (luaEq(objectHashCodes, null)) {
         objectHashCodes = lua("setmetatable({}, { __mode = 'k' })")
         nextObjectHashCode = 1
@@ -168,6 +173,9 @@ internal fun compareTo(
         }
         return if (luaEq(a, true)) 1 else -1
     }
+    if (isLong(a) && isLong(b)) {
+        return longCompare(a.unsafeCast<Long>(), b.unsafeCast<Long>())
+    }
     if (isTypeOf(a, "table")) {
         val mt: dynamic = luaGetMetatable(a)
         val t = a.asDynamic()
@@ -206,7 +214,7 @@ internal fun intDiv(a: Int, b: Int): Int {
 @UsedFromCompilerGeneratedCode
 internal fun rem(a: Any?, b: Any?): Any = LuaMath.fmod(a, b)
 
-private fun toInt32(u: dynamic): Int =
+internal fun toInt32(u: dynamic): Int =
     if (luaGte(u, 2147483648.0)) {
         luaMinus(u, 4294967296.0)
     } else {
@@ -437,3 +445,159 @@ internal fun luaUnpack(arr: Array<*>): dynamic {
     val size: Int = arr.size
     return lua("unpack(storage, 1, size)")
 }
+
+@UsedFromCompilerGeneratedCode
+internal fun stringGet(s: String, index: Int): Char {
+    val idx1 = luaPlus(index, 1).unsafeCast<Int>()
+    return LuaString.sub(s, idx1, idx1).unsafeCast<Char>()
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun stringSubSequence(s: String, startIndex: Int, endIndex: Int): CharSequence {
+    AbstractList.checkBoundsIndexes(startIndex, endIndex, luaLength(s))
+    if (luaEq(startIndex, endIndex)) {
+        return ""
+    }
+    return LuaString.sub(s, luaPlus(startIndex, 1).unsafeCast<Int>(), endIndex)
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun numberToInt(v: Any?): Int {
+    if (luaNeq(v, v)) {
+        return 0
+    }
+    if (luaGte(v, 2147483647.0)) {
+        return 2147483647
+    }
+    if (luaLte(v, -2147483648.0)) {
+        return -2147483648
+    }
+    return if (luaGte(v, 0)) {
+        LuaMath.floor(v)
+    } else {
+        LuaMath.ceil(v)
+    }
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun numberToByte(v: Any?): Byte = intToByte(numberToInt(v))
+
+@UsedFromCompilerGeneratedCode
+internal fun numberToShort(v: Any?): Short = intToShort(numberToInt(v))
+
+@UsedFromCompilerGeneratedCode
+internal fun charToInt(c: Char): Int {
+    val len = luaLength(c)
+    val s = c.unsafeCast<String>()
+    val b0 = LuaString.byte(s, 1)
+    if (luaEq(len, 1)) {
+        return b0
+    }
+    if (luaEq(len, 2)) {
+        val b1 = LuaString.byte(s, 2)
+        return bitOr(bitShl(bitAnd(b0, 0x1F), 6), bitAnd(b1, 0x3F))
+    }
+    if (luaEq(len, 3)) {
+        val b1 = LuaString.byte(s, 2)
+        val b2 = LuaString.byte(s, 3)
+        return bitOr(
+            bitShl(bitAnd(b0, 0x0F), 12),
+            bitOr(bitShl(bitAnd(b1, 0x3F), 6), bitAnd(b2, 0x3F)),
+        )
+    }
+    return b0
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun charToByte(c: Char): Byte = intToByte(charToInt(c))
+
+@UsedFromCompilerGeneratedCode
+internal fun charToShort(c: Char): Short = intToShort(charToInt(c))
+
+@UsedFromCompilerGeneratedCode
+internal fun intToChar(code: Int): Char {
+    val c = bitAnd(code, 0xFFFF)
+    if (luaLt(c, 0x80)) {
+        return LuaString.char(c).unsafeCast<Char>()
+    }
+    if (luaLt(c, 0x800)) {
+        val b0 = bitOr(0xC0, bitShr(c, 6))
+        val b1 = bitOr(0x80, bitAnd(c, 0x3F))
+        return luaConcat(LuaString.char(b0), LuaString.char(b1)).unsafeCast<Char>()
+    }
+    val b0 = bitOr(0xE0, bitShr(c, 12))
+    val b1 = bitOr(0x80, bitAnd(bitShr(c, 6), 0x3F))
+    val b2 = bitOr(0x80, bitAnd(c, 0x3F))
+    return luaConcat(luaConcat(LuaString.char(b0), LuaString.char(b1)), LuaString.char(b2)).unsafeCast<Char>()
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun numberToChar(v: Any?): Char = intToChar(numberToInt(v))
+
+@UsedFromCompilerGeneratedCode
+internal fun charPlusInt(c: Char, other: Int): Char =
+    intToChar(luaPlus(charToInt(c), other).unsafeCast<Int>())
+
+@UsedFromCompilerGeneratedCode
+internal fun charMinusChar(a: Char, b: Char): Int =
+    luaMinus(charToInt(a), charToInt(b)).unsafeCast<Int>()
+
+@UsedFromCompilerGeneratedCode
+internal fun charMinusInt(c: Char, other: Int): Char =
+    intToChar(luaMinus(charToInt(c), other).unsafeCast<Int>())
+
+@UsedFromCompilerGeneratedCode
+internal fun intToByte(v: Int): Byte {
+    val b: Any? = luaMod(v, 256)
+    return if (luaGte(b, 128)) luaMinus(b, 256).unsafeCast<Byte>() else b.unsafeCast<Byte>()
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun intToShort(v: Int): Short {
+    val s: Any? = luaMod(v, 65536)
+    return if (luaGte(s, 32768)) luaMinus(s, 65536).unsafeCast<Short>() else s.unsafeCast<Short>()
+}
+
+@DoNotIntrinsify
+@UsedFromCompilerGeneratedCode
+internal fun charSequenceLength(csq: CharSequence): Int {
+    if (isTypeOf(csq, "string")) {
+        return luaLength(csq)
+    }
+    return csq.length
+}
+
+@DoNotIntrinsify
+@UsedFromCompilerGeneratedCode
+internal fun charSequenceGet(csq: CharSequence, index: Int): Char {
+    if (isTypeOf(csq, "string")) {
+        return stringGet(csq.unsafeCast<String>(), index)
+    }
+    return csq[index]
+}
+
+@DoNotIntrinsify
+@UsedFromCompilerGeneratedCode
+internal fun charSequenceSubSequence(csq: CharSequence, startIndex: Int, endIndex: Int): CharSequence {
+    if (isTypeOf(csq, "string")) {
+        return stringSubSequence(csq.unsafeCast<String>(), startIndex, endIndex)
+    }
+    return csq.subSequence(startIndex, endIndex)
+}
+
+@UsedFromCompilerGeneratedCode
+internal fun numberRangeToNumber(start: Int, endInclusive: Int): IntRange =
+    IntRange(start, endInclusive)
+
+@UsedFromCompilerGeneratedCode
+internal fun charRangeToChar(start: Char, endInclusive: Char): CharRange =
+    CharRange(start, endInclusive)
+
+@UsedFromCompilerGeneratedCode
+internal fun boolAnd(a: Boolean, b: Boolean): Boolean = luaAnd(a, b).unsafeCast<Boolean>()
+
+@UsedFromCompilerGeneratedCode
+internal fun boolOr(a: Boolean, b: Boolean): Boolean = luaOr(a, b).unsafeCast<Boolean>()
+
+@UsedFromCompilerGeneratedCode
+internal fun boolXor(a: Boolean, b: Boolean): Boolean = luaNeq(a, b)

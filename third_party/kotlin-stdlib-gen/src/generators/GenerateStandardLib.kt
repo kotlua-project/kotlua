@@ -44,10 +44,10 @@ fun main(args: Array<String>) {
         1 -> {
             val baseDir = File(positionalArgs.first())
             if (minimal) {
-                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/build/common/generated")
-                targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/minimal/build/generated")
+                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/minimal/common/generated")
+                targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/minimal/src/generated")
             } else {
-                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/build/common/generated")
+//                targetBaseDirs[KotlinTarget.Common] = baseDir.resolveExistingDir("lua-stdlib/build/common/generated")
                 targetBaseDirs[KotlinTarget.Lua] = baseDir.resolveExistingDir("lua-stdlib/src/generated")
             }
         }

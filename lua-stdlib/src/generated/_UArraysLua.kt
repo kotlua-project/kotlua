@@ -67,7 +67,29 @@ public actual inline fun UShortArray.elementAt(index: Int): UShort {
 @SinceKotlin("1.3")
 @ExperimentalUnsignedTypes
 public actual fun UIntArray.asList(): List<UInt> {
-    TODO("Body is not provided")
+    return object : AbstractList<UInt>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: UInt): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): UInt = this@asList[index]
+        override fun indexOf(element: UInt): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: UInt): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
@@ -76,7 +98,29 @@ public actual fun UIntArray.asList(): List<UInt> {
 @SinceKotlin("1.3")
 @ExperimentalUnsignedTypes
 public actual fun ULongArray.asList(): List<ULong> {
-    TODO("Body is not provided")
+    return object : AbstractList<ULong>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: ULong): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): ULong = this@asList[index]
+        override fun indexOf(element: ULong): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: ULong): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
@@ -85,7 +129,29 @@ public actual fun ULongArray.asList(): List<ULong> {
 @SinceKotlin("1.3")
 @ExperimentalUnsignedTypes
 public actual fun UByteArray.asList(): List<UByte> {
-    TODO("Body is not provided")
+    return object : AbstractList<UByte>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: UByte): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): UByte = this@asList[index]
+        override fun indexOf(element: UByte): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: UByte): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
 /**
@@ -94,6 +160,28 @@ public actual fun UByteArray.asList(): List<UByte> {
 @SinceKotlin("1.3")
 @ExperimentalUnsignedTypes
 public actual fun UShortArray.asList(): List<UShort> {
-    TODO("Body is not provided")
+    return object : AbstractList<UShort>(), RandomAccess {
+        override val size: Int get() = this@asList.size
+        override fun isEmpty(): Boolean = this@asList.size == 0
+        override fun contains(element: UShort): Boolean = indexOf(element) >= 0
+        override fun get(index: Int): UShort = this@asList[index]
+        override fun indexOf(element: UShort): Int {
+            var i = 0
+            val n = this@asList.size
+            while (i < n) {
+                if (this@asList[i] == element) return i
+                i++
+            }
+            return -1
+        }
+        override fun lastIndexOf(element: UShort): Int {
+            var i = this@asList.size - 1
+            while (i >= 0) {
+                if (this@asList[i] == element) return i
+                i--
+            }
+            return -1
+        }
+    }
 }
 
