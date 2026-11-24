@@ -76,6 +76,7 @@ import org.jetbrains.kotlin.ir.util.isFunctionOrKFunction
 import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.util.isSubtypeOf
+import org.jetbrains.kotlin.ir.util.isSuspendFunction
 import org.jetbrains.kotlin.ir.util.isTrueConst
 import org.jetbrains.kotlin.ir.util.isTypeParameter
 import org.jetbrains.kotlin.ir.util.shallowCopyOrNull
@@ -428,6 +429,10 @@ class LuaTypeOperatorLowering(
                                 buildIsTypeOf(argument, "string"),
                                 buildIsInstance(argument.deepCopyWithSymbols(), toType),
                             )
+                        }
+
+                        toType.isFunctionOrKFunction() || toType.isSuspendFunction() -> {
+                            buildIsTypeOf(argument, "function")
                         }
 
                         toType.isComparable() -> {

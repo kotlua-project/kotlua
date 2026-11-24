@@ -240,7 +240,11 @@ private fun IrSimpleFunction.isFunctionalInvoke(): Boolean {
     val packageFqName = parentClass.packageFqName
     val className = parentClass.name.asString()
     return (packageFqName == StandardClassIds.BASE_KOTLIN_PACKAGE && className.startsWith("Function")) ||
-        (packageFqName == StandardClassIds.BASE_REFLECT_PACKAGE && className.startsWith("KFunction"))
+        (packageFqName == StandardClassIds.BASE_COROUTINES_PACKAGE && className.startsWith("SuspendFunction")) ||
+        (
+            packageFqName == StandardClassIds.BASE_REFLECT_PACKAGE &&
+                (className.startsWith("KFunction") || className.startsWith("KSuspendFunction"))
+        )
 }
 
 internal fun translateFunctionToAnonymousFunction(
@@ -493,5 +497,6 @@ internal fun isIgnoredClass(
     val pkg = klass.packageFqName
     val name = klass.name.asString()
     return (pkg == StandardClassIds.BASE_KOTLIN_PACKAGE && name.startsWith("Function")) ||
-        (pkg == StandardClassIds.BASE_REFLECT_PACKAGE && name.startsWith("KFunction"))
+        (pkg == StandardClassIds.BASE_COROUTINES_PACKAGE && name.startsWith("SuspendFunction")) ||
+        (pkg == StandardClassIds.BASE_REFLECT_PACKAGE && (name.startsWith("KFunction") || name.startsWith("KSuspendFunction")))
 }

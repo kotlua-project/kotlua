@@ -72,18 +72,59 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     ): LuaStatement {
         val blockScope = LuaLocalScope(data.currentScope)
         val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
-        val normalized = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) })
-        if (expression !is IrReturnableBlock && normalized.isEmpty()) {
+        val normalized = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) }).toMutableList()
+        if (expression is IrReturnableBlock) {
+            while (normalized.lastOrNull() is LuaStatement.Break) {
+                normalized.removeAt(normalized.lastIndex)
+            }
+            if (normalized.isEmpty()) {
+                return LuaStatement.Empty
+            }
+            val block = LuaBlock(statements = normalized, scope = blockScope)
+            return if (containsBreakForCurrentLoop(normalized)) {
+                LuaStatement.RepeatUntil(
+                    body = block,
+                    condition = LuaExpression.BooleanLiteral(true),
+                )
+            } else {
+                block
+            }
+        }
+        if (normalized.isEmpty()) {
             return LuaStatement.Empty
         }
-        val block = LuaBlock(statements = normalized, scope = blockScope)
-        if (expression is IrReturnableBlock) {
-            return LuaStatement.RepeatUntil(
-                body = block,
-                condition = LuaExpression.BooleanLiteral(true),
-            )
+        return LuaBlock(statements = normalized, scope = blockScope)
+    }
+
+    private fun containsBreakForCurrentLoop(statements: List<LuaStatement>): Boolean {
+        for (stmt in statements) {
+            val found =
+                when (stmt) {
+                    is LuaStatement.Break -> {
+                        true
+                    }
+
+                    is LuaBlock -> {
+                        containsBreakForCurrentLoop(stmt.statements)
+                    }
+
+                    is LuaCompositeBlock -> {
+                        containsBreakForCurrentLoop(stmt.statements)
+                    }
+
+                    is LuaStatement.If -> {
+                        containsBreakForCurrentLoop(stmt.thenBlock.statements) ||
+                            stmt.elseIfs.any { containsBreakForCurrentLoop(it.block.statements) } ||
+                            (stmt.elseBlock != null && containsBreakForCurrentLoop(stmt.elseBlock?.statements.orEmpty()))
+                    }
+
+                    else -> {
+                        false
+                    }
+                }
+            if (found) return true
         }
-        return block
+        return false
     }
 
     override fun visitWhileLoop(
@@ -155,7 +196,14 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
                 luaExpr
             }
 
-            is LuaExpression.NilLiteral -> {
+            is LuaExpression.NilLiteral,
+            is LuaExpression.BooleanLiteral,
+            is LuaExpression.IntLiteral,
+            is LuaExpression.DoubleLiteral,
+            is LuaExpression.LongLiteral,
+            is LuaExpression.StringLiteral,
+            is LuaName,
+            -> {
                 LuaStatement.Empty
             }
 

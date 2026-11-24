@@ -41,6 +41,8 @@ import io.github.kotlua.ir.lower.ObjectDeclarationLowering
 import io.github.kotlua.ir.lower.ObjectUsageLowering
 import io.github.kotlua.ir.lower.PrimitiveCompanionLowering
 import io.github.kotlua.ir.lower.calls.CallsLowering
+import io.github.kotlua.ir.lower.coroutines.LuaAddContinuationToFunctionCallsLowering
+import io.github.kotlua.ir.lower.coroutines.LuaSuspendFunctionsLowering
 import io.github.kotlua.ir.lower.inline.CopyInlineFunctionBodyLowering
 import io.github.kotlua.ir.lower.inline.LuaAllFunctionInlining
 import io.github.kotlua.ir.lower.inline.LuaPrivateFunctionInlining
@@ -70,6 +72,8 @@ import org.jetbrains.kotlin.backend.common.lower.SharedVariablesLowering
 import org.jetbrains.kotlin.backend.common.lower.StripTypeAliasDeclarationsLowering
 import org.jetbrains.kotlin.backend.common.lower.TailrecLowering
 import org.jetbrains.kotlin.backend.common.lower.UpgradeCallableReferences
+import org.jetbrains.kotlin.backend.common.lower.coroutines.AddContinuationToLocalSuspendFunctionsLowering
+import org.jetbrains.kotlin.backend.common.lower.coroutines.AddContinuationToNonLocalSuspendFunctionsLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.InlineCallCycleCheckerLowering
 import org.jetbrains.kotlin.backend.common.lower.inline.LocalClassesInInlineLambdasLowering
 import org.jetbrains.kotlin.backend.common.lower.loops.ForLoopsLowering
@@ -151,6 +155,10 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::EnumUsageLowering,
         ::EnumClassRemoveEntriesLowering,
         ::LocalDelegatedPropertiesLowering,
+        ::LuaSuspendFunctionsLowering,
+        ::AddContinuationToNonLocalSuspendFunctionsLowering,
+        ::AddContinuationToLocalSuspendFunctionsLowering,
+        ::LuaAddContinuationToFunctionCallsLowering,
         ::LuaReturnableBlockLowering,
         ::RangeContainsLowering,
         ::ForLoopsLowering,

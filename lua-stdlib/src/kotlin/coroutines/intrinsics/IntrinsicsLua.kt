@@ -4,6 +4,31 @@ import kotlin.coroutines.*
 import kotlin.internal.InlineOnly
 import kotlin.internal.UsedFromCompilerGeneratedCode
 
+private class CreatedCoroutine(
+    completion: Continuation<Any?>,
+    private val start: (Continuation<Any?>) -> Any?,
+) : CoroutineImpl(completion) {
+    private var label: Int = 0
+
+    override fun doResume(data: Any?, exception: Throwable?): Any? =
+        when (label) {
+            0 -> {
+                label = 1
+                start(this)
+            }
+
+            1 -> {
+                label = 2
+                if (exception != null) throw exception
+                data
+            }
+
+            else -> {
+                throw IllegalStateException("This coroutine had already completed")
+            }
+        }
+}
+
 /**
  * Starts unintercepted coroutine without receiver and with result type [T] and executes it until its first suspension.
  * Returns the result of the coroutine or throws its exception if it does not suspend or [COROUTINE_SUSPENDED] if it suspends.
@@ -18,7 +43,8 @@ import kotlin.internal.UsedFromCompilerGeneratedCode
  */
 @SinceKotlin("1.3")
 @InlineOnly
-public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturn(completion: Continuation<T>): Any? = TODO()
+public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrReturn(completion: Continuation<T>): Any? =
+    this.asDynamic()(completion)
 
 /**
  * Starts unintercepted coroutine with receiver type [R] and result type [T] and executes it until its first suspension.
@@ -37,14 +63,14 @@ public actual inline fun <T> (suspend () -> T).startCoroutineUninterceptedOrRetu
 public actual inline fun <R, T> (suspend R.() -> T).startCoroutineUninterceptedOrReturn(
     receiver: R,
     completion: Continuation<T>,
-): Any? = TODO()
+): Any? = this.asDynamic()(receiver, completion)
 
 @InlineOnly
 internal actual inline fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterceptedOrReturn(
     receiver: R,
     param: P,
     completion: Continuation<T>,
-): Any? = TODO()
+): Any? = this.asDynamic()(receiver, param, completion)
 
 /**
  * Creates unintercepted coroutine without receiver and with result type [T].
@@ -63,7 +89,12 @@ internal actual inline fun <R, P, T> (suspend R.(P) -> T).startCoroutineUninterc
  * state machine of the coroutine and may result in arbitrary behaviour or exception.
  */
 @SinceKotlin("1.3")
-public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(completion: Continuation<T>): Continuation<Unit> = TODO()
+public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(completion: Continuation<T>): Continuation<Unit> {
+    val completionAny = completion.unsafeCast<Continuation<Any?>>()
+    return CreatedCoroutine(completionAny) { cont ->
+        startCoroutineUninterceptedOrReturn(cont.unsafeCast<Continuation<T>>())
+    }.unsafeCast<Continuation<Unit>>()
+}
 
 /**
  * Creates unintercepted coroutine with receiver type [R] and result type [T].
@@ -85,10 +116,16 @@ public actual fun <T> (suspend () -> T).createCoroutineUnintercepted(completion:
 public actual fun <R, T> (suspend R.() -> T).createCoroutineUnintercepted(
     receiver: R,
     completion: Continuation<T>,
-): Continuation<Unit> = TODO()
+): Continuation<Unit> {
+    val completionAny = completion.unsafeCast<Continuation<Any?>>()
+    return CreatedCoroutine(completionAny) { cont ->
+        startCoroutineUninterceptedOrReturn(receiver, cont.unsafeCast<Continuation<T>>())
+    }.unsafeCast<Continuation<Unit>>()
+}
 
 /**
  * Intercepts this continuation with [ContinuationInterceptor].
  */
 @SinceKotlin("1.3")
-public actual fun <T> Continuation<T>.intercepted(): Continuation<T> = TODO()
+public actual fun <T> Continuation<T>.intercepted(): Continuation<T> =
+    (this as? CoroutineImpl)?.facade()?.unsafeCast<Continuation<T>>() ?: this

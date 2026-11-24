@@ -371,14 +371,22 @@ class IrElementToLuaExpressionTransformer : BaseIrElementToLuaNodeTransformer<Lu
             if (stmts.isEmpty()) {
                 return LuaBlock(emptyList(), blockScope)
             }
-            val luaStmts = stmts.dropLast(1).map { it.accept(stmtTransformer, data) }.toMutableList()
+            val luaStmts =
+                stmts
+                    .dropLast(1)
+                    .map { it.accept(stmtTransformer, data) }
+                    .filter { it !== LuaStatement.Empty }
+                    .toMutableList()
             val last = stmts.last()
-            luaStmts +=
+            val lastLuaStmt =
                 if (last is IrExpression && !last.type.isNothing() && !result.type.isUnit()) {
                     LuaStatement.Return(listOf(last.accept(this, data)))
                 } else {
                     last.accept(stmtTransformer, data)
                 }
+            if (lastLuaStmt !== LuaStatement.Empty) {
+                luaStmts += lastLuaStmt
+            }
             return LuaBlock(luaStmts, blockScope)
         }
 

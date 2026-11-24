@@ -16,8 +16,10 @@
 package io.github.kotlua.ir.utils
 
 import io.github.kotlua.ir.LuaIrBackendContext
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrFile
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.types.IrSimpleType
@@ -33,16 +35,18 @@ class LuaMainFunctionDetector(
 ) {
     private fun IrSimpleFunction.isMain(allowEmptyParameters: Boolean): Boolean {
         if (typeParameters.isNotEmpty()) return false
-
-        val hasSingleParameter = hasShape(regularParameters = 1)
-        val hasCorrectShape = hasSingleParameter || (allowEmptyParameters && hasShape(regularParameters = 0))
-        if (!hasCorrectShape) return false
-
-        if (!returnType.isUnit()) return false
         if (name.asString() != "main") return false
 
-        return if (hasSingleParameter) {
-            parameters[0].isStringArrayParameter()
+        val regularParams = parameters.filter { it.kind == IrParameterKind.Regular }
+        val isLoweredSuspendMain = regularParams.lastOrNull()?.origin == IrDeclarationOrigin.CONTINUATION
+        val logicalParams = if (isLoweredSuspendMain) regularParams.dropLast(1) else regularParams
+
+        if (!isLoweredSuspendMain && !returnType.isUnit()) return false
+        if (logicalParams.size > 1) return false
+        if (logicalParams.isEmpty() && !allowEmptyParameters) return false
+
+        return if (logicalParams.size == 1) {
+            logicalParams[0].isStringArrayParameter()
         } else {
             val file = parent as? IrFile ?: return false
             file.declarations.filterIsInstance<IrSimpleFunction>().none { it.isMain(allowEmptyParameters = false) }

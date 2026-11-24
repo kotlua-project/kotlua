@@ -20,6 +20,7 @@ import io.github.kotlua.ir.utils.LuaMainFunctionDetector
 import io.github.kotlua.ir.utils.isStringArrayParameter
 import org.jetbrains.kotlin.backend.common.ModuleLoweringPass
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOriginImpl
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.declarations.IrParameterKind
@@ -50,7 +51,10 @@ class MainFunctionCallWrapperLowering(
 
     private fun IrSimpleFunction.generateWrapperForMainFunction(): IrSimpleFunction {
         val originalSymbol = symbol
-        val takesArgs = hasStringArrayParameter()
+        val regularParams = parameters.filter { it.kind == IrParameterKind.Regular }
+        val isLoweredSuspendMain = regularParams.lastOrNull()?.origin == IrDeclarationOrigin.CONTINUATION
+        val logicalParams = if (isLoweredSuspendMain) regularParams.dropLast(1) else regularParams
+        val takesArgs = logicalParams.firstOrNull()?.isStringArrayParameter() == true
 
         return context.irFactory
             .createSimpleFunction(
@@ -61,7 +65,7 @@ class MainFunctionCallWrapperLowering(
                 visibility = visibility,
                 isInline = false,
                 isExpect = false,
-                returnType = returnType,
+                returnType = context.irBuiltIns.unitType,
                 modality = modality,
                 symbol = IrSimpleFunctionSymbolImpl(),
                 isTailrec = false,
@@ -76,17 +80,28 @@ class MainFunctionCallWrapperLowering(
                             IrCallImpl(
                                 startOffset = UNDEFINED_OFFSET,
                                 endOffset = UNDEFINED_OFFSET,
-                                type = context.irBuiltIns.unitType,
+                                type = if (isLoweredSuspendMain) context.irBuiltIns.anyNType else context.irBuiltIns.unitType,
                                 symbol = originalSymbol,
                                 typeArgumentsCount = 0,
                             ).apply {
+                                var argIndex = 0
                                 if (takesArgs) {
-                                    arguments[0] =
+                                    arguments[argIndex++] =
                                         IrCallImpl(
                                             startOffset = UNDEFINED_OFFSET,
                                             endOffset = UNDEFINED_OFFSET,
-                                            type = parameters.first { it.kind == IrParameterKind.Regular }.type,
+                                            type = logicalParams.first().type,
                                             symbol = context.symbols.luaMainArgs,
+                                            typeArgumentsCount = 0,
+                                        )
+                                }
+                                if (isLoweredSuspendMain) {
+                                    arguments[argIndex] =
+                                        IrCallImpl(
+                                            startOffset = UNDEFINED_OFFSET,
+                                            endOffset = UNDEFINED_OFFSET,
+                                            type = regularParams.last().type,
+                                            symbol = context.symbols.luaMakeMainContinuation,
                                             typeArgumentsCount = 0,
                                         )
                                 }

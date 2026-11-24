@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.functionSymbol
 import org.jetbrains.kotlin.ir.functionSymbolAssociatedBy
 import org.jetbrains.kotlin.ir.getterSymbol
+import org.jetbrains.kotlin.ir.setterSymbol
 import org.jetbrains.kotlin.ir.symbols.IrClassSymbol
 import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.types.IrType
@@ -70,9 +71,21 @@ class BackendLuaSymbols(
 
     override val coroutineSuspendedGetter: IrSimpleFunctionSymbol by CallableIds.coroutineSuspended.getterSymbol()
 
-    override val getContinuation: IrSimpleFunctionSymbol by CallableIds.getContinuation.functionSymbol()
+    override val getContinuation: IrSimpleFunctionSymbol by LuaCallableIds.getContinuation.functionSymbol()
 
-    override val returnIfSuspended: IrSimpleFunctionSymbol by CallableIds.returnIfSuspended.functionSymbol()
+    override val returnIfSuspended: IrSimpleFunctionSymbol by LuaCallableIds.returnIfSuspended.functionSymbol()
+
+    val coroutineImpl: IrClassSymbol = LuaClassIds.CoroutineImpl.classSymbol()
+
+    val coroutineImplLabelPropertyGetter by CallableIds.coroutineState.getterSymbol()
+    val coroutineImplLabelPropertySetter by CallableIds.coroutineState.setterSymbol()
+    val coroutineImplResultSymbolGetter by CallableIds.coroutineResult.getterSymbol()
+    val coroutineImplExceptionPropertyGetter by CallableIds.coroutineException.getterSymbol()
+    val coroutineImplExceptionPropertySetter by CallableIds.coroutineException.setterSymbol()
+    val coroutineImplExceptionStatePropertyGetter by CallableIds.coroutineExceptionState.getterSymbol()
+    val coroutineImplExceptionStatePropertySetter by CallableIds.coroutineExceptionState.setterSymbol()
+
+    val luaMakeMainContinuation by CallableIds.makeMainContinuation.functionSymbol()
 
     val primitiveCompanionObjects =
         primitivesWithImplicitCompanionObject().associateWith {
@@ -264,6 +277,7 @@ private object LuaClassIds {
 
     val Continuation = ClassId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("Continuation"))
     val CharSequence = ClassId(StandardClassIds.BASE_KOTLIN_PACKAGE, Name.identifier("CharSequence"))
+    val CoroutineImpl = ClassId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("CoroutineImpl"))
 }
 
 private object CallableIds {
@@ -287,11 +301,15 @@ private object CallableIds {
     val throwUnsupportedOperationException = "throwUnsupportedOperationException".kotlinCallableId
 
     val coroutineSuspended = "COROUTINE_SUSPENDED".coroutinesIntrinsicsId
-    val getContinuation = "getContinuation".coroutinesIntrinsicsId
-    val returnIfSuspended = "returnIfSuspended".coroutinesIntrinsicsId
     val suspendCoroutineUninterceptedOrReturn = "suspendCoroutineUninterceptedOrReturn".coroutinesIntrinsicsId
     val coroutineContext = "coroutineContext".coroutinesIntrinsicsId
     val coroutineGetContext = "coroutineGetContext".coroutinesIntrinsicsId
+
+    val coroutineState = CallableId(Name.identifier("state")).withClassId(LuaClassIds.CoroutineImpl)
+    val coroutineResult = CallableId(Name.identifier("result")).withClassId(LuaClassIds.CoroutineImpl)
+    val coroutineException = CallableId(Name.identifier("exception")).withClassId(LuaClassIds.CoroutineImpl)
+    val coroutineExceptionState = CallableId(Name.identifier("exceptionState")).withClassId(LuaClassIds.CoroutineImpl)
+    val makeMainContinuation = CallableId(StandardClassIds.BASE_COROUTINES_PACKAGE, Name.identifier("makeMainContinuation"))
 
     val until = CallableId(StandardClassIds.BASE_RANGES_PACKAGE, Name.identifier("until"))
 }
@@ -434,4 +452,7 @@ private object LuaCallableIds {
     val longShiftRight = "longShiftRight".luaCallableId
     val longShiftRightUnsigned = "longShiftRightUnsigned".luaCallableId
     val longRangeToLong = "longRangeToLong".luaCallableId
+
+    val getContinuation = "getContinuation".luaCallableId
+    val returnIfSuspended = "returnIfSuspended".luaCallableId
 }

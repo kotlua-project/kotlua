@@ -23,22 +23,32 @@ import org.jetbrains.kotlin.backend.common.lower.at
 import org.jetbrains.kotlin.backend.common.lower.createIrBuilder
 import org.jetbrains.kotlin.backend.common.lower.irComposite
 import org.jetbrains.kotlin.backend.common.phaser.PhasePrerequisites
+import org.jetbrains.kotlin.ir.IrElement
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.builders.at
 import org.jetbrains.kotlin.ir.builders.irComposite
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.builders.irSet
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
+import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
+import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
+import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
+import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
 import org.jetbrains.kotlin.ir.inline.FunctionInlining
 import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
+import org.jetbrains.kotlin.ir.types.isNothing
+import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
+import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 
 @PhasePrerequisites(FunctionInlining::class)
 class LuaReturnableBlockLowering(
@@ -91,8 +101,74 @@ private class LuaReturnableBlockTransformer(
         return result
     }
 
+    private fun collectReturnsToBlock(block: IrReturnableBlock): List<IrReturn> {
+        val returns = mutableListOf<IrReturn>()
+        block.acceptChildrenVoid(
+            object : IrVisitorVoid() {
+                override fun visitElement(element: IrElement) {
+                    element.acceptChildrenVoid(this)
+                }
+
+                override fun visitFunction(declaration: IrFunction) = Unit
+
+                override fun visitClass(declaration: IrClass) = Unit
+
+                override fun visitReturn(expression: IrReturn) {
+                    if (expression.returnTargetSymbol == block.symbol) {
+                        returns += expression
+                    }
+                    super.visitReturn(expression)
+                }
+            },
+        )
+        return returns
+    }
+
     override fun visitBlock(expression: IrBlock): IrExpression {
         if (expression !is IrReturnableBlock) return super.visitBlock(expression)
+
+        val returnsToBlock = collectReturnsToBlock(expression)
+
+        if (returnsToBlock.isEmpty()) {
+            expression.transformChildrenVoid()
+            return IrCompositeImpl(
+                expression.startOffset,
+                expression.endOffset,
+                expression.type,
+                expression.origin,
+                expression.statements,
+            )
+        }
+
+        val lastStatement = expression.statements.lastOrNull()
+        if (returnsToBlock.size == 1 && lastStatement === returnsToBlock[0]) {
+            val newStatements = ArrayList<IrStatement>(expression.statements.size)
+            for (i in 0 until expression.statements.lastIndex) {
+                newStatements += expression.statements[i].transform(this, null) as IrStatement
+            }
+            val transformedValue = lastStatement.value.transform(this, null)
+            val resultValue =
+                if (transformedValue.type == expression.type || transformedValue.type.isNothing()) {
+                    transformedValue
+                } else {
+                    IrTypeOperatorCallImpl(
+                        startOffset = transformedValue.startOffset,
+                        endOffset = transformedValue.endOffset,
+                        type = expression.type,
+                        operator = IrTypeOperator.REINTERPRET_CAST,
+                        typeOperand = expression.type,
+                        argument = transformedValue,
+                    )
+                }
+            newStatements += resultValue
+            return IrCompositeImpl(
+                expression.startOffset,
+                expression.endOffset,
+                expression.type,
+                expression.origin,
+                newStatements,
+            )
+        }
 
         return withNewVariableForReturnableBlock(returnableBlock = expression) { variable ->
             expression.transformChildrenVoid()
