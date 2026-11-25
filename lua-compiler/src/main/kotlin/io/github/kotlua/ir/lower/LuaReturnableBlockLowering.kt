@@ -37,6 +37,7 @@ import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlock
 import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrContainerExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
@@ -46,6 +47,7 @@ import org.jetbrains.kotlin.ir.expressions.impl.IrGetObjectValueImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrTypeOperatorCallImpl
 import org.jetbrains.kotlin.ir.inline.FunctionInlining
 import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
+import org.jetbrains.kotlin.ir.types.IrType
 import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
@@ -124,6 +126,64 @@ private class LuaReturnableBlockTransformer(
         return returns
     }
 
+    private fun isSingleTailReturn(
+        container: IrContainerExpression,
+        targetReturn: IrReturn,
+    ): Boolean {
+        var current: IrContainerExpression = container
+        while (true) {
+            val last = current.statements.lastOrNull() ?: return false
+            if (last === targetReturn) return true
+            if (last is IrContainerExpression && last !is IrReturnableBlock) {
+                current = last
+            } else {
+                return false
+            }
+        }
+    }
+
+    private fun transformTailContainer(
+        container: IrContainerExpression,
+        targetReturn: IrReturn,
+        targetType: IrType,
+    ): IrCompositeImpl {
+        val lastIndex = container.statements.lastIndex
+        val newStatements = ArrayList<IrStatement>(container.statements.size)
+        for (i in 0 until lastIndex) {
+            newStatements += container.statements[i].transform(this, null) as IrStatement
+        }
+
+        val last = container.statements[lastIndex]
+        if (last === targetReturn) {
+            val transformedValue = targetReturn.value.transform(this, null)
+            val resultValue =
+                if (transformedValue.type == targetType || transformedValue.type.isNothing()) {
+                    transformedValue
+                } else {
+                    IrTypeOperatorCallImpl(
+                        startOffset = transformedValue.startOffset,
+                        endOffset = transformedValue.endOffset,
+                        type = targetType,
+                        operator = IrTypeOperator.REINTERPRET_CAST,
+                        typeOperand = targetType,
+                        argument = transformedValue,
+                    )
+                }
+            newStatements += resultValue
+        } else {
+            val innerComposite = transformTailContainer(last as IrContainerExpression, targetReturn, targetType)
+            newStatements += innerComposite.statements
+        }
+
+        return IrCompositeImpl(
+            container.startOffset,
+            container.endOffset,
+            targetType,
+            container.origin,
+            newStatements,
+        )
+    }
+
     override fun visitBlock(expression: IrBlock): IrExpression {
         if (expression !is IrReturnableBlock) return super.visitBlock(expression)
 
@@ -140,34 +200,8 @@ private class LuaReturnableBlockTransformer(
             )
         }
 
-        val lastStatement = expression.statements.lastOrNull()
-        if (returnsToBlock.size == 1 && lastStatement === returnsToBlock[0]) {
-            val newStatements = ArrayList<IrStatement>(expression.statements.size)
-            for (i in 0 until expression.statements.lastIndex) {
-                newStatements += expression.statements[i].transform(this, null) as IrStatement
-            }
-            val transformedValue = lastStatement.value.transform(this, null)
-            val resultValue =
-                if (transformedValue.type == expression.type || transformedValue.type.isNothing()) {
-                    transformedValue
-                } else {
-                    IrTypeOperatorCallImpl(
-                        startOffset = transformedValue.startOffset,
-                        endOffset = transformedValue.endOffset,
-                        type = expression.type,
-                        operator = IrTypeOperator.REINTERPRET_CAST,
-                        typeOperand = expression.type,
-                        argument = transformedValue,
-                    )
-                }
-            newStatements += resultValue
-            return IrCompositeImpl(
-                expression.startOffset,
-                expression.endOffset,
-                expression.type,
-                expression.origin,
-                newStatements,
-            )
+        if (returnsToBlock.size == 1 && isSingleTailReturn(expression, returnsToBlock[0])) {
+            return transformTailContainer(expression, returnsToBlock[0], expression.type)
         }
 
         return withNewVariableForReturnableBlock(returnableBlock = expression) { variable ->

@@ -260,7 +260,7 @@ fun runSimpleDce(
                                 is IrSimpleFunction -> {
                                     decl.isMethodOfAny() ||
                                         decl.isComparableCompareTo() ||
-                                        decl.overriddenSymbols.any { it.owner in reachable } ||
+                                        decl.overriddenSymbols.any { it.owner in reachable || it.owner.realOverrideTarget in reachable } ||
                                         (isEnum && (decl.name.asString() == "values" || decl.name.asString() == "valueOf"))
                                 }
 
@@ -291,12 +291,12 @@ private fun isKept(
     declaration: IrDeclaration,
     reachable: Set<IrDeclaration>,
 ): Boolean {
-    if (declaration in reachable) return true
-
     if (declaration is IrClass) {
         declaration.declarations.retainAll { isKept(it, reachable) }
         return declaration in reachable || declaration.declarations.isNotEmpty()
     }
+
+    if (declaration in reachable) return true
 
     if (declaration is IrProperty) {
         val getterAlive = declaration.getter?.let { it in reachable } ?: false

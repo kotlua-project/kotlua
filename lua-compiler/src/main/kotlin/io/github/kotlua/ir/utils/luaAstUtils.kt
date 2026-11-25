@@ -278,7 +278,12 @@ internal fun translateFunctionToAnonymousFunction(
                 bodyBlock
             }
         } else {
-            bodyBlock
+            val lastStmt = bodyBlock.statements.lastOrNull()
+            if (lastStmt is LuaStatement.Return && lastStmt.values.isEmpty()) {
+                bodyBlock.copy(statements = bodyBlock.statements.dropLast(1))
+            } else {
+                bodyBlock
+            }
         }
 
     return LuaExpression.AnonymousFunction(

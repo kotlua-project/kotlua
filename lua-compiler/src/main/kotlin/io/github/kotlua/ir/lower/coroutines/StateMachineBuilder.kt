@@ -24,7 +24,9 @@ import org.jetbrains.kotlin.backend.common.push
 import org.jetbrains.kotlin.ir.IrElement
 import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
+import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.declarations.impl.IrVariableImpl
@@ -33,6 +35,7 @@ import org.jetbrains.kotlin.ir.expressions.IrBreak
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrCatch
 import org.jetbrains.kotlin.ir.expressions.IrComposite
+import org.jetbrains.kotlin.ir.expressions.IrConst
 import org.jetbrains.kotlin.ir.expressions.IrContainerExpression
 import org.jetbrains.kotlin.ir.expressions.IrContinue
 import org.jetbrains.kotlin.ir.expressions.IrDoWhileLoop
@@ -41,6 +44,8 @@ import org.jetbrains.kotlin.ir.expressions.IrDynamicOperatorExpression
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetClass
 import org.jetbrains.kotlin.ir.expressions.IrGetField
+import org.jetbrains.kotlin.ir.expressions.IrGetObjectValue
+import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrLoop
 import org.jetbrains.kotlin.ir.expressions.IrMemberAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrReturn
@@ -94,6 +99,7 @@ import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrVisitorVoid
 import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
+import org.jetbrains.kotlin.ir.visitors.transformChildrenVoid
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.utils.addToStdlib.ifTrue
 
@@ -103,6 +109,7 @@ class SuspendState(
     val entryBlock: IrContainerExpression = IrCompositeImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, type)
     val successors = mutableSetOf<SuspendState>()
     var id: Int = -1
+    var hasPredecessors: Boolean = false
 }
 
 private var IrComposite.suspendState: SuspendState? by irAttribute(copyByDefault = false)
@@ -162,10 +169,7 @@ class StateMachineBuilder(
     private var hasExceptions = false
 
     fun finalizeStateMachine() {
-        if (hasTryCatch) {
-            globalCatch = buildGlobalCatch()
-        }
-        if (currentBlock.statements.lastOrNull() !is IrReturn) {
+        if (!isBlockEnded() && currentBlock.statements.lastOrNull() !is IrReturn) {
             addStatement(
                 IrReturnImpl(
                     startOffset = rootLoop.endOffset.previousOffset,
@@ -176,7 +180,13 @@ class StateMachineBuilder(
                 ),
             )
         }
-        if (hasTryCatch && !hasExceptions) entryState.successors += rootExceptionTrap
+        if (hasTryCatch) {
+            globalCatch = buildGlobalCatch()
+        }
+        simplifyStates()
+        if (hasTryCatch) {
+            entryState.successors += rootExceptionTrap
+        }
     }
 
     private fun buildGlobalCatch(): IrCatch {
@@ -280,6 +290,7 @@ class StateMachineBuilder(
     ) {
         val irDispatch = createDispatchPoint(target)
         currentState.successors.add(target)
+        target.hasPredecessors = true
         block.addStatement(
             buildCall(stateSymbolSetter.symbol, unit).apply {
                 arguments[0] = thisReceiver
@@ -303,6 +314,7 @@ class StateMachineBuilder(
         IrCompositeImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, unit).also { doDispatchImpl(target, it, true) }
 
     override fun visitElement(element: IrElement) {
+        if (isBlockEnded()) return
         if (element in suspendableNodes) {
             element.acceptChildrenVoid(this)
         } else {
@@ -328,11 +340,14 @@ class StateMachineBuilder(
         tryLoopStack.pop().also { assert(it === loop) }
 
         loopMap.remove(loop)
-        updateState(loopExitState)
+        if (loopExitState.hasPredecessors) {
+            updateState(loopExitState)
+        }
     }
 
     override fun visitWhileLoop(loop: IrWhileLoop) =
         transformLoop(loop) { l, head, exit ->
+            if (isBlockEnded()) return@transformLoop
             l.condition.acceptVoid(this)
 
             transformLastExpression {
@@ -342,21 +357,64 @@ class StateMachineBuilder(
             }
 
             l.body?.acceptVoid(this)
-            doDispatch(head)
+            maybeDoDispatch(head)
         }
 
-    override fun visitDoWhileLoop(loop: IrDoWhileLoop) =
+    override fun visitDoWhileLoop(loop: IrDoWhileLoop) {
+        if (isBlockEnded()) return
+        if ((loop.condition as? IrConst)?.value == false && !hasContinueToLoop(loop)) {
+            if (loop !in suspendableNodes) return addStatement(loop)
+
+            val loopExitState = SuspendState(unit)
+            loopMap[loop] = LoopBounds(loopExitState, loopExitState)
+
+            tryLoopStack.push(loop)
+            loop.body?.acceptVoid(this)
+            maybeDoDispatch(loopExitState)
+            tryLoopStack.pop().also { assert(it === loop) }
+
+            loopMap.remove(loop)
+            if (loopExitState.hasPredecessors) {
+                updateState(loopExitState)
+            }
+            return
+        }
+
         transformLoop(loop) { l, head, exit ->
             l.body?.acceptVoid(this)
-            l.condition.acceptVoid(this)
+            if (!isBlockEnded()) {
+                l.condition.acceptVoid(this)
 
-            transformLastExpression {
-                val irContinue = buildDispatchBlock(head)
-                buildIfElse(unit, it, irContinue)
+                transformLastExpression {
+                    val irContinue = buildDispatchBlock(head)
+                    buildIfElse(unit, it, irContinue)
+                }
+
+                doDispatch(exit)
             }
-
-            doDispatch(exit)
         }
+    }
+
+    private fun hasContinueToLoop(loop: IrLoop): Boolean {
+        var found = false
+        loop.body?.acceptVoid(
+            object : IrVisitorVoid() {
+                override fun visitElement(element: IrElement) {
+                    if (!found) element.acceptChildrenVoid(this)
+                }
+
+                override fun visitFunction(declaration: IrFunction) = Unit
+
+                override fun visitClass(declaration: IrClass) = Unit
+
+                override fun visitContinue(jump: IrContinue) {
+                    if (jump.loop === loop) found = true
+                    super.visitContinue(jump)
+                }
+            },
+        )
+        return found
+    }
 
     private fun implicitCast(
         value: IrExpression,
@@ -364,7 +422,9 @@ class StateMachineBuilder(
     ) = IrTypeOperatorCallImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, toType, IrTypeOperator.IMPLICIT_CAST, toType, value)
 
     override fun visitCall(expression: IrCall) {
+        if (isBlockEnded()) return
         super.visitCall(expression)
+        if (isBlockEnded()) return
 
         if (expression.isSuspend) {
             val result = lastExpression()
@@ -400,12 +460,14 @@ class StateMachineBuilder(
     }
 
     override fun visitBreak(jump: IrBreak) {
+        if (isBlockEnded()) return
         val exitState = loopMap[jump.loop]!!.exitState
         resetExceptionStateIfNeeded(jump.loop)
         doDispatch(exitState)
     }
 
     override fun visitContinue(jump: IrContinue) {
+        if (isBlockEnded()) return
         val headState = loopMap[jump.loop]!!.headState
         resetExceptionStateIfNeeded(jump.loop)
         doDispatch(headState)
@@ -440,6 +502,7 @@ class StateMachineBuilder(
     ) = IrSetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, unit, variable, expression, null)
 
     override fun visitComposite(expression: IrComposite) {
+        if (isBlockEnded()) return
         if (expression.origin == FINALLY_EXPRESSION) {
             catchBlockStack.peek()?.let(::setupExceptionState)
         }
@@ -447,6 +510,7 @@ class StateMachineBuilder(
     }
 
     override fun visitWhen(expression: IrWhen) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
 
         val exitState = SuspendState(expression.type)
@@ -518,6 +582,7 @@ class StateMachineBuilder(
     }
 
     override fun visitSetValue(expression: IrSetValue) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         expression.acceptChildrenVoid(this)
         if (!isBlockEnded()) {
@@ -526,6 +591,7 @@ class StateMachineBuilder(
     }
 
     override fun visitTypeOperator(expression: IrTypeOperatorCall) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         expression.acceptChildrenVoid(this)
         if (!isBlockEnded()) {
@@ -534,6 +600,7 @@ class StateMachineBuilder(
     }
 
     override fun visitVariable(declaration: IrVariable) {
+        if (isBlockEnded()) return
         registerLocal(declaration)
 
         val initializer = declaration.initializer
@@ -550,10 +617,13 @@ class StateMachineBuilder(
         }
 
         initializer?.acceptVoid(this)
-        transformLastExpression { IrSetValueImpl(startOffset, endOffset, unit, declaration.symbol, it, null) }
+        if (!isBlockEnded()) {
+            transformLastExpression { IrSetValueImpl(startOffset, endOffset, unit, declaration.symbol, it, null) }
+        }
     }
 
     override fun visitGetField(expression: IrGetField) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         expression.acceptChildrenVoid(this)
         transformLastExpression { expression.apply { receiver = it } }
@@ -563,24 +633,28 @@ class StateMachineBuilder(
         expression: IrDynamicMemberExpression,
         data: Nothing?,
     ) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         expression.acceptChildrenVoid(this)
         transformLastExpression { expression.apply { receiver = it } }
     }
 
     override fun visitDynamicOperatorExpression(expression: IrDynamicOperatorExpression) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         transformArguments(expression.arguments)
         addStatement(expression)
     }
 
     override fun visitGetClass(expression: IrGetClass) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         expression.acceptChildrenVoid(this)
         transformLastExpression { expression.apply { argument = it } }
     }
 
     override fun visitVararg(expression: IrVararg) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
         val spreadIndices = mutableSetOf<Int>()
         val newArgs =
@@ -635,6 +709,7 @@ class StateMachineBuilder(
     }
 
     override fun visitMemberAccess(expression: IrMemberAccessExpression<*>) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) {
             addExceptionEdge()
             return addStatement(expression)
@@ -646,6 +721,7 @@ class StateMachineBuilder(
     }
 
     override fun visitSetField(expression: IrSetField) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
 
         val newArguments = mutableListOf(expression.receiver, expression.value).also(this::transformArguments)
@@ -669,6 +745,7 @@ class StateMachineBuilder(
     }
 
     override fun visitStringConcatenation(expression: IrStringConcatenation) {
+        if (isBlockEnded()) return
         if (expression !in suspendableNodes) return addStatement(expression)
 
         val newArguments = expression.arguments.toMutableList().apply(this::transformArguments)
@@ -682,6 +759,7 @@ class StateMachineBuilder(
     private val unitValue get() = IrGetObjectValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, unit, context.irBuiltIns.unitClass)
 
     override fun visitReturn(expression: IrReturn) {
+        if (isBlockEnded()) return
         expression.acceptChildrenVoid(this)
         val returnTarget = expression.returnTargetSymbol
         if (returnTarget !is IrReturnableBlockSymbol) {
@@ -691,18 +769,24 @@ class StateMachineBuilder(
 
     private fun addExceptionEdge() {
         hasExceptions = true
-        currentState.successors += catchBlockStack.peek()!!
+        val trap = catchBlockStack.peek()!!
+        if (trap !== rootExceptionTrap) {
+            currentState.successors += trap
+            trap.hasPredecessors = true
+        }
     }
 
     private fun hasResultingValue(expression: IrExpression) = !expression.type.run { isNothing() || isUnit() }
 
     override fun visitThrow(expression: IrThrow) {
+        if (isBlockEnded()) return
         expression.acceptChildrenVoid(this)
         addExceptionEdge()
         transformLastExpression { expression.apply { value = it } }
     }
 
     override fun visitTry(aTry: IrTry) {
+        if (isBlockEnded()) return
         require(aTry.finallyExpression == null)
         hasTryCatch = true
 
@@ -790,16 +874,23 @@ class StateMachineBuilder(
         }
 
         currentState.successors += enclosingCatch
+        if (exitState.hasPredecessors) {
+            updateState(exitState)
+            setupExceptionState(enclosingCatch)
 
-        updateState(exitState)
-        setupExceptionState(enclosingCatch)
-
-        if (varSymbol != null) {
-            addStatement(IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, varSymbol.type, varSymbol.symbol))
+            if (varSymbol != null) {
+                addStatement(IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, varSymbol.type, varSymbol.symbol))
+            }
         }
     }
 
     private fun setupExceptionState(target: SuspendState) {
+        target.hasPredecessors = true
+        val lastCall = currentBlock.statements.lastOrNull() as? IrCall
+        if (lastCall != null && lastCall.symbol == exStateSymbolSetter.symbol) {
+            lastCall.arguments[1] = createDispatchPoint(target)
+            return
+        }
         addStatement(
             buildCall(exStateSymbolSetter.symbol, unit).apply {
                 arguments[0] = thisReceiver
@@ -877,5 +968,113 @@ class StateMachineBuilder(
 
     private fun registerLocal(variable: IrVariable) {
         allTheIntermediateLocals.add(variable)
+    }
+
+    private fun isPureUnusedExpression(stmt: IrStatement): Boolean =
+        when (stmt) {
+            is IrGetValue,
+            is IrConst,
+            is IrGetObjectValue,
+            -> true
+
+            is IrTypeOperatorCall -> isPureUnusedExpression(stmt.argument)
+
+            else -> false
+        }
+
+    private fun extractForwardTarget(state: SuspendState): SuspendState? {
+        if (state === rootExceptionTrap) return null
+        val stmts = state.entryBlock.statements
+        if (stmts.size < 2) return null
+        for (i in 0 until stmts.size - 2) {
+            if (!isPureUnusedExpression(stmts[i])) return null
+        }
+        val setStateCall = stmts[stmts.size - 2] as? IrCall ?: return null
+        if (setStateCall.symbol != stateSymbolSetter.symbol) return null
+        val cont = stmts[stmts.size - 1] as? IrContinue ?: return null
+        if (cont.loop !== rootLoop) return null
+        val dispatchComposite = setStateCall.arguments[1] as? IrComposite ?: return null
+        val target = dispatchComposite.suspendState ?: return null
+        return target.takeIf { it !== state }
+    }
+
+    private fun collectReachableStates(): List<SuspendState> {
+        val visited = linkedSetOf<SuspendState>()
+        val queue = ArrayDeque<SuspendState>()
+        visited += entryState
+        queue += entryState
+        while (queue.isNotEmpty()) {
+            val cur = queue.removeFirst()
+            for (succ in cur.successors) {
+                if (visited.add(succ)) {
+                    queue += succ
+                }
+            }
+        }
+        return visited.toList()
+    }
+
+    private fun rewriteDispatchTargets(
+        states: List<SuspendState>,
+        resolve: (SuspendState) -> SuspendState,
+    ) {
+        val transformer =
+            object : IrElementTransformerVoid() {
+                override fun visitComposite(expression: IrComposite): IrExpression {
+                    expression.suspendState?.let { target ->
+                        expression.suspendState = resolve(target)
+                        return expression
+                    }
+                    return super.visitComposite(expression)
+                }
+            }
+
+        for (state in states) {
+            state.entryBlock.transformChildrenVoid(transformer)
+            val updatedSuccessors = state.successors.mapTo(linkedSetOf(), resolve)
+            state.successors.clear()
+            state.successors.addAll(updatedSuccessors)
+        }
+        if (hasTryCatch) {
+            globalCatch.transformChildrenVoid(transformer)
+        }
+    }
+
+    private fun simplifyStates() {
+        val reachable = collectReachableStates()
+        val redirect = hashMapOf<SuspendState, SuspendState>()
+        for (state in reachable) {
+            if (state !== entryState) {
+                extractForwardTarget(state)?.let { target ->
+                    redirect[state] = target
+                }
+            }
+        }
+
+        if (redirect.isNotEmpty()) {
+            fun resolve(state: SuspendState): SuspendState {
+                var cur = state
+                val seen = hashSetOf(cur)
+                while (true) {
+                    val next = redirect[cur] ?: return cur
+                    if (!seen.add(next)) return cur
+                    cur = next
+                }
+            }
+            rewriteDispatchTargets(reachable, ::resolve)
+        }
+
+        val entryTarget = extractForwardTarget(entryState)
+        if (entryTarget != null && entryTarget !== entryState && entryTarget !== rootExceptionTrap) {
+            entryState.entryBlock.statements.clear()
+            entryState.entryBlock.statements.addAll(entryTarget.entryBlock.statements)
+            entryState.successors.clear()
+            entryState.successors.addAll(entryTarget.successors)
+
+            val afterEntryMerge = collectReachableStates()
+            rewriteDispatchTargets(afterEntryMerge) { state ->
+                if (state === entryTarget) entryState else state
+            }
+        }
     }
 }

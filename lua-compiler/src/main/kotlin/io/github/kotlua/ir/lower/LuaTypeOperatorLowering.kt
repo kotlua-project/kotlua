@@ -21,13 +21,13 @@ import org.jetbrains.kotlin.backend.common.BodyLoweringPass
 import org.jetbrains.kotlin.backend.common.compilationException
 import org.jetbrains.kotlin.backend.common.phaser.PhasePrerequisites
 import org.jetbrains.kotlin.ir.IrElement
-import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.UNDEFINED_OFFSET
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationBase
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationParent
+import org.jetbrains.kotlin.ir.declarations.IrTypeParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.declarations.impl.IrVariableImpl
 import org.jetbrains.kotlin.ir.expressions.IrBody
@@ -38,6 +38,7 @@ import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrStatementOrigin
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperator
 import org.jetbrains.kotlin.ir.expressions.IrTypeOperatorCall
+import org.jetbrains.kotlin.ir.expressions.IrValueAccessExpression
 import org.jetbrains.kotlin.ir.expressions.impl.IrBranchImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrCallImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrCompositeImpl
@@ -52,7 +53,6 @@ import org.jetbrains.kotlin.ir.symbols.IrTypeParameterSymbol
 import org.jetbrains.kotlin.ir.symbols.impl.IrVariableSymbolImpl
 import org.jetbrains.kotlin.ir.types.IrDynamicType
 import org.jetbrains.kotlin.ir.types.IrType
-import org.jetbrains.kotlin.ir.types.classifierOrFail
 import org.jetbrains.kotlin.ir.types.classifierOrNull
 import org.jetbrains.kotlin.ir.types.isAny
 import org.jetbrains.kotlin.ir.types.isBoolean
@@ -73,13 +73,12 @@ import org.jetbrains.kotlin.ir.types.makeNotNull
 import org.jetbrains.kotlin.ir.util.deepCopyWithSymbols
 import org.jetbrains.kotlin.ir.util.isEffectivelyExternal
 import org.jetbrains.kotlin.ir.util.isFunctionOrKFunction
-import org.jetbrains.kotlin.ir.util.isInterface
 import org.jetbrains.kotlin.ir.util.isNullable
 import org.jetbrains.kotlin.ir.util.isSubtypeOf
 import org.jetbrains.kotlin.ir.util.isSuspendFunction
 import org.jetbrains.kotlin.ir.util.isTrueConst
 import org.jetbrains.kotlin.ir.util.isTypeParameter
-import org.jetbrains.kotlin.ir.util.shallowCopyOrNull
+import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.ir.visitors.IrTransformer
 import org.jetbrains.kotlin.name.Name
 
@@ -207,23 +206,83 @@ class LuaTypeOperatorLowering(
                         statements = listOf(expression.argument, unitValue),
                     )
 
+                private tailrec fun IrExpression.canReuseWithoutTemp(): Boolean =
+                    when (this) {
+                        is IrConst -> true
+
+                        is IrGetValue if (symbol.owner as? IrVariable)?.isVar != true -> true
+
+                        is IrTypeOperatorCall if
+                        (
+                            operator == IrTypeOperator.IMPLICIT_CAST ||
+                                operator == IrTypeOperator.IMPLICIT_DYNAMIC_CAST ||
+                                operator == IrTypeOperator.REINTERPRET_CAST
+                        ) -> argument.canReuseWithoutTemp()
+
+                        else -> false
+                    }
+
                 private fun lowerInstanceOf(
                     expression: IrTypeOperatorCall,
                     declarationParent: IrDeclarationParent,
                     inverted: Boolean,
                 ): IrExpression {
-                    val newStatements = mutableListOf<IrStatement>()
-                    val argument = cacheValue(expression.argument, newStatements, declarationParent)
-                    val check = generateTypeCheck(argument, expression.typeOperand, isSafeCast = false)
+                    if (expression.argument.canReuseWithoutTemp()) {
+                        val check =
+                            generateTypeCheck(
+                                fromType = expression.argument.type,
+                                argument = { expression.argument.deepCopyWithSymbols() },
+                                toType = expression.typeOperand,
+                                isSafeCast = false,
+                            )
+                        return if (inverted) buildBooleanNot(check) else check
+                    }
+
+                    val tmpVar = createTempVar(expression.argument, declarationParent)
+                    var usageCount = 0
+                    val argumentProvider: () -> IrExpression = {
+                        usageCount++
+                        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, tmpVar.type, tmpVar.symbol)
+                    }
+
+                    val check =
+                        generateTypeCheck(
+                            fromType = expression.argument.type,
+                            argument = argumentProvider,
+                            toType = expression.typeOperand,
+                            isSafeCast = false,
+                        )
                     val result = if (inverted) buildBooleanNot(check) else check
-                    newStatements += result
-                    return IrCompositeImpl(
-                        startOffset = expression.startOffset,
-                        endOffset = expression.endOffset,
-                        type = booleanType,
-                        origin = null,
-                        statements = newStatements,
-                    )
+
+                    return when (usageCount) {
+                        0 -> {
+                            if (expression.argument is IrConst || expression.argument is IrGetValue) {
+                                result
+                            } else {
+                                IrCompositeImpl(
+                                    startOffset = expression.startOffset,
+                                    endOffset = expression.endOffset,
+                                    type = booleanType,
+                                    origin = null,
+                                    statements = listOf(expression.argument, result),
+                                )
+                            }
+                        }
+
+                        1 -> {
+                            replaceTempVarGet(result, tmpVar, expression.argument)
+                        }
+
+                        else -> {
+                            IrCompositeImpl(
+                                startOffset = expression.startOffset,
+                                endOffset = expression.endOffset,
+                                type = booleanType,
+                                origin = null,
+                                statements = listOf(tmpVar, result),
+                            )
+                        }
+                    }
                 }
 
                 private fun lowerCast(
@@ -245,7 +304,6 @@ class LuaTypeOperatorLowering(
                             )
                         }
 
-                    val newStatements = mutableListOf<IrStatement>()
                     val isNotNullAssertionRequired = !isSafe && expression.argument.type.isNullable() && !toType.isNullable()
                     val initialArg =
                         if (isNotNullAssertionRequired) {
@@ -259,75 +317,108 @@ class LuaTypeOperatorLowering(
                             expression.argument
                         }
 
-                    val argument = cacheValue(initialArg, newStatements, declarationParent)
-                    val check = generateTypeCheck(argument, toType, isSafeCast = isSafe)
+                    if (initialArg.canReuseWithoutTemp()) {
+                        val check =
+                            generateTypeCheck(
+                                fromType = initialArg.type,
+                                argument = { initialArg.deepCopyWithSymbols() },
+                                toType = toType,
+                                isSafeCast = isSafe,
+                            )
+                        if (check.isTrueConst()) {
+                            return expression.wrapWithUnsafeCast(initialArg)
+                        }
+                        val castedValue = expression.wrapWithUnsafeCast(initialArg.deepCopyWithSymbols())
+                        return buildIfElse(expression.type, check, castedValue, failResult)
+                    }
+
+                    val tmpVar = createTempVar(initialArg, declarationParent)
+                    var usageCount = 0
+                    val argumentProvider: () -> IrExpression = {
+                        usageCount++
+                        IrGetValueImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, tmpVar.type, tmpVar.symbol)
+                    }
+
+                    val check =
+                        generateTypeCheck(
+                            fromType = initialArg.type,
+                            argument = argumentProvider,
+                            toType = toType,
+                            isSafeCast = isSafe,
+                        )
 
                     if (check.isTrueConst()) {
-                        return if (newStatements.isEmpty()) {
-                            expression.wrapWithUnsafeCast(argument())
-                        } else {
-                            newStatements += expression.wrapWithUnsafeCast(argument())
-                            IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type, null, newStatements)
-                        }
+                        return expression.wrapWithUnsafeCast(initialArg)
                     }
 
-                    val castedValue = expression.wrapWithUnsafeCast(argument())
-                    newStatements += buildIfElse(expression.type, check, castedValue, failResult)
-                    return IrCompositeImpl(expression.startOffset, expression.endOffset, expression.type, null, newStatements)
+                    val castedValue = expression.wrapWithUnsafeCast(argumentProvider())
+                    val whenExpr = buildIfElse(expression.type, check, castedValue, failResult)
+                    return IrCompositeImpl(
+                        startOffset = expression.startOffset,
+                        endOffset = expression.endOffset,
+                        type = expression.type,
+                        origin = null,
+                        statements = listOf(tmpVar, whenExpr),
+                    )
                 }
 
-                private fun cacheValue(
+                private fun createTempVar(
                     value: IrExpression,
-                    newStatements: MutableList<IrStatement>,
                     declarationParent: IrDeclarationParent,
-                ): () -> IrExpression {
-                    val isImmutableLocalGet =
-                        value is IrGetValue &&
-                            (value.symbol.owner as? IrVariable)?.isVar != true
-                    return if (value is IrConst || isImmutableLocalGet) {
-                        { value.deepCopyWithSymbols() }
-                    } else {
-                        val tmpVar =
-                            IrVariableImpl(
-                                startOffset = value.startOffset,
-                                endOffset = value.endOffset,
-                                origin = IrDeclarationOrigin.IR_TEMPORARY_VARIABLE,
-                                symbol = IrVariableSymbolImpl(),
-                                name = Name.identifier("tmp\$type\$${tmpCounter++}"),
-                                type = value.type,
-                                isVar = false,
-                                isConst = false,
-                                isLateinit = false,
-                            ).apply {
-                                parent = declarationParent
-                                initializer = value
-                            }
-                        newStatements += tmpVar
-                        {
-                            IrGetValueImpl(
-                                startOffset = UNDEFINED_OFFSET,
-                                endOffset = UNDEFINED_OFFSET,
-                                type = tmpVar.type,
-                                symbol = tmpVar.symbol,
-                            )
-                        }
+                ): IrVariable =
+                    IrVariableImpl(
+                        startOffset = value.startOffset,
+                        endOffset = value.endOffset,
+                        origin = IrDeclarationOrigin.IR_TEMPORARY_VARIABLE,
+                        symbol = IrVariableSymbolImpl(),
+                        name = Name.identifier("tmp\$type\$${tmpCounter++}"),
+                        type = value.type,
+                        isVar = false,
+                        isConst = false,
+                        isLateinit = false,
+                    ).apply {
+                        parent = declarationParent
+                        initializer = value
                     }
+
+                private fun replaceTempVarGet(
+                    target: IrExpression,
+                    tmpVar: IrVariable,
+                    replacement: IrExpression,
+                ): IrExpression =
+                    target.transform(
+                        object : IrElementTransformerVoid() {
+                            override fun visitGetValue(expression: IrGetValue): IrExpression =
+                                if (expression.symbol == tmpVar.symbol) replacement else super.visitGetValue(expression)
+                        },
+                        null,
+                    )
+
+                private fun isTrivialNonNullType(type: IrType): Boolean {
+                    if (type.isAny()) return true
+                    val owner = type.classifierOrNull?.owner
+                    if (owner is IrClass && owner.isEffectivelyExternal()) return true
+                    if (owner is IrTypeParameter) {
+                        return owner.superTypes.all { it.isNullableAny() }
+                    }
+                    return false
                 }
 
                 private fun generateTypeCheck(
+                    fromType: IrType,
                     argument: () -> IrExpression,
                     toType: IrType,
                     isSafeCast: Boolean,
                 ): IrExpression {
-                    val toNotNullable = toType.makeNotNull()
-                    val argumentInstance = argument()
-                    val fromType = argumentInstance.type
-                    val fromNotNullable = fromType.makeNotNull()
+                    if (toType is IrDynamicType) return litTrue
 
-                    val isFromNullable = fromType.isNullable()
+                    val toNotNullable = toType.makeNotNull()
+                    val fromNotNullable = fromType.makeNotNull()
+                    val isFromDynamic = fromType is IrDynamicType
+                    val isFromNullable = fromType.isNullable() || isFromDynamic
                     val isToNullable = toType.isNullable()
 
-                    if (fromNotNullable !is IrDynamicType &&
+                    if (!isFromDynamic &&
                         fromNotNullable.isSubtypeOf(toNotNullable, context.typeSystem)
                     ) {
                         return when {
@@ -337,7 +428,15 @@ class LuaTypeOperatorLowering(
                         }
                     }
 
-                    val instanceCheck = generateTypeCheckNonNull(argumentInstance, toNotNullable)
+                    if (isTrivialNonNullType(toNotNullable)) {
+                        return when {
+                            isToNullable -> litTrue
+                            isFromNullable -> buildBooleanNot(nullCheck(argument()))
+                            else -> litTrue
+                        }
+                    }
+
+                    val instanceCheck = generateTypeCheckNonNull(argument, toNotNullable)
 
                     return when {
                         !isFromNullable -> {
@@ -359,16 +458,16 @@ class LuaTypeOperatorLowering(
                 }
 
                 private fun generateTypeCheckNonNull(
-                    argument: IrExpression,
+                    argument: () -> IrExpression,
                     toType: IrType,
                 ): IrExpression =
                     when {
                         toType is IrDynamicType -> {
-                            argument
+                            litTrue
                         }
 
                         toType.isAny() -> {
-                            buildBooleanNot(nullCheck(argument))
+                            buildBooleanNot(nullCheck(argument()))
                         }
 
                         toType.isNothing() -> {
@@ -377,47 +476,47 @@ class LuaTypeOperatorLowering(
                                 UNDEFINED_OFFSET,
                                 booleanType,
                                 null,
-                                listOf(argument, litFalse),
+                                listOf(argument(), litFalse),
                             )
                         }
 
                         toType.isString() -> {
-                            buildIsTypeOf(argument, "string")
+                            buildIsTypeOf(argument(), "string")
                         }
 
                         toType.isBoolean() -> {
-                            buildIsTypeOf(argument, "boolean")
+                            buildIsTypeOf(argument(), "boolean")
                         }
 
-                        toType.isFunctionOrKFunction() -> {
-                            buildIsTypeOf(argument, "function")
+                        toType.isFunctionOrKFunction() || toType.isSuspendFunction() -> {
+                            buildIsTypeOf(argument(), "function")
                         }
 
                         toType.isFloat() || toType.isDouble() -> {
-                            buildIsTypeOf(argument, "number")
+                            buildIsTypeOf(argument(), "number")
                         }
 
                         toType.isLong() -> {
-                            buildUnaryCall(symbols.luaIsLong, argument)
+                            buildUnaryCall(symbols.luaIsLong, argument())
                         }
 
                         toType.isNumber() -> {
                             buildOrOr(
-                                buildIsTypeOf(argument, "number"),
-                                buildUnaryCall(symbols.luaIsLong, argument.deepCopyWithSymbols()),
+                                buildIsTypeOf(argument(), "number"),
+                                buildUnaryCall(symbols.luaIsLong, argument()),
                             )
                         }
 
                         toType.isInt() -> {
-                            buildUnaryCall(symbols.luaIsInt, argument)
+                            buildUnaryCall(symbols.luaIsInt, argument())
                         }
 
                         toType.isByte() -> {
-                            buildUnaryCall(symbols.luaIsByte, argument)
+                            buildUnaryCall(symbols.luaIsByte, argument())
                         }
 
                         toType.isShort() -> {
-                            buildUnaryCall(symbols.luaIsShort, argument)
+                            buildUnaryCall(symbols.luaIsShort, argument())
                         }
 
                         toType.isChar() -> {
@@ -426,13 +525,9 @@ class LuaTypeOperatorLowering(
 
                         toType.isCharSequence() -> {
                             buildOrOr(
-                                buildIsTypeOf(argument, "string"),
-                                buildIsInstance(argument.deepCopyWithSymbols(), toType),
+                                buildIsTypeOf(argument(), "string"),
+                                buildIsInstance(argument(), toType),
                             )
-                        }
-
-                        toType.isFunctionOrKFunction() || toType.isSuspendFunction() -> {
-                            buildIsTypeOf(argument, "function")
                         }
 
                         toType.isComparable() -> {
@@ -444,47 +539,44 @@ class LuaTypeOperatorLowering(
                         }
 
                         (toType.classifierOrNull?.owner as? IrClass)?.isEffectivelyExternal() == true -> {
-                            buildBooleanNot(
-                                nullCheck(argument),
-                            )
+                            buildBooleanNot(nullCheck(argument()))
                         }
 
                         else -> {
-                            buildIsInstance(argument, toType)
+                            buildIsInstance(argument(), toType)
                         }
                     }
 
                 private fun generateTypeCheckWithTypeParameter(
-                    argument: IrExpression,
+                    argument: () -> IrExpression,
                     toType: IrType,
                 ): IrExpression {
                     val typeParameterSymbol =
                         (toType.classifierOrNull as? IrTypeParameterSymbol)
-                            ?: compilationException("Expected type parameter, but got $toType", argument)
+                            ?: compilationException("Expected type parameter, but got $toType", argument())
 
                     return typeParameterSymbol.owner.superTypes
                         .filter { !it.isNullableAny() }
                         .fold<IrType, IrExpression?>(null) { acc, superType ->
-                            val copy = argument.shallowCopyOrNull() ?: argument.deepCopyWithSymbols()
-                            val check = generateTypeCheckNonNull(copy, superType.makeNotNull())
+                            val check = generateTypeCheckNonNull(argument, superType.makeNotNull())
                             if (acc == null) check else buildAndAnd(acc, check)
-                        } ?: if (toType.isNullable()) litTrue else buildBooleanNot(nullCheck(argument))
+                        } ?: if (toType.isNullable()) litTrue else buildBooleanNot(nullCheck(argument()))
                 }
 
                 private fun buildComparableCheck(
-                    argument: IrExpression,
+                    argument: () -> IrExpression,
                     toType: IrType,
                 ): IrExpression {
-                    val isNum = buildIsTypeOf(argument, "number")
-                    val isLong = buildUnaryCall(symbols.luaIsLong, argument.deepCopyWithSymbols())
-                    val isStr = buildIsTypeOf(argument.deepCopyWithSymbols(), "string")
-                    val isBool = buildIsTypeOf(argument.deepCopyWithSymbols(), "boolean")
-                    val isInst = buildIsInstance(argument.deepCopyWithSymbols(), toType)
+                    val isNum = buildIsTypeOf(argument(), "number")
+                    val isLong = buildUnaryCall(symbols.luaIsLong, argument())
+                    val isStr = buildIsTypeOf(argument(), "string")
+                    val isBool = buildIsTypeOf(argument(), "boolean")
+                    val isInst = buildIsInstance(argument(), toType)
                     return buildOrOr(buildOrOr(isNum, isLong), buildOrOr(buildOrOr(isStr, isBool), isInst))
                 }
 
-                private fun buildIsChar(argument: IrExpression): IrExpression {
-                    val isStr = buildIsTypeOf(argument, "string")
+                private fun buildIsChar(argument: () -> IrExpression): IrExpression {
+                    val isStr = buildIsTypeOf(argument(), "string")
                     val len =
                         IrCallImpl(
                             UNDEFINED_OFFSET,
@@ -493,7 +585,7 @@ class LuaTypeOperatorLowering(
                             symbols.luaLength,
                             typeArgumentsCount = 0,
                         ).apply {
-                            arguments[0] = argument.deepCopyWithSymbols()
+                            arguments[0] = argument()
                         }
                     val lenIsOne =
                         IrCallImpl(UNDEFINED_OFFSET, UNDEFINED_OFFSET, booleanType, irBuiltIns.eqeqSymbol, typeArgumentsCount = 0).apply {

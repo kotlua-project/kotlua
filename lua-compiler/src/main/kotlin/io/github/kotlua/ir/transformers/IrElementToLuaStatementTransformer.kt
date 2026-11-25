@@ -15,6 +15,7 @@
  */
 package io.github.kotlua.ir.transformers
 
+import io.github.kotlua.ast.LuaBinaryOperator
 import io.github.kotlua.ast.LuaBlock
 import io.github.kotlua.ast.LuaCompositeBlock
 import io.github.kotlua.ast.LuaExpression
@@ -32,11 +33,13 @@ import io.github.kotlua.ir.utils.resolveFieldAccess
 import io.github.kotlua.ir.utils.translateCall
 import io.github.kotlua.ir.utils.translateExternalArguments
 import org.jetbrains.kotlin.backend.common.compilationException
+import org.jetbrains.kotlin.ir.IrStatement
 import org.jetbrains.kotlin.ir.backend.js.utils.realOverrideTarget
 import org.jetbrains.kotlin.ir.declarations.IrFunction
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.*
 import org.jetbrains.kotlin.ir.symbols.IrReturnableBlockSymbol
+import org.jetbrains.kotlin.ir.types.isNothing
 import org.jetbrains.kotlin.ir.types.isUnit
 import org.jetbrains.kotlin.ir.util.constructedClass
 import org.jetbrains.kotlin.ir.util.irError
@@ -62,7 +65,7 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         data: LuaGenerationContext,
     ): LuaStatement =
         LuaBlock(
-            statements = normalizeBlockStatements(body.statements.map { it.accept(this, data) }),
+            statements = unwrapSingleBlock(translateAndNormalizeStatements(body.statements, data)),
             scope = data.currentScope,
         )
 
@@ -72,26 +75,24 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     ): LuaStatement {
         val blockScope = LuaLocalScope(data.currentScope)
         val blockContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
-        val normalized = normalizeBlockStatements(expression.statements.map { it.accept(this, blockContext) }).toMutableList()
+        val normalized = unwrapSingleBlock(translateAndNormalizeStatements(expression.statements, blockContext)).toMutableList()
         if (expression is IrReturnableBlock) {
-            while (normalized.lastOrNull() is LuaStatement.Break) {
-                normalized.removeAt(normalized.lastIndex)
-            }
+            stripTailBreaks(normalized)
             if (normalized.isEmpty()) {
                 return LuaStatement.Empty
             }
-            val block = LuaBlock(statements = normalized, scope = blockScope)
-            return if (containsBreakForCurrentLoop(normalized)) {
-                LuaStatement.RepeatUntil(
-                    body = block,
+            if (containsBreakForCurrentLoop(normalized)) {
+                return LuaStatement.RepeatUntil(
+                    body = LuaBlock(statements = normalized, scope = blockScope),
                     condition = LuaExpression.BooleanLiteral(true),
                 )
-            } else {
-                block
             }
         }
         if (normalized.isEmpty()) {
             return LuaStatement.Empty
+        }
+        if (!containsDirectLocalDeclaration(normalized)) {
+            return if (normalized.size == 1) normalized.single() else LuaCompositeBlock(normalized)
         }
         return LuaBlock(statements = normalized, scope = blockScope)
     }
@@ -309,16 +310,49 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
             return single.result.accept(this, data)
         }
 
-        return buildLuaIf(expression, data, data.currentScope) { branchResult, parentScope ->
-            val blockScope = LuaLocalScope(parentScope)
-            val branchContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
-            val stmts =
-                when (branchResult) {
-                    is IrContainerExpression -> branchResult.statements.map { it.accept(this, branchContext) }
-                    else -> listOf(branchResult.accept(this, branchContext))
+        val luaIf =
+            buildLuaIf(expression, data, data.currentScope) { branchResult, parentScope ->
+                val blockScope = LuaLocalScope(parentScope)
+                val branchContext = LuaGenerationContext(data.staticContext, blockScope, data.localNames)
+                val irStmts =
+                    when (branchResult) {
+                        is IrContainerExpression -> branchResult.statements
+                        else -> listOf(branchResult)
+                    }
+                LuaBlock(unwrapSingleBlock(translateAndNormalizeStatements(irStmts, branchContext)), blockScope)
+            }
+
+        if (luaIf.elseIfs.isEmpty()) {
+            val thenEmpty = luaIf.thenBlock.statements.isEmpty()
+            val elseBlock = luaIf.elseBlock
+            val elseEmpty = elseBlock == null || elseBlock.statements.isEmpty()
+
+            if (thenEmpty && elseEmpty) {
+                return if (isPureLuaExpression(luaIf.condition)) {
+                    LuaStatement.Empty
+                } else {
+                    LuaStatement.LocalVarDeclaration(names = listOf(LuaName("_")), initializers = listOf(luaIf.condition))
                 }
-            LuaBlock(normalizeBlockStatements(stmts), blockScope)
+            }
+            if (!thenEmpty && elseBlock != null && elseEmpty) {
+                return LuaStatement.If(
+                    condition = luaIf.condition,
+                    thenBlock = luaIf.thenBlock,
+                    elseIfs = emptyList(),
+                    elseBlock = null,
+                )
+            }
+            if (thenEmpty && elseBlock != null) {
+                return LuaStatement.If(
+                    condition = negateCondition(luaIf.condition),
+                    thenBlock = elseBlock,
+                    elseIfs = emptyList(),
+                    elseBlock = null,
+                )
+            }
         }
+
+        return luaIf
     }
 
     override fun visitTypeOperator(
@@ -385,24 +419,6 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
         data: LuaGenerationContext,
     ): LuaStatement = LuaStatement.Empty
 
-    private fun translateLoopBody(
-        body: IrExpression?,
-        data: LuaGenerationContext,
-    ): LuaBlock {
-        val bodyScope = LuaLocalScope(data.currentScope)
-        val bodyContext = LuaGenerationContext(data.staticContext, bodyScope, data.localNames)
-        val statements =
-            when (body) {
-                null -> emptyList()
-                is IrBlock -> body.statements.map { it.accept(this, bodyContext) }
-                else -> listOf(body.accept(this, bodyContext))
-            }
-        return LuaBlock(
-            statements = normalizeBlockStatements(statements),
-            scope = bodyScope,
-        )
-    }
-
     private fun normalizeBlockStatements(statements: List<LuaStatement>): List<LuaStatement> {
         val result = mutableListOf<LuaStatement>()
         for (stmt in statements) {
@@ -434,4 +450,157 @@ class IrElementToLuaStatementTransformer : BaseIrElementToLuaNodeTransformer<Lua
     }
 
     private fun LuaStatement.isBlockTerminator(): Boolean = this is LuaStatement.Break || this is LuaStatement.Return
+
+    private fun isPureLuaExpression(expr: LuaExpression): Boolean =
+        when (expr) {
+            is LuaExpression.NilLiteral,
+            is LuaExpression.BooleanLiteral,
+            is LuaExpression.IntLiteral,
+            is LuaExpression.DoubleLiteral,
+            is LuaExpression.LongLiteral,
+            is LuaExpression.StringLiteral,
+            is LuaName,
+            -> true
+
+            is LuaExpression.UnaryOp -> isPureLuaExpression(expr.operand)
+
+            is LuaExpression.BinaryOp -> isPureLuaExpression(expr.left) && isPureLuaExpression(expr.right)
+
+            else -> false
+        }
+
+    private fun translateLoopBody(
+        body: IrExpression?,
+        data: LuaGenerationContext,
+    ): LuaBlock {
+        val bodyScope = LuaLocalScope(data.currentScope)
+        val bodyContext = LuaGenerationContext(data.staticContext, bodyScope, data.localNames)
+        val irStmts =
+            when (body) {
+                null -> emptyList()
+                is IrBlock -> body.statements
+                else -> listOf(body)
+            }
+        return LuaBlock(
+            statements = unwrapSingleBlock(translateAndNormalizeStatements(irStmts, bodyContext)),
+            scope = bodyScope,
+        )
+    }
+
+    private fun translateAndNormalizeStatements(
+        irStatements: List<IrStatement>,
+        data: LuaGenerationContext,
+    ): List<LuaStatement> {
+        val translated = mutableListOf<LuaStatement>()
+        for (irStmt in irStatements) {
+            translated += irStmt.accept(this, data)
+            if (irStmt is IrThrow ||
+                irStmt is IrReturn ||
+                irStmt is IrBreakContinue ||
+                (irStmt is IrCall && irStmt.type.isNothing())
+            ) {
+                break
+            }
+        }
+        return normalizeBlockStatements(translated)
+    }
+
+    private fun unwrapSingleBlock(statements: List<LuaStatement>): List<LuaStatement> {
+        val single = statements.singleOrNull() as? LuaBlock ?: return statements
+        return single.statements
+    }
+
+    private fun containsDirectLocalDeclaration(statements: List<LuaStatement>): Boolean =
+        statements.any { stmt ->
+            when (stmt) {
+                is LuaStatement.LocalVarDeclaration,
+                is LuaStatement.LocalFunctionDeclaration,
+                -> true
+
+                is LuaCompositeBlock -> containsDirectLocalDeclaration(stmt.statements)
+
+                else -> false
+            }
+        }
+
+    private fun stripTailBreaks(statements: MutableList<LuaStatement>) {
+        while (statements.lastOrNull() is LuaStatement.Break) {
+            statements.removeAt(statements.lastIndex)
+        }
+        val last = statements.lastOrNull() ?: return
+        when (last) {
+            is LuaCompositeBlock -> {
+                val inner = last.statements.toMutableList()
+                stripTailBreaks(inner)
+                when (inner.size) {
+                    0 -> statements.removeAt(statements.lastIndex)
+                    1 -> statements[statements.lastIndex] = inner.single()
+                    else -> statements[statements.lastIndex] = LuaCompositeBlock(inner)
+                }
+            }
+
+            is LuaBlock -> {
+                val inner = last.statements.toMutableList()
+                stripTailBreaks(inner)
+                if (inner.isEmpty()) {
+                    statements.removeAt(statements.lastIndex)
+                } else {
+                    statements[statements.lastIndex] = LuaBlock(statements = inner, scope = last.scope)
+                }
+            }
+
+            is LuaStatement.If -> {
+                val newThen =
+                    last.thenBlock.statements
+                        .toMutableList()
+                        .also(::stripTailBreaks)
+                val newElseIfs =
+                    last.elseIfs.map { elseIf ->
+                        val blockStmts =
+                            elseIf.block.statements
+                                .toMutableList()
+                                .also(::stripTailBreaks)
+                        LuaStatement.If.ElseIf(
+                            condition = elseIf.condition,
+                            block = LuaBlock(statements = blockStmts, scope = elseIf.block.scope),
+                        )
+                    }
+                val newElse =
+                    last.elseBlock?.let { elseBlock ->
+                        val blockStmts = elseBlock.statements.toMutableList().also(::stripTailBreaks)
+                        LuaBlock(statements = blockStmts, scope = elseBlock.scope).takeIf { it.statements.isNotEmpty() }
+                    }
+                statements[statements.lastIndex] =
+                    LuaStatement.If(
+                        condition = last.condition,
+                        thenBlock = LuaBlock(statements = newThen, scope = last.thenBlock.scope),
+                        elseIfs = newElseIfs,
+                        elseBlock = newElse,
+                    )
+            }
+
+            else -> {
+                Unit
+            }
+        }
+    }
+
+    private fun negateCondition(condition: LuaExpression): LuaExpression =
+        when (condition) {
+            is LuaExpression.UnaryOp if condition.op == LuaUnaryOperator.Not -> {
+                condition.operand
+            }
+
+            is LuaExpression.BinaryOp if condition.op == LuaBinaryOperator.Eq -> {
+                LuaExpression.BinaryOp(condition.left, LuaBinaryOperator.Neq, condition.right)
+            }
+
+            is LuaExpression.BinaryOp if condition.op == LuaBinaryOperator.Neq -> {
+                LuaExpression.BinaryOp(condition.left, LuaBinaryOperator.Eq, condition.right)
+            }
+
+            else -> {
+                LuaExpression.UnaryOp(LuaUnaryOperator.Not, condition)
+            }
+        }
 }

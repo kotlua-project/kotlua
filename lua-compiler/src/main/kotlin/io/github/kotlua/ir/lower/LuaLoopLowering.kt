@@ -38,6 +38,7 @@ import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrLoop
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrReturnableBlock
+import org.jetbrains.kotlin.ir.expressions.IrWhen
 import org.jetbrains.kotlin.ir.expressions.IrWhileLoop
 import org.jetbrains.kotlin.ir.expressions.impl.IrBlockImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrBranchImpl
@@ -89,7 +90,32 @@ class LuaLoopLowering(
         }
     }
 
+    private fun collectTailContinues(
+        statement: IrStatement?,
+        loop: IrLoop,
+        tailContinues: MutableSet<IrContinue>,
+    ) {
+        when (statement) {
+            is IrContinue -> {
+                if (statement.loop === loop) {
+                    tailContinues += statement
+                }
+            }
+
+            is IrContainerExpression if statement !is IrReturnableBlock -> {
+                collectTailContinues(statement.statements.lastOrNull(), loop, tailContinues)
+            }
+
+            is IrWhen -> {
+                for (branch in statement.branches) {
+                    collectTailContinues(branch.result, loop, tailContinues)
+                }
+            }
+        }
+    }
+
     private fun collectLoopsWithContinue(irBody: IrBody): Set<IrLoop> {
+        val tailContinues = hashSetOf<IrContinue>()
         val result = hashSetOf<IrLoop>()
         irBody.acceptChildrenVoid(
             object : IrVisitorVoid() {
@@ -97,11 +123,25 @@ class LuaLoopLowering(
                     element.acceptChildrenVoid(this)
                 }
 
-                override fun visitFunction(declaration: IrFunction) {
+                override fun visitFunction(declaration: IrFunction) = Unit
+
+                override fun visitWhileLoop(loop: IrWhileLoop) {
+                    visitLoop(loop)
+                }
+
+                override fun visitDoWhileLoop(loop: IrDoWhileLoop) {
+                    visitLoop(loop)
+                }
+
+                override fun visitLoop(loop: IrLoop) {
+                    collectTailContinues(loop.body, loop, tailContinues)
+                    super.visitLoop(loop)
                 }
 
                 override fun visitContinue(jump: IrContinue) {
-                    result += jump.loop
+                    if (jump !in tailContinues) {
+                        result += jump.loop
+                    }
                     super.visitContinue(jump)
                 }
             },
@@ -184,7 +224,9 @@ class LuaLoopLowering(
                 }
 
                 override fun visitContinue(jump: IrContinue) {
-                    recordJump(BarrierKey.ContinueWrapper(jump.loop))
+                    if (jump.loop in loopsNeedingContinueWrapper) {
+                        recordJump(BarrierKey.ContinueWrapper(jump.loop))
+                    }
                     super.visitContinue(jump)
                 }
 
@@ -486,7 +528,12 @@ class LuaLoopLowering(
 
         override fun visitBreak(jump: IrBreak): IrExpression = translateJump(BarrierKey.Loop(jump.loop), jump)
 
-        override fun visitContinue(jump: IrContinue): IrExpression = translateJump(BarrierKey.ContinueWrapper(jump.loop), jump)
+        override fun visitContinue(jump: IrContinue): IrExpression {
+            if (jump.loop !in analysis.loopsNeedingContinueWrapper) {
+                return IrCompositeImpl(jump.startOffset, jump.endOffset, unitType, null, emptyList())
+            }
+            return translateJump(BarrierKey.ContinueWrapper(jump.loop), jump)
+        }
 
         override fun visitReturn(expression: IrReturn): IrExpression {
             val targetSymbol = expression.returnTargetSymbol

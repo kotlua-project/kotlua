@@ -32,6 +32,7 @@ import io.github.kotlua.ir.lower.LuaMultiReturnLowering
 import io.github.kotlua.ir.lower.LuaReturnableBlockLowering
 import io.github.kotlua.ir.lower.LuaSingleAbstractMethodLowering
 import io.github.kotlua.ir.lower.LuaStringConcatenationLowering
+import io.github.kotlua.ir.lower.LuaTempVariableCleanupLowering
 import io.github.kotlua.ir.lower.LuaTryCatchLowering
 import io.github.kotlua.ir.lower.LuaTypeOperatorLowering
 import io.github.kotlua.ir.lower.LuaVarargLowering
@@ -174,6 +175,7 @@ val luaLowerings: List<NamedCompilerPhase<LuaIrBackendContext, IrModuleFragment,
         ::LuaMultiReturnLowering,
         ::MainFunctionCallWrapperLowering,
         ::CallsLowering,
+        ::LuaTempVariableCleanupLowering,
     )
 
 fun luaLoweringsOfTheFirstPhase(
