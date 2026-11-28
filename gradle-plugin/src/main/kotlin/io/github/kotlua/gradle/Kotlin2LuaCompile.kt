@@ -6,18 +6,20 @@ import groovy.lang.Closure
 import io.github.kotlua.cli.compiler.K2LuaCompilerArguments
 import io.github.kotlua.gradle.dsl.KotlinLuaCompilerOptions
 import io.github.kotlua.gradle.dsl.KotlinLuaCompilerOptionsHelper
+import io.github.kotlua.gradle.worker.KotlinLuaCompileWorkAction
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.*
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.specs.Spec
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.util.PatternFilterable
 import org.gradle.api.tasks.util.PatternSet
-import org.gradle.process.ExecOperations
 import org.gradle.work.Incremental
 import org.gradle.work.NormalizeLineEndings
+import org.gradle.workers.WorkerExecutor
 import org.jetbrains.kotlin.compilerRunner.ArgumentUtils
 import org.jetbrains.kotlin.gradle.InternalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerArgumentsProducer
@@ -31,8 +33,9 @@ import javax.inject.Inject
 @OptIn(InternalKotlinGradlePluginApi::class)
 abstract class Kotlin2LuaCompile @Inject constructor(
     @get:Nested val compilerOptions: KotlinLuaCompilerOptions,
-    private val execOperations: ExecOperations,
+    private val workerExecutor: WorkerExecutor,
     objectFactory: ObjectFactory,
+    providers: ProviderFactory,
 ) : DefaultTask(), KotlinCompileTool, KotlinCompilerArgumentsProducer, ProducesKlib {
 
     @Internal
@@ -47,7 +50,7 @@ abstract class Kotlin2LuaCompile @Inject constructor(
 
     @get:Classpath
     val compilerClasspath: ConfigurableFileCollection =
-        project.objects.fileCollection()
+        objectFactory.fileCollection()
 
     @get:Input
     abstract val multiPlatformEnabled: Property<Boolean>
@@ -61,6 +64,11 @@ abstract class Kotlin2LuaCompile @Inject constructor(
 
     override val klibOutput: Provider<File>
         get() = destinationDirectory.asFile
+
+    @get:Internal
+    val workerTmpDir: Property<String> =
+        objectFactory.property(String::class.java)
+            .convention(providers.systemProperty("java.io.tmpdir"))
 
     @TaskAction
     fun compile() {
@@ -76,20 +84,21 @@ abstract class Kotlin2LuaCompile @Inject constructor(
         }
 
         val argsList = ArgumentUtils.convertArgumentsToStringList(args)
+        val tmpDir = workerTmpDir.orNull?.takeIf { it.isNotBlank() }
 
-        val argfile = temporaryDir.resolve("compiler-args.txt")
-
-        argfile.bufferedWriter().use { writer ->
-            argsList.forEach {
-                writer.write(it)
-                writer.newLine()
+        val workQueue = workerExecutor.processIsolation {
+            classpath.from(compilerClasspath)
+            forkOptions {
+                maxHeapSize = "1g"
+                tmpDir?.let {
+                    systemProperty("java.io.tmpdir", tmpDir)
+                    environment("TEMP", tmpDir)
+                    environment("TMP", tmpDir)
+                }
             }
         }
-
-        execOperations.javaexec {
-            classpath = compilerClasspath
-            this.args = listOf("@${argfile.absolutePath}")
-            mainClass.set("io.github.kotlua.cli.compiler.K2LuaCompiler")
+        workQueue.submit(KotlinLuaCompileWorkAction::class.java) {
+            compilerArgs.set(argsList)
         }
     }
 

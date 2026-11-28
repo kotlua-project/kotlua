@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.kotlua.cli.compiler
+import io.github.kotlua.publishKotluaJvmLibrary
 
-import org.jetbrains.kotlin.cli.common.arguments.CommonCompilerArguments
-import org.jetbrains.kotlin.cli.common.arguments.CommonKlibBasedCompilerArgumentsConfigurator
-
-class K2LuaCompilerArgumentsConfigurator : CommonKlibBasedCompilerArgumentsConfigurator() {
-    override fun isSecondStage(arguments: CommonCompilerArguments): Boolean =
-        with(arguments) {
-            require(this is K2LuaCompilerArguments)
-
-            return includes != null
-        }
+plugins {
+    alias(libs.plugins.kotlua.kotlin)
+    alias(libs.plugins.kotlua.publishing)
 }
+
+dependencies {
+    compileOnly(libs.kotlin.compiler.embeddable)
+}
+
+publishKotluaJvmLibrary(
+    artifactId = "kotlua-compiler-api",
+)

@@ -38,6 +38,7 @@ dependencies {
     compileOnly(libs.kotlin.gradle.plugin)
     compileOnly(libs.spotless.gradle.plugin)
     compileOnly(libs.detekt.gradle.plugin)
+    implementation(libs.vanniktech.mavenPublish)
 }
 
 gradlePlugin {
@@ -62,6 +63,13 @@ gradlePlugin {
                     .get()
                     .pluginId
             implementationClass = "SpotlessConventionPlugin"
+        }
+        register("publishing") {
+            id =
+                libs.plugins.kotlua.publishing
+                    .get()
+                    .pluginId
+            implementationClass = "PublishingConventionPlugin"
         }
         register("root") {
             id =

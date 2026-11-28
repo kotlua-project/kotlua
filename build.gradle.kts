@@ -19,3 +19,26 @@ plugins {
     alias(libs.plugins.detekt) apply true
     alias(libs.plugins.kotlua.root)
 }
+
+val publishAllToMavenLocal = tasks.register("publishAllToMavenLocal") {
+    group = "publishing"
+    description = "Publishes all Kotlua artifacts and Gradle plugin to mavenLocal"
+    dependsOn(gradle.includedBuild("gradle-plugin").task(":publishToMavenLocal"))
+}
+
+val publishAllToMavenCentral = tasks.register("publishAllToMavenCentral") {
+    group = "publishing"
+    description = "Publishes all Kotlua artifacts and Gradle plugin to Maven Central"
+    dependsOn(gradle.includedBuild("gradle-plugin").task(":publishToMavenCentral"))
+}
+
+subprojects {
+    plugins.withId("com.vanniktech.maven.publish.base") {
+        publishAllToMavenLocal.configure {
+            dependsOn(tasks.named("publishToMavenLocal"))
+        }
+        publishAllToMavenCentral.configure {
+            dependsOn(tasks.named("publishToMavenCentral"))
+        }
+    }
+}

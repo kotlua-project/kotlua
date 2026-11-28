@@ -37,6 +37,7 @@ include(
     ":lua-ast",
     ":lua-stdlib",
     ":lua-stdlib:minimal",
+    ":lua-compiler-api",
     ":example",
     ":tooling:model"
 )

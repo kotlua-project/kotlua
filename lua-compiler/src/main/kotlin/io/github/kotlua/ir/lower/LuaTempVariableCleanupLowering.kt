@@ -38,7 +38,7 @@ import org.jetbrains.kotlin.ir.visitors.acceptChildrenVoid
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 
 class LuaTempVariableCleanupLowering(
-    val irBackendContext: LuaIrBackendContext
+    val irBackendContext: LuaIrBackendContext,
 ) : BodyLoweringPass {
     override fun lower(
         irBody: IrBody,
@@ -298,10 +298,10 @@ class LuaTempVariableCleanupLowering(
     private tailrec fun unwrapNoOpCasts(expr: IrExpression): IrExpression =
         if (expr is IrTypeOperatorCall &&
             (
-                    expr.operator == IrTypeOperator.IMPLICIT_CAST ||
-                            expr.operator == IrTypeOperator.IMPLICIT_DYNAMIC_CAST ||
-                            expr.operator == IrTypeOperator.REINTERPRET_CAST
-                    )
+                expr.operator == IrTypeOperator.IMPLICIT_CAST ||
+                    expr.operator == IrTypeOperator.IMPLICIT_DYNAMIC_CAST ||
+                    expr.operator == IrTypeOperator.REINTERPRET_CAST
+            )
         ) {
             unwrapNoOpCasts(expr.argument)
         } else {
@@ -362,7 +362,7 @@ class LuaTempVariableCleanupLowering(
                         is IrThrow,
                         is IrReturn,
                         is IrBreakContinue,
-                            -> ok = false
+                        -> ok = false
 
                         is IrDynamicOperatorExpression if element.operator.isAssignmentOperator -> ok = false
 
@@ -547,9 +547,13 @@ class LuaTempVariableCleanupLowering(
                     }
                 }
 
-                is IrExpression -> visitExpr(nextStmt)
+                is IrExpression -> {
+                    visitExpr(nextStmt)
+                }
 
-                else -> nextStmt
+                else -> {
+                    nextStmt
+                }
             }
 
         return if (replaced && !aborted) updated else null

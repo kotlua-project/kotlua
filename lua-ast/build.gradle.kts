@@ -13,6 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import io.github.kotlua.publishKotluaJvmLibrary
+
 plugins {
     alias(libs.plugins.kotlua.kotlin)
+    alias(libs.plugins.kotlua.publishing)
 }
+
+publishKotluaJvmLibrary(
+    artifactId = "kotlua-ast",
+)

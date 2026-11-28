@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 import com.strumenta.antlrkotlin.gradle.AntlrKotlinTask
+import io.github.kotlua.publishKotluaJvmLibrary
 
 plugins {
     alias(libs.plugins.kotlua.kotlin)
     alias(libs.plugins.antlr4.kotlin)
+    alias(libs.plugins.kotlua.publishing)
 }
 
 dependencies {
     api(projects.luaAst)
 }
+
+publishKotluaJvmLibrary(
+    artifactId = "kotlua-parser",
+    description = "Lua 5.1 parser",
+)
 
 val antlrGeneratedPackage = "io.github.kotlua.parser.generated"
 val antlrGeneratedDir = "generatedAntlr/${antlrGeneratedPackage.replace(".", "/")}"

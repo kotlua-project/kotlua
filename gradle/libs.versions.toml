@@ -5,6 +5,7 @@ spotless = "8.10.3"
 detekt = "2.0.0-alpha.6"
 antlrKotlin = "1.0.14"
 luaj = "3.0.1"
+vanniktechMavenPublish = "0.37.0"
 
 [libraries]
 antlr-kotlin-runtime = { module = "com.strumenta:antlr-kotlin-runtime", version.ref = "antlrKotlin" }
@@ -19,6 +20,7 @@ kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref =
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 detekt-gradle-plugin = { module = "dev.detekt:dev.detekt.gradle.plugin", version.ref = "detekt" }
 luaj-jse = { module = "org.luaj:luaj-jse", version.ref = "luaj" }
+vanniktech-mavenPublish = { module = "com.vanniktech.maven.publish:com.vanniktech.maven.publish.gradle.plugin", version.ref = "vanniktechMavenPublish" }
 
 [plugins]
 antlr4-kotlin = { id = "com.strumenta.antlr-kotlin", version.ref = "antlrKotlin" }
@@ -30,4 +32,5 @@ kotlua-kotlin = { id = "kotlua.kotlin-convention" }
 kotlua-root = { id = "kotlua.root" }
 kotlua-test-fixtures = { id = "kotlua.test-fixtures" }
 kotlua-spotless = { id = "kotlua.spotless" }
-kotlua-gradlePlugin = { id = "kotlua.gradlePlugin" }
+kotlua-publishing = { id = "kotlua.publishing" }
+kotlua-gradlePlugin = { id = "io.github.kotlua-project" }

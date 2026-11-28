@@ -15,9 +15,11 @@
  */
 import java.io.StringReader
 import java.util.Properties
+import io.github.kotlua.publishKotluaJvmLibrary
 
 plugins {
     alias(libs.plugins.kotlua.kotlin)
+    alias(libs.plugins.kotlua.publishing)
 }
 
 kotlin {
@@ -29,10 +31,16 @@ kotlin {
 dependencies {
     implementation(projects.luaAst)
     implementation(projects.luaParser)
+    implementation(projects.luaCompilerApi)
     implementation(libs.kotlin.compiler.embeddable)
 
     testImplementation(libs.luaj.jse)
 }
+
+publishKotluaJvmLibrary(
+    artifactId = "kotlua-compiler",
+    description = "Kotlin to Lua compiler",
+)
 
 val stdlibKlibFile =
     rootProject.layout.projectDirectory.file("lua-stdlib/build/lua/classes/kotlin-stdlib-lua.klib")

@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import io.github.kotlua.gradle.Kotlin2LuaCompile
 import javax.inject.Inject
 import org.gradle.api.attributes.Category
 import org.gradle.api.attributes.DocsType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
+import io.github.kotlua.publishKotluaKlib
 
 plugins {
     base
     alias(libs.plugins.kotlua.gradlePlugin)
+    alias(libs.plugins.kotlua.publishing)
 }
 
 val commonSourcesConfig = configurations.create("commonSourcesConfig") {
@@ -136,6 +139,13 @@ artifacts {
     add(commonNonJvmMainFullSourcesElements.name, commonNonJvmMainFullSources)
     add(luaMainFullSourcesElements.name, luaMainFullSources)
 }
+
+publishKotluaKlib(
+    artifactId = "kotlin-stdlib-lua",
+    klibArtifact = tasks.named<Kotlin2LuaCompile>("kotlinLuaCompile").flatMap { it.destinationDirectory.file("kotlin-stdlib-lua.klib") },
+    sourcesFiles = listOf(commonMainFullSources, commonNonJvmMainFullSources, luaMainFullSources),
+    description = "Kotlin stdlib for Lua"
+)
 
 sourceSets {
     commonMain {

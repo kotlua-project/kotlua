@@ -6,7 +6,6 @@ import io.github.kotlua.gradle.model.impl.DefaultKotluaCompilation
 import io.github.kotlua.gradle.model.impl.DefaultKotluaGradleModel
 import io.github.kotlua.gradle.model.impl.DefaultKotluaSourceSet
 import org.gradle.api.Project
-import java.io.File
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.tooling.provider.model.ToolingModelBuilder
@@ -28,7 +27,7 @@ class KotluaModelBuilder : ToolingModelBuilder {
             ?: return emptyModel()
 
         val klibs = runCatching {
-            val config = project.configurations.findByName("luaMainImplementation")
+            val config = project.configurations.findByName(luaMain.implementationConfigurationName)
                 ?: project.configurations.findByName("compileClasspath")
             config?.incoming?.artifacts?.artifactFiles?.files
                 ?.filter { it.extension == "klib" || it.isDirectory }
@@ -73,7 +72,7 @@ class KotluaModelBuilder : ToolingModelBuilder {
             ?: project.layout.buildDirectory.dir("classes/kotlin/luaMain").get().asFile
 
         return DefaultKotluaGradleModel(
-            kotluaPluginVersion = "1.0.0",
+            kotluaPluginVersion = KotluaBuildConfig.VERSION,
             sourceSetsByName = mapOf(
                 commonSourceSetModel.name to commonSourceSetModel,
                 luaSourceSetModel.name to luaSourceSetModel
@@ -99,7 +98,7 @@ class KotluaModelBuilder : ToolingModelBuilder {
 
     private fun emptyModel(): KotluaGradleModel {
         return DefaultKotluaGradleModel(
-            kotluaPluginVersion = "1.0.0",
+            kotluaPluginVersion = KotluaBuildConfig.VERSION,
             sourceSetsByName = emptyMap(),
             compilationsBySourceSetName = emptyMap()
         )

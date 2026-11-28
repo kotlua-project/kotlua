@@ -13,17 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import io.github.kotlua.publishKotluaGradlePlugin
+import io.github.kotlua.util.GenerateKotluaBuildConfigTask
+
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.kotlua.publishing)
 }
 
 kotlin {
-    jvmToolchain(25)
+    jvmToolchain(21)
 }
 
 dependencies {
-    implementation(project(":compiler-options"))
-    compileOnly(libs.kotlin.gradle.plugin)
+    api(libs.kotlin.gradle.plugin)
+    implementation("$group:kotlua-compiler-api:$version")
+    implementation("$group:kotlua-tooling-model:$version")
+    compileOnly(libs.kotlin.compiler.embeddable)
 }
 
 gradlePlugin {
@@ -35,5 +41,21 @@ gradlePlugin {
                     .pluginId
             implementationClass = "io.github.kotlua.gradle.KotlinLuaPlugin"
         }
+    }
+}
+
+publishKotluaGradlePlugin()
+
+val generateKotluaBuildConfig =
+    tasks.register<GenerateKotluaBuildConfigTask>("generateKotluaBuildConfig") {
+        kotluaGroup.set(provider { project.group.toString() })
+        kotluaVersion.set(provider { project.version.toString() })
+        kotlinVersion.set(libs.versions.kotlin)
+        outputDir.set(layout.buildDirectory.dir("generated/sources/buildConfig/kotlin"))
+    }
+
+sourceSets {
+    main {
+        kotlin.srcDir(generateKotluaBuildConfig.flatMap { it.outputDir })
     }
 }

@@ -18,6 +18,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    includeBuild("../build-logic")
 }
 
 dependencyResolutionManagement {
@@ -32,5 +33,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "gradle-plugin"
-include(":compiler-options")
+rootProject.name = "kotlua-gradle-plugin"

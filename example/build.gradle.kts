@@ -3,15 +3,9 @@ plugins {
     alias(libs.plugins.kotlua.gradlePlugin)
 }
 
-kotlua {
-    compilerOptions {
-        moduleName = "example"
-    }
-}
-
-val minimalStdlib = rootProject.rootDir.resolve("lua-stdlib/minimal/build/lua/classes/kotlin-stdlib-lua.klib")
+val stdlib = rootProject.rootDir.resolve("lua-stdlib/build/lua/classes/kotlin-stdlib-lua.klib")
 
 dependencies {
     kotluaCompilerClasspath(projects.luaCompiler)
-    luaMainImplementation(files(minimalStdlib))
+    luaMainImplementation(files(stdlib))
 }
